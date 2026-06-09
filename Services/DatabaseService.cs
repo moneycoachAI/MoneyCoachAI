@@ -1,0 +1,29 @@
+using Microsoft.Extensions.Options;
+using MongoDB.Driver;
+using MoneyCoachAI.Api.Models;
+using MoneyCoachAI.Api.Settings;
+
+namespace MoneyCoachAI.Api.Services;
+
+public class DatabaseService
+{
+    private readonly IMongoDatabase _database;
+
+    public DatabaseService(IOptions<MongoDbSettings> mongoDbSettings)
+    {
+        var mongoClient = new MongoClient(
+            mongoDbSettings.Value.ConnectionString);
+
+        _database = mongoClient.GetDatabase(
+            mongoDbSettings.Value.DatabaseName);
+    }
+
+    public IMongoCollection<User> UsersCollection =>
+        _database.GetCollection<User>("Users");
+
+    public IMongoCollection<Expense> ExpensesCollection =>
+        _database.GetCollection<Expense>("Expenses");
+
+    public IMongoCollection<Budget> BudgetsCollection =>
+        _database.GetCollection<Budget>("Budgets");
+}
