@@ -90,8 +90,22 @@ builder.Services.AddScoped<BudgetService>();
 builder.Services.AddScoped<ReportService>();
 
 builder.Services.AddScoped<SuggestionService>();
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("ReactPolicy",
+        policy =>
+        {
+            policy
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials()
+            .WithOrigins("http://localhost:5173");  //allow React to call ASP.NET.
+        });
+});
 var app = builder.Build();
 
+app.UseCors("ReactPolicy");
 
 //Configure middleware
 if (app.Environment.IsDevelopment())
