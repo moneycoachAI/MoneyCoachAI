@@ -7,6 +7,7 @@ import DashboardPage from "../pages/DashboardPage";
 import ExpensesPage from "../pages/ExpensesPage";
 import BudgetsPage from "../pages/BudgetsPage";
 import ReportsPage from "../pages/ReportsPage";
+import SuggestionsPage from "../pages/SuggestionsPage";
 
 function AppRoutes() {
     return(
@@ -37,6 +38,12 @@ function AppRoutes() {
                 <Route path="/reports" element={
                     <ProtectRoute>
                         <ReportsPage />
+                    </ProtectRoute>
+                } />
+
+                <Route path="/suggestions" element={
+                    <ProtectRoute>
+                        <SuggestionsPage />
                     </ProtectRoute>
                 } />
             </Routes>
