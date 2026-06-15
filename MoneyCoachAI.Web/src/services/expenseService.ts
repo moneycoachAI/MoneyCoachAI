@@ -3,6 +3,7 @@ import axiosClient from "../api/axiosClient";
 import type {
     CreateExpenseRequest,
     Expense,
+    UpdateExpenseRequest,
 }from "../types/expenseTypes";
 
 
@@ -15,6 +16,15 @@ export const getExpenses = async () : Promise<Expense[]> => {
 export const createExpense = async (data: CreateExpenseRequest
 ):Promise<string> => {
     const response = await axiosClient.post<string>("/Expenses", data);
+
+    return response.data;
+};
+
+export const updateExpense = async (
+    id: string,
+    data: UpdateExpenseRequest
+): Promise<string> => {
+    const response = await axiosClient.put<string>(`/Expenses/${id}`, data);
 
     return response.data;
 };

@@ -3,6 +3,7 @@ import {
   createExpense,
   deleteExpense,
   getExpenses,
+  updateExpense,
 } from "../services/expenseService";
 import type { Expense } from "../types/expenseTypes";
 
@@ -15,6 +16,8 @@ function ExpensesPage() {
   const [date, setDate] = useState("");
 
   const [loading, setLoading] = useState(true);
+  
+  const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
 
 useEffect(() => {
   const loadExpenses = async () => {
@@ -33,32 +36,47 @@ useEffect(() => {
 }, []);
 
 
-  const handleCreateExpense = async (
-    e: React.FormEvent<HTMLFormElement>
-  ) => {
-    e.preventDefault();
+  const handleSubmitExpense = async (
+  e: React.FormEvent<HTMLFormElement>
+) => {
+  e.preventDefault();
 
-    try {
-      await createExpense({
-        amount: Number(amount),
-        category,
-        description,
-        date,
-      });
+  try {
+    const expenseData = {
+      amount: Number(amount),
+      category,
+      description,
+      date,
+    };
 
-      setAmount("");
-      setCategory("");
-      setDescription("");
-      setDate("");
-
-      const updatedExpenses = await getExpenses();
-      setExpenses(updatedExpenses);
-
+    if (editingExpenseId) {
+      await updateExpense(editingExpenseId, expenseData);
+      alert("Expense updated successfully");
+    } else {
+      await createExpense(expenseData);
       alert("Expense created successfully");
-    } catch (error) {
-      console.error(error);
-      alert("Failed to create expense");
     }
+
+    setAmount("");
+    setCategory("");
+    setDescription("");
+    setDate("");
+    setEditingExpenseId(null);
+
+    const updatedExpenses = await getExpenses();
+    setExpenses(updatedExpenses);
+  } catch (error) {
+    console.error(error);
+    alert("Failed to save expense");
+  }
+};
+
+  const handleEditClick = (expense: Expense) => {
+    setEditingExpenseId(expense.id);
+    setAmount(expense.amount.toString());
+    setCategory(expense.category);
+    setDescription(expense.description);
+    setDate(expense.date.split("T")[0]);
   };
 
   const handleDeleteExpense = async (id: string) => {
@@ -84,7 +102,7 @@ useEffect(() => {
     <div>
       <h1>Expenses</h1>
 
-      <form onSubmit={handleCreateExpense}>
+      <form onSubmit={handleSubmitExpense}>
         <div>
           <input
             type="number"
@@ -120,7 +138,21 @@ useEffect(() => {
           />
         </div>
 
-        <button type="submit">Add Expense</button>
+        <button type="submit">
+            {editingExpenseId ? "Update Expense" : "Add Expense"}
+        </button>
+
+        {editingExpenseId && (
+            <button type="button" onClick={() => {
+                setEditingExpenseId(null);
+                setAmount("");
+                setCategory("");
+                setDescription("");
+                setDate("");
+            }}>
+                Cancel Edit
+            </button>
+        )}
       </form>
 
       <hr />
@@ -149,6 +181,9 @@ useEffect(() => {
                 <td>{expense.description}</td>
                 <td>{new Date(expense.date).toLocaleDateString()}</td>
                 <td>
+                <button onClick={() => handleEditClick(expense)}>
+                    Edit
+                  </button>
                   <button onClick={() => handleDeleteExpense(expense.id)}>
                     Delete
                   </button>
