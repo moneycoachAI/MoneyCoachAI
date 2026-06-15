@@ -5,6 +5,8 @@ import {
   getExpenses,
   updateExpense,
 } from "../services/expenseService";
+
+import { categories } from "../constants/categories";
 import type { Expense } from "../types/expenseTypes";
 
 function ExpensesPage() {
@@ -113,12 +115,18 @@ useEffect(() => {
         </div>
 
         <div>
-          <input
-            type="text"
-            placeholder="Category"
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-          />
+          <select
+  value={category}
+  onChange={(e) => setCategory(e.target.value)}
+>
+  <option value="">Select Category</option>
+
+  {categories.map((item) => (
+    <option key={item} value={item}>
+      {item}
+    </option>
+  ))}
+</select>
         </div>
 
         <div>
