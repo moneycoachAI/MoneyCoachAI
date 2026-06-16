@@ -43,9 +43,12 @@ public class AIAdvisorService
 
         if(string.IsNullOrWhiteSpace(_openAISettings.ApiKey))
         {
+            var fallbackAdvice = string.Join("\n",
+                suggestions.Select(suggestion => $"-{suggestion.Message}"));
+
             return new AIAdviceResponse
             {
-                Advice = "AI Advisor is ready, but openAI Api key is not configure yet. Add your API key later to enable real AI advice."
+                Advice = $"OpenAI API key is not configured yet. Showing rule-based advice instead:\n\n{fallbackAdvice}"
             };
         }
 

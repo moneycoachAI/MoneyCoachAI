@@ -57,4 +57,15 @@ public class BudgetRepository
                 budget.Year == year)
             .ToListAsync();
     }
+
+    public async Task<List<Budget>> GetByUserYearAsync(
+    string userId,
+    int year)
+    {
+        return await _budgets
+            .Find(budget =>
+                budget.UserId == userId &&
+                budget.Year == year)
+            .ToListAsync();
+    }
 }

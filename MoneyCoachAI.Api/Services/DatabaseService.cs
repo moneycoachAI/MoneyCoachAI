@@ -26,4 +26,7 @@ public class DatabaseService
 
     public IMongoCollection<Budget> BudgetsCollection =>
         _database.GetCollection<Budget>("Budgets");
+
+    public IMongoCollection<Income> IncomesCollection =>
+        _database.GetCollection<Income>("Incomes");
 }

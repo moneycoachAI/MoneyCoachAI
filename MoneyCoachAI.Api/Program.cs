@@ -91,6 +91,12 @@ builder.Services.AddScoped<ReportService>();
 
 builder.Services.AddScoped<SuggestionService>();
 
+builder.Services.AddScoped<DashboardService>();
+
+builder.Services.AddScoped<IncomeRepository>();
+builder.Services.AddScoped<IncomeService>();
+
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("ReactPolicy",

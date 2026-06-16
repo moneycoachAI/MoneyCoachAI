@@ -25,6 +25,15 @@ public class ExpenseRepository
             .ToListAsync();
     }
 
+    public async Task<List<Expense>> GetByUserYearAsync(string userId, int year)
+    {
+        return await _expenses
+            .Find(expense =>
+                expense.UserId == userId &&
+                expense.Date.Year == year)
+            .ToListAsync();
+    }
+
     public async Task<Expense?> GetByIdAndUserIdAsync(string id, string userId)
     {
         return await _expenses
@@ -45,15 +54,16 @@ public class ExpenseRepository
             expense => expense.Id == id && expense.UserId == userId);
     }
 
-    public async Task<List<Expense>> GetByUserMonthYearAsync(string userId, int month,int year)
+    public async Task<List<Expense>> GetByUserMonthYearAsync(
+        string userId,
+        int month,
+        int year)
     {
         return await _expenses
-       .Find(expense =>
-           expense.UserId == userId &&
-           expense.Date.Month == month &&
-           expense.Date.Year == year)
-       .ToListAsync();
+            .Find(expense =>
+                expense.UserId == userId &&
+                expense.Date.Month == month &&
+                expense.Date.Year == year)
+            .ToListAsync();
     }
-
-
 }

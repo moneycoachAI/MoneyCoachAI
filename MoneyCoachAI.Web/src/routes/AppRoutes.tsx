@@ -9,6 +9,7 @@ import BudgetsPage from "../pages/BudgetsPage";
 import ReportsPage from "../pages/ReportsPage";
 import SuggestionsPage from "../pages/SuggestionsPage";
 import AIAdvisorPage from "../pages/AIAdvisorPage";
+import IncomesPage from "../pages/IncomesPage";
 
 function AppRoutes() {
     return(
@@ -51,6 +52,12 @@ function AppRoutes() {
                 <Route path="/ai-advisor" element={
                     <ProtectRoute>
                         <AIAdvisorPage />
+                    </ProtectRoute>
+                } />
+                
+                <Route path="/incomes" element={
+                    <ProtectRoute>
+                        <IncomesPage></IncomesPage>
                     </ProtectRoute>
                 } />
             </Routes>

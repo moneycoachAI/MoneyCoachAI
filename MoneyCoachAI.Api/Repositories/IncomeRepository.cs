@@ -1,0 +1,76 @@
+using MongoDB.Driver;
+using MoneyCoachAI.Api.Models;
+using MoneyCoachAI.Api.Services;
+
+namespace MoneyCoachAI.Api.Repositories;
+
+public class IncomeRepository
+{
+    private readonly IMongoCollection<Income> _incomes;
+
+    public IncomeRepository(DatabaseService databaseService)
+    {
+        _incomes = databaseService.IncomesCollection;
+    }
+
+    public async Task CreateAsync(Income income)
+    {
+        await _incomes.InsertOneAsync(income);
+    }
+
+    public async Task<List<Income>> GetByUserIdAsync(string userId)
+    {
+        return await _incomes
+            .Find(income => income.UserId == userId)
+            .ToListAsync();
+    }
+
+    public async Task<List<Income>> GetByUserMonthYearAsync(
+        string userId,
+        int month,
+        int year)
+    {
+        return await _incomes
+            .Find(income =>
+                income.UserId == userId &&
+                income.Date.Month == month &&
+                income.Date.Year == year)
+            .ToListAsync();
+    }
+
+    public async Task<List<Income>> GetByUserYearAsync(
+        string userId,
+        int year)
+    {
+        return await _incomes
+            .Find(income =>
+                income.UserId == userId &&
+                income.Date.Year == year)
+            .ToListAsync();
+    }
+
+    public async Task<Income?> GetByIdAndUserIdAsync(
+        string id,
+        string userId)
+    {
+        return await _incomes
+            .Find(income => income.Id == id && income.UserId == userId)
+            .FirstOrDefaultAsync();
+    }
+
+    public async Task UpdateAsync(
+        string id,
+        string userId,
+        Income updatedIncome)
+    {
+        await _incomes.ReplaceOneAsync(
+            income => income.Id == id && income.UserId == userId,
+            updatedIncome);
+    }
+
+    public async Task DeleteAsync(string id, string userId)
+    {
+        await _incomes.DeleteOneAsync(
+            income => income.Id == id && income.UserId == userId);
+    }
+}

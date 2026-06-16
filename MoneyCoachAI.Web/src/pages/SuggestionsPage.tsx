@@ -8,6 +8,25 @@ function SuggestionsPage() {
   const [suggestions, setSuggestions] = useState<SuggestionResponse[]>([]);
   const [loading, setLoading] = useState(false);
 
+  const getBorderColor = (severity: string) => {
+    switch (severity) {
+      case "Success":
+        return "green";
+
+      case "Warning":
+        return "orange";
+
+      case "Danger":
+        return "red";
+
+      case "Info":
+        return "blue";
+
+      default:
+        return "gray";
+    }
+  };
+
   const handleLoadSuggestions = async () => {
     try {
       setLoading(true);
@@ -62,15 +81,23 @@ function SuggestionsPage() {
             <div
               key={`${suggestion.type}-${suggestion.category}-${index}`}
               style={{
-                border: "1px solid #ccc",
+                border: `3px solid ${getBorderColor(
+                  suggestion.severity
+                )}`,
                 padding: "12px",
                 marginBottom: "10px",
               }}
             >
               <h3>{suggestion.type}</h3>
+
+              <p>
+                <strong>Severity:</strong> {suggestion.severity}
+              </p>
+
               <p>
                 <strong>Category:</strong> {suggestion.category}
               </p>
+
               <p>{suggestion.message}</p>
             </div>
           ))}
