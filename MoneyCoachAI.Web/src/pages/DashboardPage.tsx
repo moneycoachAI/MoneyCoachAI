@@ -1,15 +1,37 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getMonthlyDashboardCards } from "../services/dashboardService";
+import { getMonthlyDashboardCards, getTopCategory } from "../services/dashboardService";
 import type { MonthlyDashboardCard } from "../types/dashboardTypes";
+import DashboardCharts from "../components/DashboardCharts";
+import { getExpenses } from "../services/expenseService";
+import { getIncomes } from "../services/incomeService";
+import type { financialActivity } from "../types/financialActivityTypes";
+import { getBudgets } from "../services/budgetService";
+import type { Budget } from "../types/budgetTypes";
+import type { TopCategory } from "../types/topCategoryTypes";
 
 function DashboardPage() {
   const [year, setYear] = useState("2026");
   const [cards, setCards] = useState<MonthlyDashboardCard[]>([]);
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  
 
   const navigate = useNavigate();
+
+  const [recentTransactions, setRecentTransactions] = useState<
+  financialActivity[]>([]);
+
+  const [recentBudgets, setRecentBudgets] = useState<Budget[]>([]);
+
+
+  const [ topCategory, setTopCategory] =  useState<TopCategory | null>(null);
+
+  const [topCategoryMonth, setTopCategoryMonth] = useState("");
+  const [topCategoryYear, setTopCategoryYear] = useState("");
+
+  const [loadedTopCategoryMonth, setLoadedTopCategoryMonth] = useState("");
+const [loadedTopCategoryYear, setLoadedTopCategoryYear] = useState("");
 
   const monthNames = [
     "",
@@ -27,18 +49,18 @@ function DashboardPage() {
     "December",
   ];
 
-  const getBorderColor = (severity: string) => {
+  const getCardColor = (severity: string) => {
     switch (severity) {
       case "Success":
-        return "green";
+        return "#16a34a";
       case "Warning":
-        return "orange";
+        return "#f59e0b";
       case "Danger":
-        return "red";
+        return "#dc2626";
       case "Info":
-        return "blue";
+        return "#2563eb";
       default:
-        return "gray";
+        return "#6b7280";
     }
   };
 
@@ -57,13 +79,27 @@ function DashboardPage() {
     }
   };
 
-  const refreshDashboard = async () => {
+  const getHealthIcon = (status: string) => {
+    switch (status) {
+      case "Healthy":
+        return "🟢";
+      case "Moderate":
+        return "🟡";
+      case "Risky":
+        return "🔴";
+      default:
+        return "⚪";
+    }
+  };
+
+  const loadDashboardCards = async () => {
     try {
       setLoading(true);
 
       const data = await getMonthlyDashboardCards(Number(year));
 
       setCards(data);
+      await loadRecentTransactions();
     } catch (error) {
       console.error(error);
       alert("Failed to load dashboard cards");
@@ -71,6 +107,104 @@ function DashboardPage() {
       setLoading(false);
     }
   };
+
+const loadRecentTransactions = async () => {
+  const expenses = await getExpenses();
+  const incomes = await getIncomes();
+  const budgets = await getBudgets();
+
+  
+
+{/*..*/}
+
+
+{/*..*/}
+  const expenseTransactions: financialActivity[] = expenses.map((expense) => ({
+    id: expense.id,
+    type: "Expense",
+    amount: expense.amount,
+    categoryOrSource: expense.category,
+    description: expense.description,
+    date: expense.date,
+  }));
+
+  const incomeTransactions: financialActivity[] = incomes.map((income) => ({
+    id: income.id,
+    type: "Income",
+    amount: income.amount,
+    categoryOrSource: income.source,
+    description: income.description,
+    date: income.date,
+  }));
+
+  const combinedTransactions = [
+    ...expenseTransactions,
+    ...incomeTransactions,
+  ]
+    .sort(
+      (a, b) =>
+        new Date(b.date).getTime() - new Date(a.date).getTime()
+    )
+    .slice(0, 5);
+
+  setRecentTransactions(combinedTransactions);
+  {/*--*/}
+  const latestTransactionDate = combinedTransactions[0]?.date;
+
+if (latestTransactionDate) {
+  const latestDate = new Date(latestTransactionDate);
+
+  const latestMonth = latestDate.getMonth() + 1;
+  const latestYear = latestDate.getFullYear();
+
+  setTopCategoryMonth(latestMonth.toString());
+  setTopCategoryYear(latestYear.toString());
+
+  
+
+  const latestBudgets = budgets.filter(
+    (budget) =>
+      budget.month === latestMonth &&
+      budget.year === latestYear
+  );
+
+  setRecentBudgets(latestBudgets);
+
+  const categoryData = await getTopCategory(
+    latestMonth,
+    latestYear
+  );
+
+  setTopCategory(categoryData);
+setLoadedTopCategoryMonth(latestMonth.toString());
+setLoadedTopCategoryYear(latestYear.toString());
+
+}
+
+
+  {/*--*/}
+
+  
+
+};
+
+const handleLoadTopCategory = async () => {
+  try {
+    const data = await getTopCategory(
+      Number(topCategoryMonth),
+      Number(topCategoryYear)
+    );
+    
+    setTopCategory(data);
+    setLoadedTopCategoryMonth(topCategoryMonth);
+setLoadedTopCategoryYear(topCategoryYear);
+
+  } catch (error) {
+    console.error(error);
+    alert("Failed to load top category");
+  }
+};
+
 
   useEffect(() => {
     const loadInitialDashboard = async () => {
@@ -80,6 +214,7 @@ function DashboardPage() {
         const data = await getMonthlyDashboardCards(Number(year));
 
         setCards(data);
+        await loadRecentTransactions();
       } catch (error) {
         console.error(error);
         alert("Failed to load dashboard cards");
@@ -104,30 +239,297 @@ function DashboardPage() {
     );
   };
 
+  const alertCards = cards.filter(
+    (card) =>
+      card.topSeverity === "Danger" ||
+      card.topSeverity === "Warning"
+  );
+
+  console.log("Top Category:", topCategory);
   return (
-    <div>
-      <h1>MoneyCoachAI Dashboard</h1>
+    <div style={{ padding: "24px", fontFamily: "Arial, sans-serif" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "24px",
+        }}
+      >
+        <div>
+          <h1>MoneyCoachAI Dashboard</h1>
+          <p>Track income, expenses, savings, and smart alerts.</p>
+        </div>
 
-      <button onClick={handleLogout}>Logout</button>
+        <button onClick={handleLogout}>Logout</button>
+      </div>
 
-      <hr />
-
-      <div>
+      <div style={{ marginBottom: "24px" }}>
         <input
           type="number"
           placeholder="Year"
           value={year}
           onChange={(e) => setYear(e.target.value)}
+          style={{ padding: "8px", marginRight: "8px" }}
         />
 
-        <button onClick={refreshDashboard}>Load Year</button>
+        <button onClick={loadDashboardCards}>
+          Load Year
+        </button>
       </div>
 
       {loading && <p>Loading dashboard...</p>}
 
-      <hr />
+      <h2>Auto Alerts</h2>
 
-      <h2>Monthly Smart Cards</h2>
+      {cards.length === 0 ? (
+        <p>No alerts available.</p>
+      ) : alertCards.length === 0 ? (
+        <p>No critical alerts. You are doing well.</p>
+      ) : (
+        <div style={{ marginBottom: "24px" }}>
+          {alertCards.map((card) => (
+            <div
+              key={`${card.month}-${card.year}-alert`}
+              style={{
+                border: `2px solid ${getCardColor(card.topSeverity)}`,
+                padding: "12px",
+                marginBottom: "10px",
+                borderRadius: "8px",
+              }}
+            >
+              <strong>
+                {getSeverityIcon(card.topSeverity)} {card.topSeverity} -{" "}
+                {monthNames[card.month]} {card.year}
+              </strong>
+
+              <p>{card.topMessage}</p> 
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Top Spending Category */}
+<h2>🏆 Top Spending Category</h2>
+
+<div style={{ marginBottom: "12px" }}>
+  <select
+  value={topCategoryMonth}
+  onChange={(e) => setTopCategoryMonth(e.target.value)}
+  style={{ padding: "8px", marginRight: "8px" }}
+>
+  <option value="1">January</option>
+  <option value="2">February</option>
+  <option value="3">March</option>
+  <option value="4">April</option>
+  <option value="5">May</option>
+  <option value="6">June</option>
+  <option value="7">July</option>
+  <option value="8">August</option>
+  <option value="9">September</option>
+  <option value="10">October</option>
+  <option value="11">November</option>
+  <option value="12">December</option>
+</select>
+
+  <input
+    type="number"
+    placeholder="Year"
+    value={topCategoryYear}
+    onChange={(e) => setTopCategoryYear(e.target.value)}
+    style={{ padding: "8px", marginRight: "8px" }}
+  />
+
+  <button onClick={handleLoadTopCategory}>
+    🔍 View
+  </button>
+</div>
+
+{topCategory ? (
+  <div
+    style={{
+      maxWidth: "500px",
+      margin: "20px auto",
+      border: "2px solid orange",
+      borderRadius: "16px",
+      padding: "20px",
+      textAlign: "center",
+      backgroundColor: "#fff8e6",
+    }}
+  >
+ <h3>
+  {monthNames[Number(loadedTopCategoryMonth)]} {loadedTopCategoryYear}
+</h3>
+
+<h2 style={{ marginTop: "15px" }}>
+  🛒 {topCategory.category}
+</h2>
+
+<p
+  style={{
+    fontSize: "24px",
+    fontWeight: "bold",
+    color: "#f59e0b",
+  }}
+>
+  ₹{topCategory.totalSpent}
+</p>
+
+<p>
+  {topCategory.percentageOfTotal.toFixed(1)}%
+  of all spending this month
+</p>
+
+<p
+  style={{
+    color: "#666",
+    fontSize: "14px",
+  }}
+>
+  Largest spending category
+</p>
+
+    
+
+    <div
+      style={{
+        width: "100%",
+        height: "12px",
+        backgroundColor: "#e5e7eb",
+        borderRadius: "8px",
+        marginTop: "12px",
+      }}
+    >
+      <div
+        style={{
+          width: `${topCategory.percentageOfTotal}%`,
+          height: "100%",
+          backgroundColor: "#f59e0b",
+          borderRadius: "8px",
+        }}
+      />
+    </div>
+  </div>
+) : (
+  
+  <p>No top category found for selected month.</p>
+)}
+
+
+
+      
+
+{/* ----Recent Financial Activity---- */}
+
+      <h2>Recent Financial Activity</h2>
+
+{recentTransactions.length === 0 ? (
+  <p>No recent transactions found.</p>
+) : (
+  <div style={{ marginBottom: "24px" }}>
+    <div style={{ marginBottom: "20px" }}>
+      <h3>Recent Income</h3>
+
+      <table border={1} cellPadding={8} style={{ width: "100%" }}>
+        <thead>
+          <tr>
+            <th>Source</th>
+            <th>Description</th>
+            <th>Date</th>
+            <th>Amount</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {recentTransactions
+            .filter((transaction) => transaction.type === "Income")
+            .map((transaction) => (
+              <tr key={`${transaction.type}-${transaction.id}`}>
+                <td>{transaction.categoryOrSource}</td>
+                <td>{transaction.description}</td>
+                <td>{new Date(transaction.date).toLocaleDateString()}</td>
+                <td style={{ color: "green", fontWeight: "bold" }}>
+                  +₹{transaction.amount}
+                </td>
+              </tr>
+            ))}
+        </tbody>
+      </table>
+    </div>
+
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr",
+        gap: "20px",
+      }}
+    >
+      <div>
+        <h3>Recent Budget</h3>
+
+        <table border={1} cellPadding={8} style={{ width: "100%" }}>
+          <thead>
+            <tr>
+              <th>Category</th>
+              <th>Month</th>
+              <th>Year</th>
+              <th>Limit</th>
+            </tr>
+          </thead>
+
+            <tbody>
+              {recentBudgets.map((budget) => (
+                <tr key={budget.id}>
+                  <td>{budget.category}</td>
+                  <td>{budget.month}</td>
+                  <td>{budget.year}</td>
+                  <td style={{ color: "blue", fontWeight: "bold" }}>
+                    ₹{budget.monthlyLimit}
+                  </td>
+                </tr>
+               ))}
+            </tbody>
+          
+        </table>
+      </div>
+
+      <div>
+        <h3>Recent Expenses</h3>
+
+        <table border={1} cellPadding={8} style={{ width: "100%" }}>
+          <thead>
+            <tr>
+              <th>Category</th>
+              <th>Description</th>
+              <th>Date</th>
+              <th>Amount</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {recentTransactions
+              .filter((transaction) => transaction.type === "Expense")
+              .map((transaction) => (
+                <tr key={`expense-${transaction.id}`}>
+                  <td>{transaction.categoryOrSource}</td>
+                  <td>{transaction.description}</td>
+                  <td>{new Date(transaction.date).toLocaleDateString()}</td>
+                  <td style={{ color: "red", fontWeight: "bold" }}>
+                    -₹{transaction.amount}
+                  </td>
+                </tr>
+              ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+)}
+
+
+
+
+      <h2>Monthly Financial Overview</h2>
 
       {cards.length === 0 ? (
         <p>No dashboard data found for this year.</p>
@@ -135,46 +537,75 @@ function DashboardPage() {
         <div
           style={{
             display: "flex",
-            gap: "16px",
+            gap: "18px",
             overflowX: "auto",
-            paddingBottom: "16px",
+            paddingBottom: "20px",
           }}
         >
           {cards.map((card) => {
             const cardKey = `${card.month}-${card.year}`;
             const isExpanded = expandedCard === cardKey;
+            const color = getCardColor(card.topSeverity);
 
             return (
               <div
                 key={cardKey}
                 style={{
-                  minWidth: "280px",
-                  border: `4px solid ${getBorderColor(
-                    card.topSeverity
-                  )}`,
-                  borderRadius: "12px",
-                  padding: "16px",
+                  minWidth: "330px",
+                  border: `3px solid ${color}`,
+                  borderRadius: "16px",
+                  padding: "18px",
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
+                  backgroundColor: "#ffffff",
                 }}
               >
                 <h3>
                   {monthNames[card.month]} {card.year}
                 </h3>
 
-                <p>
-                  <strong>Budget:</strong> ₹{card.totalBudget}
-                </p>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: "10px",
+                    marginTop: "12px",
+                  }}
+                >
+                  <div>
+                    <strong>💰 Income</strong>
+                    <p>₹{card.totalIncome}</p>
+                  </div>
 
-                <p>
-                  <strong>Spent:</strong> ₹{card.totalSpent}
-                </p>
+                  <div>
+                    <strong>💸 Expenses</strong>
+                    <p>₹{card.totalSpent}</p>
+                  </div>
 
-                <p>
-                  <strong>Remaining:</strong> ₹{card.remaining}
-                </p>
+                  <div>
+                    <strong>🏦 Savings</strong>
+                    <p>₹{card.savings}</p>
+                  </div>
 
-                <p>
+                  <div>
+                    <strong>📈 Savings Rate</strong>
+                    <p>{card.savingsRate.toFixed(1)}%</p>
+                  </div>
+
+                  <div>
+                    <strong>❤️ Health</strong>
+                    <p>
+                      {getHealthIcon(card.healthStatus)}{" "}
+                      {card.healthStatus}
+                    </p>
+                    <p>Score: {card.healthScore}/100</p>
+                  </div>
+                </div>
+
+                <hr />
+
+                <p style={{ color, fontWeight: "bold" }}>
                   {getSeverityIcon(card.topSeverity)}{" "}
-                  <strong>{card.topSeverity}</strong>
+                  {card.topSeverity}
                 </p>
 
                 <p>{card.topMessage}</p>
@@ -184,25 +615,34 @@ function DashboardPage() {
                     <hr />
 
                     <p>
-                      <strong>Total Suggestions:</strong>{" "}
-                      {card.suggestionCount}
+                      <strong>Total Budget:</strong> ₹{card.totalBudget}
                     </p>
 
                     <p>
-                      This month has {card.suggestionCount} smart
-                      insight(s). Open the Suggestions page for full
-                      details.
+                      <strong>Budget Remaining:</strong> ₹{card.remaining}
+                    </p>
+
+                    <p>
+                      <strong>Total Smart Insights:</strong>{" "}
+                      {card.suggestionCount}
                     </p>
 
                     <button
-                      onClick={() => navigate("/suggestions")}
+                      onClick={() =>
+                        navigate(
+                          `/suggestions?month=${card.month}&year=${card.year}`
+                        )
+                      }
                     >
                       View Full Suggestions
                     </button>
                   </div>
                 )}
 
-                <button onClick={() => toggleExpand(card)}>
+                <button
+                  onClick={() => toggleExpand(card)}
+                  style={{ marginTop: "12px", width: "100%" }}
+                >
                   {isExpanded ? "▲ Hide Insights" : "▼ Show Insights"}
                 </button>
               </div>
@@ -210,6 +650,9 @@ function DashboardPage() {
           })}
         </div>
       )}
+
+
+      {cards.length > 0 && <DashboardCharts cards={cards} />}
     </div>
   );
 }

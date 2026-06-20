@@ -1,10 +1,16 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { getSuggestions } from "../services/suggestionService";
 import type { SuggestionResponse } from "../types/suggestionTypes";
 
 function SuggestionsPage() {
-  const [month, setMonth] = useState("6");
-  const [year, setYear] = useState("2026");
+  const [searchParams] = useSearchParams();
+
+  const monthFromUrl = searchParams.get("month");
+  const yearFromUrl = searchParams.get("year");
+
+  const [month, setMonth] = useState(monthFromUrl ?? "6");
+  const [year, setYear] = useState(yearFromUrl ?? "2026");
   const [suggestions, setSuggestions] = useState<SuggestionResponse[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -12,16 +18,12 @@ function SuggestionsPage() {
     switch (severity) {
       case "Success":
         return "green";
-
       case "Warning":
         return "orange";
-
       case "Danger":
         return "red";
-
       case "Info":
         return "blue";
-
       default:
         return "gray";
     }
@@ -31,10 +33,7 @@ function SuggestionsPage() {
     try {
       setLoading(true);
 
-      const data = await getSuggestions(
-        Number(month),
-        Number(year)
-      );
+      const data = await getSuggestions(Number(month), Number(year));
 
       setSuggestions(data);
     } catch (error) {
@@ -44,6 +43,32 @@ function SuggestionsPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const loadSuggestionsFromUrl = async () => {
+      if (!monthFromUrl || !yearFromUrl) {
+        return;
+      }
+
+      try {
+        setLoading(true);
+
+        const data = await getSuggestions(
+          Number(monthFromUrl),
+          Number(yearFromUrl)
+        );
+
+        setSuggestions(data);
+      } catch (error) {
+        console.error(error);
+        alert("Failed to load suggestions");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadSuggestionsFromUrl();
+  }, []);
 
   return (
     <div>

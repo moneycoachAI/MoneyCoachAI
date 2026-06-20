@@ -22,3 +22,16 @@ export const getMonthlyDashboardCards = async (
 
   return response.data;
 };
+
+export const getTopCategory = async (
+  month: number,
+  year: number
+) => {
+  const response = await axiosClient.get(
+    `/Dashboard/top-category?month=${month}&year=${year}`
+  );
+
+  console.log("API Response:", response.data);
+
+  return response.data;
+};

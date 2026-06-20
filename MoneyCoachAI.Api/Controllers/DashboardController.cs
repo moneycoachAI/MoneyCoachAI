@@ -11,10 +11,14 @@ namespace MoneyCoachAI.Api.Controllers;
 public class DashboardController : ControllerBase
 {
     private readonly DashboardService _dashboardService;
+    private readonly ReportService _reportService;
 
-    public DashboardController(DashboardService dashboardService)
+    public DashboardController(
+        DashboardService dashboardService,
+        ReportService reportService)
     {
         _dashboardService = dashboardService;
+        _reportService = reportService;
     }
 
     [HttpGet("monthly-cards")]
@@ -32,5 +36,25 @@ public class DashboardController : ControllerBase
             year);
 
         return Ok(cards);
+    }
+
+    [HttpGet("top-category")]
+    public async Task<IActionResult> GetTopCategory(
+        int month,
+        int year)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
+        var result = await _reportService.GetTopCategoryAsync(
+            userId,
+            month,
+            year);
+
+        return Ok(result);
     }
 }

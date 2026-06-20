@@ -78,6 +78,49 @@ public class DashboardService
                     suggestion.Severity == "Success" ? 1 : 0)
                 .FirstOrDefault();
 
+            var topSeverity = topSuggestion?.Severity ?? "Info";
+            var topMessage = topSuggestion?.Message ?? "No suggestions available.";
+
+            var healthScore = 100;
+
+            if (savingsRate < 0)
+            {
+                healthScore -= 40;
+            }
+            else if (savingsRate < 10)
+            {
+                healthScore -= 20;
+            }
+
+            if (topSeverity == "Danger")
+            {
+                healthScore -= 30;
+            }
+            else if (topSeverity == "Warning")
+            {
+                healthScore -= 15;
+            }
+
+            if (healthScore < 0)
+            {
+                healthScore = 0;
+            }
+
+            string healthStatus;
+
+            if (healthScore >= 75)
+            {
+                healthStatus = "Healthy";
+            }
+            else if (healthScore >= 50)
+            {
+                healthStatus = "Moderate";
+            }
+            else
+            {
+                healthStatus = "Risky";
+            }
+
             cards.Add(new MonthlyDashboardCardResponse
             {
                 Month = month,
@@ -89,8 +132,10 @@ public class DashboardService
                 Savings = savings,
                 SavingsRate = savingsRate,
                 SuggestionCount = suggestions.Count(),
-                TopSeverity = topSuggestion?.Severity ?? "Info",
-                TopMessage = topSuggestion?.Message ?? "No suggestions available."
+                TopSeverity = topSeverity,
+                TopMessage = topMessage,
+                HealthScore = healthScore,
+                HealthStatus = healthStatus
             });
         }
 

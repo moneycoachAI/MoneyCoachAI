@@ -91,4 +91,44 @@ public class ReportService
 
         return response;
     }
+
+    public async Task<TopCategoryResponse?> GetTopCategoryAsync(
+    string userId,
+    int month,
+    int year)
+    {
+        var categoryReport =
+            await GetCategoryReportAsync(userId, month, year);
+
+        if (!categoryReport.Any())
+        {
+            return null;
+        }
+
+        var totalSpent =
+            categoryReport.Sum(x => x.TotalSpent);
+
+        var topCategory =
+            categoryReport
+                .OrderByDescending(x => x.TotalSpent)
+                .First();
+
+        var percentage =
+            totalSpent > 0
+                ? (topCategory.TotalSpent / totalSpent) * 100
+                : 0;
+
+        string severity =
+            percentage >= 50 ? "High"
+            : percentage >= 30 ? "Medium"
+            : "Low";
+
+        return new TopCategoryResponse
+        {
+            Category = topCategory.Category,
+            TotalSpent = topCategory.TotalSpent,
+            PercentageOfTotal = percentage,
+            Severity = severity
+        };
+    }
 }
