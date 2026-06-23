@@ -78,4 +78,26 @@ public class DashboardController : ControllerBase
 
         return Ok(result);
     }
+
+
+    [HttpGet("ai-insights")]
+    public async Task<IActionResult> GetAiAdvisorInsights(
+    int month,
+    int year)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
+        var insights =
+            await _dashboardService.GetAiAdvisorInsightsAsync(
+                userId,
+                month,
+                year);
+
+        return Ok(insights);
+    }
 }

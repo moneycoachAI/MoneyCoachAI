@@ -249,4 +249,82 @@ public class DashboardService
         };
     }
 
+    public async Task<List<AiAdvisorInsightResponse>>
+    GetAiAdvisorInsightsAsync(
+        string userId,
+        int month,
+        int year)
+    {
+        var insights =
+            new List<AiAdvisorInsightResponse>();
+
+        var comparison =
+            await GetMonthlyComparisonAsync(
+                userId,
+                month,
+                year);
+
+        if (comparison.ExpenseChangePercent > 20)
+        {
+            insights.Add(
+                new AiAdvisorInsightResponse
+                {
+                    Title = "Expense Alert",
+                    Severity = "Warning",
+                    Message =
+                        $"Your expenses increased by {comparison.ExpenseChangePercent:F1}% compared to the previous month. Review discretionary spending."
+                });
+        }
+
+        if (comparison.IncomeChangePercent < 0)
+        {
+            insights.Add(
+                new AiAdvisorInsightResponse
+                {
+                    Title = "Income Drop",
+                    Severity = "Danger",
+                    Message =
+                        $"Your income decreased by {Math.Abs(comparison.IncomeChangePercent):F1}% compared to the previous month."
+                });
+        }
+
+        if (comparison.SavingsChangePercent > 0)
+        {
+            insights.Add(
+                new AiAdvisorInsightResponse
+                {
+                    Title = "Savings Improvement",
+                    Severity = "Success",
+                    Message =
+                        $"Great job! Your savings improved by {comparison.SavingsChangePercent:F1}% compared to the previous month."
+                });
+        }
+
+        if (comparison.CurrentSavings < 0)
+        {
+            insights.Add(
+                new AiAdvisorInsightResponse
+                {
+                    Title = "Negative Savings",
+                    Severity = "Danger",
+                    Message =
+                        $"You spent more than you earned this month. Consider reducing non-essential expenses."
+                });
+        }
+
+        if (!insights.Any())
+        {
+            insights.Add(
+                new AiAdvisorInsightResponse
+                {
+                    Title = "Healthy Finances",
+                    Severity = "Success",
+                    Message =
+                        "Your financial activity looks stable. Keep following your current budgeting habits."
+                });
+        }
+
+        return insights;
+    }
+
 }

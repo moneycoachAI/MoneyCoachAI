@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getMonthlyDashboardCards, getTopCategory } from "../services/dashboardService";
+import { getMonthlyDashboardCards, getTopCategory, getAiAdvisorInsights } from "../services/dashboardService";
 import type { MonthlyDashboardCard } from "../types/dashboardTypes";
 import DashboardCharts from "../components/DashboardCharts";
 import { getExpenses } from "../services/expenseService";
@@ -11,6 +11,7 @@ import type { Budget } from "../types/budgetTypes";
 import type { TopCategory } from "../types/topCategoryTypes";
 import { getMonthlyComparison } from "../services/dashboardService";
 import type { MonthlyComparison } from "../types/monthlyComparisonTypes";
+import type { AiAdvisorInsight } from "../types/aiInsightTypes";
 
 function DashboardPage() {
   const [year, setYear] = useState("2026");
@@ -37,6 +38,8 @@ function DashboardPage() {
 
   const [monthlyComparison, setMonthlyComparison] =
   useState<MonthlyComparison | null>(null);
+
+  const [aiInsights, setAiInsights] = useState<AiAdvisorInsight[]>([]);
 
   const monthNames = [
     "",
@@ -192,6 +195,13 @@ if (latestTransactionDate) {
   );
 
   setMonthlyComparison(comparisonData);
+
+  const insightData = await getAiAdvisorInsights(
+  latestMonth,
+  latestYear
+);
+
+setAiInsights(insightData);
 
   setLoadedTopCategoryMonth(latestMonth.toString());
   setLoadedTopCategoryYear(latestYear.toString());
@@ -572,6 +582,40 @@ const handleLoadTopCategory = async () => {
   </>
 )}
 
+{/* ----AI Advisor widget UI---- */}
+{aiInsights.length > 0 && (
+  <>
+    <h2 style={{ textAlign: "center", marginTop: "30px" }}>
+      🤖 AI Advisor Insights
+    </h2>
+
+    <div style={{ marginBottom: "30px" }}>
+      {aiInsights.map((insight, index) => (
+        <div
+          key={index}
+          style={{
+            border:
+              insight.severity === "Danger"
+                ? "2px solid red"
+                : insight.severity === "Warning"
+                ? "2px solid orange"
+                : insight.severity === "Success"
+                ? "2px solid green"
+                : "2px solid blue",
+            borderRadius: "12px",
+            padding: "16px",
+            marginBottom: "12px",
+            backgroundColor: "#fff",
+          }}
+        >
+          <h3>{insight.title}</h3>
+          <p>{insight.message}</p>
+          <strong>{insight.severity}</strong>
+        </div>
+      ))}
+    </div>
+  </>
+)}
       
 
 {/* ----Recent Financial Activity---- */}

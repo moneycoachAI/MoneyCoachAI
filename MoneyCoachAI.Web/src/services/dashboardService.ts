@@ -3,6 +3,7 @@ import type { Expense } from "../types/expenseTypes";
 import type { Budget } from "../types/budgetTypes";
 import type { MonthlyDashboardCard } from "../types/dashboardTypes";
 import type { MonthlyComparison } from "../types/monthlyComparisonTypes";
+import type { AiAdvisorInsight } from "../types/aiInsightTypes";
 
 export const getExpenses = async (): Promise<Expense[]> => {
     const response = await axiosClient.get<Expense[]>("/Expenses");
@@ -43,6 +44,17 @@ export const getMonthlyComparison = async (
 ): Promise<MonthlyComparison> => {
   const response = await axiosClient.get<MonthlyComparison>(
     `/Dashboard/monthly-comparison?month=${month}&year=${year}`
+  );
+
+  return response.data;
+};
+
+export const getAiAdvisorInsights = async (
+  month: number,
+  year: number
+): Promise<AiAdvisorInsight[]> => {
+  const response = await axiosClient.get<AiAdvisorInsight[]>(
+    `/Dashboard/ai-insights?month=${month}&year=${year}`
   );
 
   return response.data;
