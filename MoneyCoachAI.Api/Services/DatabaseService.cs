@@ -29,4 +29,7 @@ public class DatabaseService
 
     public IMongoCollection<Income> IncomesCollection =>
         _database.GetCollection<Income>("Incomes");
+
+    public IMongoCollection<FinancialGoal> FinancialGoals =>
+    _database.GetCollection<FinancialGoal>("FinancialGoals");
 }
