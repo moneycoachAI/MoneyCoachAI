@@ -57,4 +57,25 @@ public class DashboardController : ControllerBase
 
         return Ok(result);
     }
+
+    [HttpGet("monthly-comparison")]
+    public async Task<IActionResult> GetMonthlyComparison(
+     int month,
+     int year)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
+        var result =
+            await _dashboardService.GetMonthlyComparisonAsync(
+                userId,
+                month,
+                year);
+
+        return Ok(result);
+    }
 }

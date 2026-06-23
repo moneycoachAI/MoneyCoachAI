@@ -2,6 +2,7 @@ import axiosClient from "../api/axiosClient";
 import type { Expense } from "../types/expenseTypes";
 import type { Budget } from "../types/budgetTypes";
 import type { MonthlyDashboardCard } from "../types/dashboardTypes";
+import type { MonthlyComparison } from "../types/monthlyComparisonTypes";
 
 export const getExpenses = async (): Promise<Expense[]> => {
     const response = await axiosClient.get<Expense[]>("/Expenses");
@@ -32,6 +33,17 @@ export const getTopCategory = async (
   );
 
   console.log("API Response:", response.data);
+
+  return response.data;
+};
+
+export const getMonthlyComparison = async (
+  month: number,
+  year: number
+): Promise<MonthlyComparison> => {
+  const response = await axiosClient.get<MonthlyComparison>(
+    `/Dashboard/monthly-comparison?month=${month}&year=${year}`
+  );
 
   return response.data;
 };

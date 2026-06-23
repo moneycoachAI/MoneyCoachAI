@@ -9,6 +9,8 @@ import type { financialActivity } from "../types/financialActivityTypes";
 import { getBudgets } from "../services/budgetService";
 import type { Budget } from "../types/budgetTypes";
 import type { TopCategory } from "../types/topCategoryTypes";
+import { getMonthlyComparison } from "../services/dashboardService";
+import type { MonthlyComparison } from "../types/monthlyComparisonTypes";
 
 function DashboardPage() {
   const [year, setYear] = useState("2026");
@@ -31,7 +33,10 @@ function DashboardPage() {
   const [topCategoryYear, setTopCategoryYear] = useState("");
 
   const [loadedTopCategoryMonth, setLoadedTopCategoryMonth] = useState("");
-const [loadedTopCategoryYear, setLoadedTopCategoryYear] = useState("");
+  const [loadedTopCategoryYear, setLoadedTopCategoryYear] = useState("");
+
+  const [monthlyComparison, setMonthlyComparison] =
+  useState<MonthlyComparison | null>(null);
 
   const monthNames = [
     "",
@@ -113,12 +118,14 @@ const loadRecentTransactions = async () => {
   const incomes = await getIncomes();
   const budgets = await getBudgets();
 
-  
-
 {/*..*/}
 
 
 {/*..*/}
+
+
+
+
   const expenseTransactions: financialActivity[] = expenses.map((expense) => ({
     id: expense.id,
     type: "Expense",
@@ -176,8 +183,18 @@ if (latestTransactionDate) {
   );
 
   setTopCategory(categoryData);
-setLoadedTopCategoryMonth(latestMonth.toString());
-setLoadedTopCategoryYear(latestYear.toString());
+
+  
+  const comparisonData =
+  await getMonthlyComparison(
+    latestMonth,
+    latestYear
+  );
+
+  setMonthlyComparison(comparisonData);
+
+  setLoadedTopCategoryMonth(latestMonth.toString());
+  setLoadedTopCategoryYear(latestYear.toString());
 
 }
 
@@ -197,7 +214,9 @@ const handleLoadTopCategory = async () => {
     
     setTopCategory(data);
     setLoadedTopCategoryMonth(topCategoryMonth);
-setLoadedTopCategoryYear(topCategoryYear);
+    setLoadedTopCategoryYear(topCategoryYear);
+
+    
 
   } catch (error) {
     console.error(error);
@@ -415,7 +434,143 @@ setLoadedTopCategoryYear(topCategoryYear);
   <p>No top category found for selected month.</p>
 )}
 
+{/* ----Month Comparison---- */}
 
+{monthlyComparison && (
+  <>
+    <h2
+      style={{
+        textAlign: "center",
+        marginTop: "30px",
+      }}
+    >
+      📈 Monthly Comparison
+    </h2>
+
+    <div
+      style={{
+        border: "2px solid #4caf50",
+        borderRadius: "12px",
+        padding: "20px",
+        marginBottom: "30px",
+      }}
+    >
+      <table
+        style={{
+          width: "100%",
+          textAlign: "center",
+        }}
+      >
+        <thead>
+  <tr>
+    <th>Category</th>
+
+    <th>
+      {monthNames[monthlyComparison.previousMonth]}{" "}
+      {monthlyComparison.previousMonth}
+    </th>
+
+    <th>
+      {monthNames[monthlyComparison.currentMonth]}{" "}
+      {monthlyComparison.currentMonth}
+    </th>
+
+    <th>Trend</th>
+  </tr>
+</thead>
+
+        <tbody>
+          <tr>
+            <td>Income</td>
+
+            <td>
+              ₹{monthlyComparison.previousIncome}
+            </td>
+
+            <td>
+              ₹{monthlyComparison.currentIncome}
+            </td>
+
+            <td
+              style={{
+                color:
+                  monthlyComparison.incomeChangePercent >= 0
+                    ? "green"
+                    : "red",
+              }}
+            >
+              {monthlyComparison.incomeChangePercent >= 0
+                ? "▲ "
+                : "▼ "}
+              {Math.abs(
+                monthlyComparison.incomeChangePercent
+              )}
+              %
+            </td>
+          </tr>
+
+          <tr>
+            <td>Expenses</td>
+
+            <td>
+              ₹{monthlyComparison.currentSpent}
+            </td>
+
+            <td>
+              ₹{monthlyComparison.previousSpent}
+            </td>
+
+            <td
+              style={{
+                color:
+                  monthlyComparison.expenseChangePercent <= 0
+                    ? "green"
+                    : "red",
+              }}
+            >
+              {monthlyComparison.expenseChangePercent <= 0
+                ? "▼ "
+                : "▲ "}
+              {Math.abs(
+                monthlyComparison.expenseChangePercent
+              )}
+              %
+            </td>
+          </tr>
+
+          <tr>
+            <td>Savings</td>
+
+            <td>
+              ₹{monthlyComparison.currentSavings}
+            </td>
+
+            <td>
+              ₹{monthlyComparison.previousSavings}
+            </td>
+
+            <td
+              style={{
+                color:
+                  monthlyComparison.savingsChangePercent >= 0
+                    ? "green"
+                    : "red",
+              }}
+            >
+              {monthlyComparison.savingsChangePercent >= 0
+                ? "▲ "
+                : "▼ "}
+              {Math.abs(
+                monthlyComparison.savingsChangePercent
+              )}
+              %
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </>
+)}
 
       
 
