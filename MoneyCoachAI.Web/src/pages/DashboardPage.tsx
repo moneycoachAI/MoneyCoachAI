@@ -12,6 +12,7 @@ import type { TopCategory } from "../types/topCategoryTypes";
 import { getMonthlyComparison } from "../services/dashboardService";
 import type { MonthlyComparison } from "../types/monthlyComparisonTypes";
 import type { AiAdvisorInsight } from "../types/aiInsightTypes";
+import { exportMonthlyPdf } from "../services/reportService";
 
 function DashboardPage() {
   const [year, setYear] = useState("2026");
@@ -115,6 +116,27 @@ function DashboardPage() {
       setLoading(false);
     }
   };
+
+  const handleExportPdf = async (month: number, year: number) => {
+  try {
+    const pdfBlob = await exportMonthlyPdf(month, year);
+
+    const url = window.URL.createObjectURL(pdfBlob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = `MoneyCoachAI_Report_${month}_${year}.pdf`;
+
+    document.body.appendChild(link);
+    link.click();
+
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error(error);
+    alert("Failed to export PDF");
+  }
+};
 
 const loadRecentTransactions = async () => {
   const expenses = await getExpenses();
@@ -523,11 +545,11 @@ const handleLoadTopCategory = async () => {
             <td>Expenses</td>
 
             <td>
-              ₹{monthlyComparison.currentSpent}
+              ₹{monthlyComparison.previousSpent}
             </td>
 
             <td>
-              ₹{monthlyComparison.previousSpent}
+              ₹{monthlyComparison.currentSpent}
             </td>
 
             <td
@@ -552,11 +574,11 @@ const handleLoadTopCategory = async () => {
             <td>Savings</td>
 
             <td>
-              ₹{monthlyComparison.currentSavings}
+              ₹{monthlyComparison.previousSavings}
             </td>
 
             <td>
-              ₹{monthlyComparison.previousSavings}
+              ₹{monthlyComparison.currentSavings}
             </td>
 
             <td
@@ -834,6 +856,13 @@ const handleLoadTopCategory = async () => {
                       }
                     >
                       View Full Suggestions
+                    </button>
+
+                    <button
+                      onClick={() => handleExportPdf(card.month, card.year)}
+                      style={{ marginLeft: "10px" }}
+                      >
+                        📄 Export PDF
                     </button>
                   </div>
                 )}

@@ -37,3 +37,17 @@ export const getBudgetSummary = async (
 
   return response.data;
 };
+
+export const exportMonthlyPdf = async (
+  month: number,
+  year: number
+): Promise<Blob> => {
+  const response = await axiosClient.get(
+    `/Reports/monthly-pdf?month=${month}&year=${year}`,
+    {
+      responseType: "blob",
+    }
+  );
+
+  return response.data;
+};

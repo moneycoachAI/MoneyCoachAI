@@ -96,6 +96,8 @@ builder.Services.AddScoped<DashboardService>();
 builder.Services.AddScoped<IncomeRepository>();
 builder.Services.AddScoped<IncomeService>();
 
+builder.Services.AddScoped<PdfReportService>();
+
 
 builder.Services.AddCors(options =>
 {
