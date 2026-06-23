@@ -66,4 +66,20 @@ public class FinancialGoalsController : ControllerBase
 
         return Ok("Financial goal deleted successfully");
     }
+
+    [HttpGet("recommendations")]
+    public async Task<IActionResult> GetRecommendations()
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
+        var recommendations =
+            await _goalService.GetRecommendationsAsync(userId);
+
+        return Ok(recommendations);
+    }
 }

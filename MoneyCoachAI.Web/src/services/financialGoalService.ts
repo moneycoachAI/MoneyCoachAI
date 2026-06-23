@@ -3,6 +3,7 @@ import type {
   FinancialGoal,
   CreateFinancialGoalRequest,
 } from "../types/financialGoalTypes";
+import type { GoalRecommendation } from "../types/goalRecommendationTypes";
 
 export const getFinancialGoals = async (): Promise<
   FinancialGoal[]
@@ -39,4 +40,14 @@ export const deleteFinancialGoal = async (
   await axiosClient.delete(
     `/FinancialGoals/${goalId}`
   );
+};
+
+export const getGoalRecommendations = async (): Promise<
+  GoalRecommendation[]
+> => {
+  const response = await axiosClient.get<GoalRecommendation[]>(
+    "/FinancialGoals/recommendations"
+  );
+
+  return response.data;
 };

@@ -1,3 +1,8 @@
+export interface GoalProgressEntry {
+  amount: number;
+  date: string;
+}
+
 export interface FinancialGoal {
   id: string;
   name: string;
@@ -5,6 +10,7 @@ export interface FinancialGoal {
   currentAmount: number;
   progressPercentage: number;
   targetDate?: string;
+  progressHistory: GoalProgressEntry[];
 }
 
 export interface CreateFinancialGoalRequest {

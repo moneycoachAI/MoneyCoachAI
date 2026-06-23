@@ -17,6 +17,8 @@ public class FinancialGoal
 
     public decimal CurrentAmount { get; set; }
 
+    public List<GoalProgressEntry> ProgressHistory { get; set; } = [];
+
     public DateTime? TargetDate { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

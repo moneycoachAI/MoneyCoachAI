@@ -13,4 +13,6 @@ public class FinancialGoalResponse
     public decimal ProgressPercentage { get; set; }
 
     public DateTime? TargetDate { get; set; }
+
+    public List<GoalProgressEntryResponse> ProgressHistory { get; set; } = [];
 }

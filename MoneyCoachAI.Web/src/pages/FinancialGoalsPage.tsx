@@ -4,8 +4,10 @@ import {
   createFinancialGoal,
   deleteFinancialGoal,
   getFinancialGoals,
+  getGoalRecommendations,
 } from "../services/financialGoalService";
 import type { FinancialGoal } from "../types/financialGoalTypes";
+import type { GoalRecommendation } from "../types/goalRecommendationTypes";
 
 function FinancialGoalsPage() {
   const [goals, setGoals] = useState<FinancialGoal[]>([]);
@@ -13,16 +15,29 @@ function FinancialGoalsPage() {
   const [targetAmount, setTargetAmount] = useState("");
   const [targetDate, setTargetDate] = useState("");
   const [progressAmounts, setProgressAmounts] = useState<Record<string, string>>({});
+  const [recommendations, setRecommendations] = useState<
+    GoalRecommendation[]
+    >([]);
 
-  const loadGoals = async () => {
+  const [expandedHistory, setExpandedHistory] = useState<
+  Record<string, boolean>
+  >({});
+ 
+    const loadGoals = async () => {
     const data = await getFinancialGoals();
+    const recommendationData = await getGoalRecommendations();
+
     setGoals(data);
-  };
+    setRecommendations(recommendationData);
+    };
 
   useEffect(() => {
     const loadInitialGoals = async () => {
-      const data = await getFinancialGoals();
-      setGoals(data);
+        const data = await getFinancialGoals();
+        const recommendationData = await getGoalRecommendations();
+
+        setGoals(data);
+        setRecommendations(recommendationData);
     };
 
     loadInitialGoals();
@@ -146,8 +161,14 @@ function FinancialGoalsPage() {
         <div style={{ display: "grid", gap: "16px" }}>
           {goals.map((goal) => {
             const progressColor = getProgressColor(goal.progressPercentage);
+            const recommendation = recommendations.find(
+                (item) => item.goalName === goal.name
+            );
             const status =
-              goal.progressPercentage >= 100 ? "Completed" : "In Progress";
+              goal.progressPercentage >= 100
+                ? "🏆 Goal Achieved"
+                : "🟡 In Progress";
+              
 
             return (
               <div
@@ -160,13 +181,25 @@ function FinancialGoalsPage() {
               >
                 <h2>🎯 {goal.name}</h2>
 
-                <strong
-                  style={{
-                    color: progressColor,
-                  }}
-                >
-                  {status}
-                </strong>
+                <div
+                    style={{
+                      display: "inline-block",
+                      padding: "6px 12px",
+                      borderRadius: "20px",
+                      backgroundColor:
+                        goal.progressPercentage >= 100
+                          ? "#dcfce7"
+                          : "#fef3c7",
+                      color:
+                        goal.progressPercentage >= 100
+                          ? "#166534"
+                          : "#92400e",
+                      fontWeight: "bold",
+                      marginBottom: "10px",
+                    }}
+                  >
+                    {status}
+                </div>
 
                 <div
                   style={{
@@ -209,7 +242,109 @@ function FinancialGoalsPage() {
                       borderRadius: "8px",
                     }}
                   />
+                  
                 </div>
+                {recommendation && (
+  <div
+    style={{
+      marginTop: "16px",
+      padding: "12px",
+      borderRadius: "10px",
+      backgroundColor: "#fef3c7",
+      border: "1px solid #f59e0b",
+    }}
+  >
+    <h3>💡 Goal Recommendation</h3>
+
+    <p>
+      <strong>Remaining:</strong> ₹
+      {recommendation.remainingAmount}
+    </p>
+
+    <p>{recommendation.recommendationMessage}</p>
+
+    {recommendation.additionalMonthlySavingsNeeded > 0 && (
+      <p>
+        <strong>Extra Savings Needed:</strong> ₹
+        {recommendation.additionalMonthlySavingsNeeded.toFixed(2)}
+      </p>
+    )}
+
+    
+
+   {recommendation.monthsUntilTargetDate > 0 && (
+      <p>
+        <strong>Months Until Target Date:</strong>{" "}
+        {recommendation.monthsUntilTargetDate}
+      </p>
+    )}
+
+    <p>
+      <strong>Suggested Monthly Contribution:</strong> ₹
+      {recommendation.requiredMonthlyContribution.toFixed(2)}
+    </p>
+
+    {recommendation.additionalMonthlySavingsNeeded > 0 && (
+      <p style={{ color: "red", fontWeight: "bold" }}>
+        <strong>Extra Savings Needed:</strong> ₹
+        {recommendation.additionalMonthlySavingsNeeded.toFixed(2)}
+      </p>
+    )}
+
+    
+      {goal.progressHistory.length > 0 && (
+  <div style={{ marginTop: "16px" }}>
+    <button
+      onClick={() =>
+        setExpandedHistory((current) => ({
+          ...current,
+          [goal.id]: !current[goal.id],
+        }))
+      }
+    >
+      {expandedHistory[goal.id]
+        ? "📂 Hide History"
+        : `📜 Show History (${goal.progressHistory.length})`}
+    </button>
+
+    {expandedHistory[goal.id] && (
+      <div
+        style={{
+          marginTop: "12px",
+          padding: "12px",
+          borderRadius: "10px",
+          backgroundColor: "#f9fafb",
+          border: "1px solid #d1d5db",
+        }}
+      >
+        <h3>💰 Progress History</h3>
+
+        {goal.progressHistory.map((entry, index) => (
+          <div
+            key={index}
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              borderBottom: "1px solid #e5e7eb",
+              padding: "6px 0",
+            }}
+          >
+            <span>₹{entry.amount}</span>
+
+            <span>
+              {new Date(entry.date).toLocaleDateString()}
+            </span>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+)}
+
+  </div>
+
+  
+)}
 
                 {goal.targetDate && (
                   <p>
