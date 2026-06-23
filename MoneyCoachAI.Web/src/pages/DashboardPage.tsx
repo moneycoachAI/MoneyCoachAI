@@ -13,12 +13,15 @@ import { getMonthlyComparison } from "../services/dashboardService";
 import type { MonthlyComparison } from "../types/monthlyComparisonTypes";
 import type { AiAdvisorInsight } from "../types/aiInsightTypes";
 import { exportMonthlyPdf } from "../services/reportService";
+import { getFinancialGoals } from "../services/financialGoalService";
+import type { FinancialGoal } from "../types/financialGoalTypes";
 
 function DashboardPage() {
   const [year, setYear] = useState("2026");
   const [cards, setCards] = useState<MonthlyDashboardCard[]>([]);
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
   
 
   const navigate = useNavigate();
@@ -41,6 +44,8 @@ function DashboardPage() {
   useState<MonthlyComparison | null>(null);
 
   const [aiInsights, setAiInsights] = useState<AiAdvisorInsight[]>([]);
+
+  const [financialGoals, setFinancialGoals] = useState<FinancialGoal[]>([]);
 
   const monthNames = [
     "",
@@ -142,6 +147,9 @@ const loadRecentTransactions = async () => {
   const expenses = await getExpenses();
   const incomes = await getIncomes();
   const budgets = await getBudgets();
+
+  const goalsData = await getFinancialGoals();
+  setFinancialGoals(goalsData);
 
 {/*..*/}
 
@@ -338,7 +346,14 @@ const handleLoadTopCategory = async () => {
       ) : alertCards.length === 0 ? (
         <p>No critical alerts. You are doing well.</p>
       ) : (
-        <div style={{ marginBottom: "24px" }}>
+        <div
+          style={{
+            marginBottom: "24px",
+            maxHeight: "350px",
+            overflowY: "auto",
+            paddingRight: "8px",
+          }}
+        >
           {alertCards.map((card) => (
             <div
               key={`${card.month}-${card.year}-alert`}
@@ -358,7 +373,9 @@ const handleLoadTopCategory = async () => {
             </div>
           ))}
         </div>
+        
       )}
+
 
       {/* Top Spending Category */}
 <h2>🏆 Top Spending Category</h2>
@@ -637,6 +654,131 @@ const handleLoadTopCategory = async () => {
       ))}
     </div>
   </>
+)}
+
+{/* ----Dashboard Goals Widget---- */}
+<h2 style={{ textAlign: "center", marginTop: "30px" }}>
+  🎯 Goals Overview
+</h2>
+
+{financialGoals.filter((goal) => goal.progressPercentage < 100).length === 0 ? (
+  <p style={{ textAlign: "center" }}>
+    No active goals. Completed goals are available on the Goals page.
+  </p>
+) : (
+  <div
+    style={{
+      border: "2px solid #2563eb",
+      borderRadius: "16px",
+      padding: "20px",
+      marginBottom: "30px",
+    }}
+  >
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(3, 1fr)",
+        gap: "16px",
+        marginBottom: "20px",
+        textAlign: "center",
+      }}
+    >
+      <div>
+        <strong>Total Goals</strong>
+        <h3>{financialGoals.length}</h3>
+      </div>
+
+      <div>
+        <strong>Completed</strong>
+        <h3>
+          {
+            financialGoals.filter(
+              (goal) => goal.progressPercentage >= 100
+            ).length
+          }
+        </h3>
+      </div>
+
+      <div>
+        <strong>Total Target</strong>
+        <h3>
+          ₹
+          {financialGoals.reduce(
+            (sum, goal) => sum + goal.targetAmount,
+            0
+          )}
+        </h3>
+      </div>
+    </div>
+
+    {financialGoals
+  .filter((goal) => goal.progressPercentage < 100)
+  .slice(0, 3)
+  .map((goal) => (
+    <div key={goal.id} style={{ marginBottom: "14px" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          marginBottom: "4px",
+        }}
+      >
+        <strong>🎯 {goal.name}</strong>
+
+        <span>
+          {goal.progressPercentage.toFixed(1)}%
+        </span>
+      </div>
+
+      <div
+        style={{
+          width: "100%",
+          height: "10px",
+          backgroundColor: "#e5e7eb",
+          borderRadius: "8px",
+        }}
+      >
+        <div
+          style={{
+            width: `${Math.min(
+              goal.progressPercentage,
+              100
+            )}%`,
+            height: "100%",
+            backgroundColor:
+              goal.progressPercentage >= 80
+                ? "#2563eb"
+                : goal.progressPercentage >= 50
+                ? "orange"
+                : "red",
+            borderRadius: "8px",
+          }}
+        />
+      </div>
+    </div>
+))}
+    <div
+  style={{
+    textAlign: "center",
+    marginTop: "20px",
+  }}
+>
+  <button
+    onClick={() => navigate("/financialGoals")}
+    style={{
+      padding: "10px 20px",
+      borderRadius: "8px",
+      border: "none",
+      cursor: "pointer",
+      backgroundColor: "#2563eb",
+      color: "white",
+      fontWeight: "bold",
+    }}
+  >
+    🎯 View All Goals
+  </button>
+</div>
+  </div>
 )}
       
 
