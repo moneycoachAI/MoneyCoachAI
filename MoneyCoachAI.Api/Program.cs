@@ -34,6 +34,12 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddScoped<FinancialGoalRepository>();
 builder.Services.AddScoped<FinancialGoalService>();
 
+builder.Services.AddScoped<NetWorthRepository>();
+builder.Services.AddScoped<NetWorthService>();
+
+builder.Services.AddScoped<RecurringTransactionRepository>();
+builder.Services.AddScoped<RecurringTransactionService>();
+
 builder.Services.AddSwaggerGen(options =>
 {
     options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme

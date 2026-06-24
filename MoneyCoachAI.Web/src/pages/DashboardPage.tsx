@@ -15,6 +15,9 @@ import type { AiAdvisorInsight } from "../types/aiInsightTypes";
 import { exportMonthlyPdf } from "../services/reportService";
 import { getFinancialGoals } from "../services/financialGoalService";
 import type { FinancialGoal } from "../types/financialGoalTypes";
+import { getNetWorthSummary } from "../services/netWorthService";
+import type { NetWorthSummary } from "../types/netWorthTypes";
+
 
 function DashboardPage() {
   const [year, setYear] = useState("2026");
@@ -46,6 +49,8 @@ function DashboardPage() {
   const [aiInsights, setAiInsights] = useState<AiAdvisorInsight[]>([]);
 
   const [financialGoals, setFinancialGoals] = useState<FinancialGoal[]>([]);
+ 
+  const [netWorthSummary, setNetWorthSummary] = useState<NetWorthSummary | null>(null);
 
   const monthNames = [
     "",
@@ -112,6 +117,9 @@ function DashboardPage() {
 
       const data = await getMonthlyDashboardCards(Number(year));
 
+      const netWorthData = await getNetWorthSummary();
+      setNetWorthSummary(netWorthData);
+
       setCards(data);
       await loadRecentTransactions();
     } catch (error) {
@@ -150,6 +158,9 @@ const loadRecentTransactions = async () => {
 
   const goalsData = await getFinancialGoals();
   setFinancialGoals(goalsData);
+
+  const netWorthData = await getNetWorthSummary();
+  setNetWorthSummary(netWorthData);
 
 {/*..*/}
 
@@ -779,6 +790,78 @@ const handleLoadTopCategory = async () => {
   </button>
 </div>
   </div>
+)}
+
+{/* ----Net Worth Widget.---- */}
+
+{netWorthSummary && (
+  <>
+    <h2 style={{ textAlign: "center", marginTop: "30px" }}>
+      💎 Net Worth Overview
+    </h2>
+
+    <div
+      style={{
+        border: "2px solid #7c3aed",
+        borderRadius: "16px",
+        padding: "20px",
+        marginBottom: "30px",
+        textAlign: "center",
+      }}
+    >
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(3, 1fr)",
+          gap: "16px",
+        }}
+      >
+        <div>
+          <strong>Total Assets</strong>
+          <h3 style={{ color: "green" }}>
+            ₹{netWorthSummary.totalAssets}
+          </h3>
+        </div>
+
+        <div>
+          <strong>Total Liabilities</strong>
+          <h3 style={{ color: "red" }}>
+            ₹{netWorthSummary.totalLiabilities}
+          </h3>
+        </div>
+
+        <div>
+          <strong>Net Worth</strong>
+          <h3
+            style={{
+              color:
+                netWorthSummary.netWorth >= 0
+                  ? "green"
+                  : "red",
+            }}
+          >
+            ₹{netWorthSummary.netWorth}
+          </h3>
+        </div>
+      </div>
+
+      <button
+        onClick={() => navigate("/net-worth")}
+        style={{
+          marginTop: "18px",
+          padding: "10px 20px",
+          borderRadius: "8px",
+          border: "none",
+          cursor: "pointer",
+          backgroundColor: "#7c3aed",
+          color: "white",
+          fontWeight: "bold",
+        }}
+      >
+        💎 View Net Worth
+      </button>
+    </div>
+  </>
 )}
       
 

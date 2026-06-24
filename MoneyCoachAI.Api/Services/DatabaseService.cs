@@ -32,4 +32,10 @@ public class DatabaseService
 
     public IMongoCollection<FinancialGoal> FinancialGoals =>
     _database.GetCollection<FinancialGoal>("FinancialGoals");
+
+    public IMongoCollection<NetWorthItem> NetWorthItems =>
+    _database.GetCollection<NetWorthItem>("NetWorthItems");
+
+    public IMongoCollection<RecurringTransaction> RecurringTransactions =>
+        _database.GetCollection<RecurringTransaction>("RecurringTransactions");
 }

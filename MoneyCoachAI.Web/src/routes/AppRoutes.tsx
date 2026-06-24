@@ -11,6 +11,8 @@ import SuggestionsPage from "../pages/SuggestionsPage";
 import AIAdvisorPage from "../pages/AIAdvisorPage";
 import IncomesPage from "../pages/IncomesPage";
 import FinancialGoalsPage from "../pages/FinancialGoalsPage";   
+import NetWorthPage from "../pages/NetWorthPage";
+import RecurringTransactionsPage from "../pages/RecurringTransactionsPage";
 
 function AppRoutes() {
     return(
@@ -67,6 +69,16 @@ function AppRoutes() {
                         <FinancialGoalsPage></FinancialGoalsPage>
                     </ProtectRoute>
                 }/>
+                <Route path= "/net-worth" element={
+                    <ProtectRoute>
+                        <NetWorthPage></NetWorthPage>
+                    </ProtectRoute>
+                }/>
+                <Route path="/recurring" element={
+                    <ProtectRoute>
+                        <RecurringTransactionsPage></RecurringTransactionsPage>
+                    </ProtectRoute>
+                } />
             </Routes>
         </BrowserRouter>
     );

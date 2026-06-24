@@ -68,6 +68,24 @@ public class IncomeRepository
             updatedIncome);
     }
 
+    public async Task<bool> ExistsRecurringIncomeAsync(
+    string userId,
+    string recurringTransactionId,
+    int month,
+    int year)
+    {
+        var startDate = new DateTime(year, month, 1);
+        var endDate = startDate.AddMonths(1);
+
+        return await _incomes
+            .Find(income =>
+                income.UserId == userId &&
+                income.RecurringTransactionId == recurringTransactionId &&
+                income.Date >= startDate &&
+                income.Date < endDate)
+            .AnyAsync();
+    }
+
     public async Task DeleteAsync(string id, string userId)
     {
         await _incomes.DeleteOneAsync(

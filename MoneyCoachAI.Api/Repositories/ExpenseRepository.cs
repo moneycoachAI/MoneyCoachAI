@@ -66,4 +66,22 @@ public class ExpenseRepository
                 expense.Date.Year == year)
             .ToListAsync();
     }
+
+    public async Task<bool> ExistsRecurringExpenseAsync(
+    string userId,
+    string recurringTransactionId,
+    int month,
+    int year)
+    {
+        var startDate = new DateTime(year, month, 1);
+        var endDate = startDate.AddMonths(1);
+
+        return await _expenses
+            .Find(expense =>
+                expense.UserId == userId &&
+                expense.RecurringTransactionId == recurringTransactionId &&
+                expense.Date >= startDate &&
+                expense.Date < endDate)
+            .AnyAsync();
+    }
 }
