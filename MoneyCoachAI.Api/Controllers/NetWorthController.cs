@@ -77,4 +77,21 @@ public class NetWorthController : ControllerBase
 
         return Ok(summary);
     }
+
+    [HttpGet("trend")]
+    public async Task<IActionResult> GetTrend()
+    {
+        var userId =
+            User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
+        var trend =
+            await _netWorthService.GetTrendAsync(userId);
+
+        return Ok(trend);
+    }
 }

@@ -13,6 +13,7 @@ import IncomesPage from "../pages/IncomesPage";
 import FinancialGoalsPage from "../pages/FinancialGoalsPage";   
 import NetWorthPage from "../pages/NetWorthPage";
 import RecurringTransactionsPage from "../pages/RecurringTransactionsPage";
+import InvestmentsPage from "../pages/InvestmentsPage";
 
 function AppRoutes() {
     return(
@@ -77,6 +78,11 @@ function AppRoutes() {
                 <Route path="/recurring" element={
                     <ProtectRoute>
                         <RecurringTransactionsPage></RecurringTransactionsPage>
+                    </ProtectRoute>
+                } />
+                <Route path="/investments" element={
+                    <ProtectRoute>
+                        <InvestmentsPage></InvestmentsPage>
                     </ProtectRoute>
                 } />
             </Routes>

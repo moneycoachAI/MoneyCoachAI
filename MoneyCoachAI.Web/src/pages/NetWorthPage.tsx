@@ -4,15 +4,28 @@ import {
   deleteNetWorthItem,
   getNetWorthItems,
   getNetWorthSummary,
+  getNetWorthTrend,
 } from "../services/netWorthService";
 import type {
   NetWorthItem,
   NetWorthSummary,
+  NetWorthTrendPoint,
 } from "../types/netWorthTypes";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  ResponsiveContainer,
+} from "recharts";
 
 function NetWorthPage() {
   const [items, setItems] = useState<NetWorthItem[]>([]);
   const [summary, setSummary] = useState<NetWorthSummary | null>(null);
+
+  const [trend, setTrend] = useState<NetWorthTrendPoint[]>([]);
 
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
@@ -21,6 +34,9 @@ function NetWorthPage() {
   const loadNetWorthData = async () => {
     const itemsData = await getNetWorthItems();
     const summaryData = await getNetWorthSummary();
+    const trendData = await getNetWorthTrend();
+
+    setTrend(trendData);
 
     setItems(itemsData);
     setSummary(summaryData);
@@ -30,6 +46,9 @@ function NetWorthPage() {
     const loadInitialNetWorthData = async () => {
       const itemsData = await getNetWorthItems();
       const summaryData = await getNetWorthSummary();
+      const trendData = await getNetWorthTrend();
+
+      setTrend(trendData);
 
       setItems(itemsData);
       setSummary(summaryData);
@@ -93,6 +112,39 @@ function NetWorthPage() {
           </div>
         </div>
       )}
+
+      {trend.length > 0 && (
+  <div
+    style={{
+      border: "2px solid #7c3aed",
+      borderRadius: "16px",
+      padding: "20px",
+      marginBottom: "24px",
+    }}
+  >
+    <h2>📈 Net Worth Trend</h2>
+
+    <ResponsiveContainer width="100%" height={300}>
+      <LineChart
+        data={trend.map((point) => ({
+          date: new Date(point.snapshotDate).toLocaleDateString(),
+          netWorth: point.netWorth,
+        }))}
+      >
+        <CartesianGrid strokeDasharray="3 3" />
+        <XAxis dataKey="date" />
+        <YAxis />
+        <Tooltip />
+        <Line
+          type="monotone"
+          dataKey="netWorth"
+          stroke="#7c3aed"
+          strokeWidth={3}
+        />
+      </LineChart>
+    </ResponsiveContainer>
+  </div>
+)}
 
       <form onSubmit={handleCreateItem} style={{ marginBottom: "24px" }}>
         <input

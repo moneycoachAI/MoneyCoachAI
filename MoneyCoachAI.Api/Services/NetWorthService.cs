@@ -7,10 +7,13 @@ namespace MoneyCoachAI.Api.Services;
 public class NetWorthService
 {
     private readonly NetWorthRepository _netWorthRepository;
+    private readonly NetWorthSnapshotRepository _snapshotRepository;
 
-    public NetWorthService(NetWorthRepository netWorthRepository)
+    public NetWorthService(NetWorthRepository netWorthRepository, NetWorthSnapshotRepository snapshotRepository)
     {
         _netWorthRepository = netWorthRepository;
+        _snapshotRepository = snapshotRepository;
+
     }
 
     public async Task<List<NetWorthItemResponse>> GetItemsAsync(string userId)
@@ -39,11 +42,13 @@ public class NetWorthService
         };
 
         await _netWorthRepository.CreateAsync(item);
+        await CreateSnapshotAsync(userId);
     }
 
     public async Task DeleteItemAsync(string id, string userId)
     {
         await _netWorthRepository.DeleteAsync(id, userId);
+        await CreateSnapshotAsync(userId);
     }
 
     public async Task<NetWorthSummaryResponse> GetSummaryAsync(string userId)
@@ -64,5 +69,35 @@ public class NetWorthService
             TotalLiabilities = totalLiabilities,
             NetWorth = totalAssets - totalLiabilities
         };
+    }
+
+    private async Task CreateSnapshotAsync(string userId)
+    {
+        var summary = await GetSummaryAsync(userId);
+
+        var snapshot = new NetWorthSnapshot
+        {
+            UserId = userId,
+            TotalAssets = summary.TotalAssets,
+            TotalLiabilities = summary.TotalLiabilities,
+            NetWorth = summary.NetWorth,
+            SnapshotDate = DateTime.UtcNow
+        };
+
+        await _snapshotRepository.CreateAsync(snapshot);
+    }
+
+    public async Task<List<NetWorthTrendPointResponse>> GetTrendAsync(string userId)
+    {
+        var snapshots =
+            await _snapshotRepository.GetByUserAsync(userId);
+
+        return snapshots
+            .Select(snapshot => new NetWorthTrendPointResponse
+            {
+                SnapshotDate = snapshot.SnapshotDate,
+                NetWorth = snapshot.NetWorth
+            })
+            .ToList();
     }
 }

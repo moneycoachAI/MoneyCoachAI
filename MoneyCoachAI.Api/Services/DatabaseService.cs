@@ -38,4 +38,10 @@ public class DatabaseService
 
     public IMongoCollection<RecurringTransaction> RecurringTransactions =>
         _database.GetCollection<RecurringTransaction>("RecurringTransactions");
+
+    public IMongoCollection<NetWorthSnapshot> NetWorthSnapshots =>
+        _database.GetCollection<NetWorthSnapshot>("NetWorthSnapshots");
+
+    public IMongoCollection<Investment> Investments =>
+    _database.GetCollection<Investment>("Investments");
 }

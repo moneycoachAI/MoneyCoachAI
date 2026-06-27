@@ -15,4 +15,9 @@ export interface NetWorthSummary {
   totalAssets: number;
   totalLiabilities: number;
   netWorth: number;
+}   
+
+export interface NetWorthTrendPoint {
+  snapshotDate: string;
+  netWorth: number;
 }

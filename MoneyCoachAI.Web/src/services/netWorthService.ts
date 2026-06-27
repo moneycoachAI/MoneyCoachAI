@@ -3,6 +3,7 @@ import type {
   NetWorthItem,
   CreateNetWorthItemRequest,
   NetWorthSummary,
+  NetWorthTrendPoint,
 } from "../types/netWorthTypes";
 
 export const getNetWorthItems = async (): Promise<
@@ -42,4 +43,14 @@ export const deleteNetWorthItem = async (
   await axiosClient.delete(
     `/NetWorth/${id}`
   );
+};  
+
+export const getNetWorthTrend = async (): Promise<
+  NetWorthTrendPoint[]
+> => {
+  const response = await axiosClient.get<NetWorthTrendPoint[]>(
+    "/NetWorth/trend"
+  );
+
+  return response.data;
 };

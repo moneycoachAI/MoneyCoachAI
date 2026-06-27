@@ -40,6 +40,11 @@ builder.Services.AddScoped<NetWorthService>();
 builder.Services.AddScoped<RecurringTransactionRepository>();
 builder.Services.AddScoped<RecurringTransactionService>();
 
+builder.Services.AddScoped<NetWorthSnapshotRepository>();
+
+builder.Services.AddScoped<InvestmentRepository>();
+builder.Services.AddScoped<InvestmentService>();
+
 builder.Services.AddSwaggerGen(options =>
 {
     options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
