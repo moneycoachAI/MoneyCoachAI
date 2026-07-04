@@ -8,6 +8,7 @@ import {
 
 import { categories } from "../constants/categories";
 import type { Expense } from "../types/expenseTypes";
+import AppLayout from "../components/AppLayout";
 
 function ExpensesPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -101,6 +102,7 @@ useEffect(() => {
   }
 
   return (
+    <AppLayout>
     <div>
       <h1>Expenses</h1>
 
@@ -202,6 +204,7 @@ useEffect(() => {
         </table>
       )}
     </div>
+    </AppLayout>
   );
 }
 

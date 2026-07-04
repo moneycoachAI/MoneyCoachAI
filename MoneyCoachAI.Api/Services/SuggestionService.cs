@@ -7,13 +7,16 @@ public class SuggestionService
 {
     private readonly ReportService _reportService;
     private readonly IncomeRepository _incomeRepository;
+    private readonly NotificationService _notificationService;
 
     public SuggestionService(
-        ReportService reportService,
-        IncomeRepository incomeRepository)
+    ReportService reportService,
+    IncomeRepository incomeRepository,
+    NotificationService notificationService)
     {
         _reportService = reportService;
         _incomeRepository = incomeRepository;
+        _notificationService = notificationService;
     }
 
     public async Task<List<SuggestionResponse>> GetSuggestionsAsync(
@@ -120,6 +123,13 @@ public class SuggestionService
                     Severity = "Danger",
                     Message = $"Danger! You exceeded your {budget.Category} budget by ₹{Math.Abs(budget.Remaining)}. Try reducing {budget.Category} spending immediately."
                 });
+                await _notificationService.CreateSystemNotificationAsync(
+                    userId,
+                    "Budget Exceeded",
+                    $"You exceeded your {budget.Category} budget by ₹{Math.Abs(budget.Remaining)}.",
+                    "Danger",
+                    $"budget-exceeded-{userId}-{budget.Category}-{month}-{year}"
+                );
             }
             else if (usedPercentage >= 80)
             {
@@ -130,6 +140,13 @@ public class SuggestionService
                     Severity = "Warning",
                     Message = $"Warning! You have already used {usedPercentage:F1}% of your {budget.Category} budget. Spend carefully for the rest of the month."
                 });
+                await _notificationService.CreateSystemNotificationAsync(
+                    userId,
+                    "Budget Warning",
+                    $"You have already used {usedPercentage:F1}% of your {budget.Category} budget.",
+                    "Warning",
+                    $"budget-warning-{userId}-{budget.Category}-{month}-{year}"
+                );
             }
             else if (usedPercentage <= 50)
             {

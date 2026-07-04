@@ -31,4 +31,19 @@ public class UserRepository
     {
         await _users.InsertOneAsync(user);
     }
+
+    public async Task UpdateAsync(User user)
+    {
+        await _users.ReplaceOneAsync(
+            existing => existing.Id == user.Id,
+            user
+        );
+    }
+
+    public async Task<bool> EmailExistsAsync(string email)
+    {
+        return await _users
+            .Find(user => user.Email == email)
+            .AnyAsync();
+    }
 }

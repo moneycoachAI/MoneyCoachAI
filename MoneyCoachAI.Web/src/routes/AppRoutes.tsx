@@ -14,6 +14,9 @@ import FinancialGoalsPage from "../pages/FinancialGoalsPage";
 import NetWorthPage from "../pages/NetWorthPage";
 import RecurringTransactionsPage from "../pages/RecurringTransactionsPage";
 import InvestmentsPage from "../pages/InvestmentsPage";
+import NotificationsPage from "../pages/NotificationsPage";
+import SettingsPage from "../pages/SettingsPage";
+import ProfilePage from "../pages/ProfilePage";
 
 function AppRoutes() {
     return(
@@ -85,6 +88,22 @@ function AppRoutes() {
                         <InvestmentsPage></InvestmentsPage>
                     </ProtectRoute>
                 } />
+                <Route path="/notifications" element={
+                    <ProtectRoute>
+                        <NotificationsPage></NotificationsPage>
+                    </ProtectRoute>}
+                 />
+                 <Route path="/settings" element={
+                    <ProtectRoute>
+                        <SettingsPage></SettingsPage>
+                    </ProtectRoute>
+                 }
+                  />
+                  <Route path="/profile" element={
+                    <ProtectRoute>
+                        <ProfilePage></ProfilePage>
+                    </ProtectRoute>
+                  } />
             </Routes>
         </BrowserRouter>
     );

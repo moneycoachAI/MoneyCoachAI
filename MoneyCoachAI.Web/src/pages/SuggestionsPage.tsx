@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { getSuggestions } from "../services/suggestionService";
 import type { SuggestionResponse } from "../types/suggestionTypes";
 
+
 function SuggestionsPage() {
   const [searchParams] = useSearchParams();
 

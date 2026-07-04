@@ -8,6 +8,7 @@ import {
 } from "../services/financialGoalService";
 import type { FinancialGoal } from "../types/financialGoalTypes";
 import type { GoalRecommendation } from "../types/goalRecommendationTypes";
+import AppLayout from "../components/AppLayout";
 
 function FinancialGoalsPage() {
   const [goals, setGoals] = useState<FinancialGoal[]>([]);
@@ -99,6 +100,7 @@ function FinancialGoalsPage() {
   ).length;
 
   return (
+    <AppLayout>
     <div style={{ padding: "24px" }}>
       <h1>🎯 Financial Goals</h1>
 
@@ -384,6 +386,7 @@ function FinancialGoalsPage() {
         </div>
       )}
     </div>
+    </AppLayout>
   );
 }
 

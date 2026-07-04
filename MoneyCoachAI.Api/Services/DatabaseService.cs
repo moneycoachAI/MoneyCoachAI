@@ -44,4 +44,10 @@ public class DatabaseService
 
     public IMongoCollection<Investment> Investments =>
     _database.GetCollection<Investment>("Investments");
+
+    public IMongoCollection<Notification> NotificationsCollection =>
+    _database.GetCollection<Notification>("Notifications");
+
+    public IMongoCollection<UserSettings> UserSettingsCollection =>
+    _database.GetCollection<UserSettings>("UserSettings");
 }

@@ -20,6 +20,7 @@ import {
   CartesianGrid,
   ResponsiveContainer,
 } from "recharts";
+import AppLayout from "../components/AppLayout";
 
 function NetWorthPage() {
   const [items, setItems] = useState<NetWorthItem[]>([]);
@@ -82,6 +83,7 @@ function NetWorthPage() {
   const liabilities = items.filter((item) => item.type === "Liability");
 
   return (
+    <AppLayout>
     <div style={{ padding: "24px" }}>
       <h1>💎 Net Worth Tracker</h1>
 
@@ -239,6 +241,7 @@ function NetWorthPage() {
         </div>
       </div>
     </div>
+    </AppLayout>
   );
 }
 

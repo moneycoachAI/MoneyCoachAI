@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import AppLayout from "../components/AppLayout";
 
 import {
   getMonthlyDashboardCards,
@@ -32,6 +33,7 @@ import type { NetWorthSummary } from "../types/netWorthTypes";
 
 import { getInvestmentSummary } from "../services/investmentService";
 import type { InvestmentSummary } from "../types/investmentTypes";
+
 
 function DashboardPage() {
   const navigate = useNavigate();
@@ -295,10 +297,7 @@ function DashboardPage() {
   loadInitialDashboard();
 }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    navigate("/login");
-  };
+ 
 
   const toggleExpand = (card: MonthlyDashboardCard) => {
     const cardKey = `${card.month}-${card.year}`;
@@ -308,9 +307,11 @@ function DashboardPage() {
   const alertCards = cards.filter(
     (card) => card.topSeverity === "Danger" || card.topSeverity === "Warning"
   );
+  
 
   return (
-    <div style={{ padding: "24px", fontFamily: "Arial, sans-serif" }}>
+    <AppLayout>
+    <div style={{fontFamily: "Arial, sans-serif" }}>
       <div
         style={{
           display: "flex",
@@ -324,7 +325,15 @@ function DashboardPage() {
           <p>Track income, expenses, savings, and smart alerts.</p>
         </div>
 
-        <button onClick={handleLogout}>Logout</button>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "12px",
+          }}
+        >
+        
+        </div>
       </div>
 
       <div style={{ marginBottom: "24px" }}>
@@ -994,6 +1003,7 @@ function DashboardPage() {
 
       {cards.length > 0 && <DashboardCharts cards={cards} />}
     </div>
+    </AppLayout>
   );
 }
 

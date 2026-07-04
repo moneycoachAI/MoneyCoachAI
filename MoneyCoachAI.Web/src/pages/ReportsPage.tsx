@@ -9,6 +9,7 @@ import type {
   CategoryReportResponse,
   MonthlyReportResponse,
 } from "../types/reportTypes";
+import AppLayout from "../components/AppLayout";
 
 function ReportsPage() {
   const [month, setMonth] = useState("6");
@@ -61,6 +62,7 @@ function ReportsPage() {
   };
 
   return (
+    <AppLayout>
     <div>
       <h1>Reports</h1>
 
@@ -162,6 +164,7 @@ function ReportsPage() {
         </table>
       )}
     </div>
+    </AppLayout>
   );
 }
 

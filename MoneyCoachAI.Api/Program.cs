@@ -45,6 +45,14 @@ builder.Services.AddScoped<NetWorthSnapshotRepository>();
 builder.Services.AddScoped<InvestmentRepository>();
 builder.Services.AddScoped<InvestmentService>();
 
+builder.Services.AddScoped<NotificationRepository>();
+builder.Services.AddScoped<NotificationService>();
+
+builder.Services.AddScoped<UserSettingsRepository>();
+builder.Services.AddScoped<UserSettingsService>();
+
+builder.Services.AddScoped<ProfileService>();
+
 builder.Services.AddSwaggerGen(options =>
 {
     options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme

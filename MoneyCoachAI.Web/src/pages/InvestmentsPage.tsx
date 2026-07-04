@@ -19,6 +19,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import AppLayout from "../components/AppLayout";
 
 function InvestmentsPage() {
   const [investments, setInvestments] = useState<Investment[]>([]);
@@ -85,6 +86,7 @@ function InvestmentsPage() {
   };
 
   return (
+    <AppLayout>
     <div style={{ padding: "24px" }}>
       <h1>📈 Investment Portfolio</h1>
 
@@ -263,6 +265,7 @@ function InvestmentsPage() {
         </div>
       )}
     </div>
+    </AppLayout>
   );
 }
 

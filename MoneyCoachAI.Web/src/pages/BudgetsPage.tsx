@@ -7,6 +7,7 @@ import {
 } from "../services/budgetService";
 import { categories } from "../constants/categories";
 import type { Budget } from "../types/budgetTypes";
+import AppLayout from "../components/AppLayout";
 
 
 function BudgetsPage() {
@@ -107,6 +108,7 @@ function BudgetsPage() {
   }
 
   return (
+    <AppLayout>
     <div>
       <h1>Budgets</h1>
 
@@ -204,6 +206,7 @@ function BudgetsPage() {
         </table>
       )}
     </div>
+    </AppLayout>
   );
 }
 

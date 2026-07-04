@@ -6,6 +6,7 @@ import {
   getRecurringTransactions,
 } from "../services/recurringTransactionService";
 import type { RecurringTransaction } from "../types/recurringTransactionTypes";
+import AppLayout from "../components/AppLayout";
 
 function RecurringTransactionsPage() {
   const [transactions, setTransactions] = useState<RecurringTransaction[]>([]);
@@ -84,6 +85,7 @@ function RecurringTransactionsPage() {
   );
 
   return (
+    <AppLayout>
     <div style={{ padding: "24px" }}>
       <h1>📅 Recurring Transactions</h1>
 
@@ -247,6 +249,7 @@ function RecurringTransactionsPage() {
         </div>
       </div>
     </div>
+    </AppLayout>
   );
 }
 

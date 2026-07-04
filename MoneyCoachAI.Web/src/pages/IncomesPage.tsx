@@ -7,6 +7,7 @@ import {
   updateIncome,
 } from "../services/incomeService";
 import type { Income } from "../types/incomeTypes";
+import AppLayout from "../components/AppLayout";
 
 function IncomesPage() {
   const [incomes, setIncomes] = useState<Income[]>([]);
@@ -106,6 +107,7 @@ function IncomesPage() {
   }
 
   return (
+    <AppLayout>
     <div>
       <h1>Incomes</h1>
 
@@ -202,6 +204,7 @@ function IncomesPage() {
         </table>
       )}
     </div>
+    </AppLayout>
   );
 }
 
