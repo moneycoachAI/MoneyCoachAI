@@ -27,10 +27,14 @@ public class ExpenseRepository
 
     public async Task<List<Expense>> GetByUserYearAsync(string userId, int year)
     {
+        var startDate = new DateTime(year, 1, 1).ToUniversalTime();
+        var endDate = new DateTime(year + 1, 1, 1).ToUniversalTime();
+
         return await _expenses
             .Find(expense =>
                 expense.UserId == userId &&
-                expense.Date.Year == year)
+                expense.Date >= startDate &&
+                expense.Date < endDate)
             .ToListAsync();
     }
 
@@ -55,15 +59,18 @@ public class ExpenseRepository
     }
 
     public async Task<List<Expense>> GetByUserMonthYearAsync(
-        string userId,
-        int month,
-        int year)
+    string userId,
+    int month,
+    int year)
     {
+        var startDate = new DateTime(year, month, 1).ToUniversalTime();
+        var endDate = new DateTime(year, month, 1).AddMonths(1).ToUniversalTime();
+
         return await _expenses
             .Find(expense =>
                 expense.UserId == userId &&
-                expense.Date.Month == month &&
-                expense.Date.Year == year)
+                expense.Date >= startDate &&
+                expense.Date < endDate)
             .ToListAsync();
     }
 

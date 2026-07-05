@@ -31,7 +31,7 @@ public class DashboardService
         var incomes = await _incomeRepository.GetByUserYearAsync(userId, year);
 
         var activeMonths = expenses
-            .Select(expense => expense.Date.Month)
+            .Select(expense => expense.Date.ToLocalTime().Month)
             .Union(budgets.Select(budget => budget.Month))
             .Union(incomes.Select(income => income.Date.Month))
             .Distinct()
@@ -43,7 +43,7 @@ public class DashboardService
         foreach (var month in activeMonths)
         {
             var monthExpenses = expenses
-                .Where(expense => expense.Date.Month == month)
+                .Where(expense => expense.Date.ToLocalTime().Month == month)
                 .ToList();
 
             var monthBudgets = budgets
@@ -51,7 +51,7 @@ public class DashboardService
                 .ToList();
 
             var monthIncomes = incomes
-                .Where(income => income.Date.Month == month)
+                .Where(income => income.Date.ToLocalTime().Month == month)
                 .ToList();
 
             var totalSpent = monthExpenses.Sum(expense => expense.Amount);
@@ -152,12 +152,15 @@ public class DashboardService
         var expenses = await _expenseRepository.GetByUserYearAsync(userId, year);
         var incomes = await _incomeRepository.GetByUserYearAsync(userId, year);
 
+     
+
         var activeMonths = expenses
-            .Select(expense => expense.Date.Month)
-            .Union(incomes.Select(income => income.Date.Month))
+            .Select(expense => expense.Date.ToLocalTime().Month)
+            .Union(incomes.Select(income => income.Date.ToLocalTime().Month))
             .Distinct()
             .OrderBy(activeMonth => activeMonth)
             .ToList();
+
 
         var currentMonthIndex = activeMonths.IndexOf(month);
 
@@ -186,6 +189,8 @@ public class DashboardService
                 userId,
                 month,
                 year);
+
+
 
         var previousExpenses =
             await _expenseRepository.GetByUserMonthYearAsync(

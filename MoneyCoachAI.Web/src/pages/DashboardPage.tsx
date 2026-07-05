@@ -159,7 +159,11 @@ function DashboardPage() {
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
     );
 
-    const latestTransactionDate = allTransactions[0]?.date;
+    const validTransactions = allTransactions.filter(
+      (transaction) => transaction.amount > 0
+    );
+
+    const latestTransactionDate = validTransactions[0]?.date;
 
     if (!latestTransactionDate) {
       setRecentTransactions([]);
@@ -176,6 +180,8 @@ function DashboardPage() {
     const latestMonthIndex = latestDate.getMonth();
     const latestMonth = latestMonthIndex + 1;
     const latestYear = latestDate.getFullYear();
+
+    console.log("Latest Transaction Date:", latestMonth, latestYear);
 
     const latestIncome = incomeTransactions
       .filter((transaction) => {
@@ -242,12 +248,6 @@ function DashboardPage() {
 
       const data = await getTopCategory(month, selectedYear);
       setTopCategory(data);
-
-      const comparisonData = await getMonthlyComparison(month, selectedYear);
-      setMonthlyComparison(comparisonData);
-
-      const insightData = await getAiAdvisorInsights(month, selectedYear);
-      setAiInsights(insightData);
 
       setLoadedTopCategoryMonth(topCategoryMonth);
       setLoadedTopCategoryYear(topCategoryYear);

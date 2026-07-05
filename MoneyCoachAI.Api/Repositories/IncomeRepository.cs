@@ -26,26 +26,33 @@ public class IncomeRepository
     }
 
     public async Task<List<Income>> GetByUserMonthYearAsync(
-        string userId,
-        int month,
-        int year)
+     string userId,
+     int month,
+     int year)
     {
+        var startDate = new DateTime(year, month, 1).ToUniversalTime();
+        var endDate = new DateTime(year, month, 1).AddMonths(1).ToUniversalTime();
+
         return await _incomes
             .Find(income =>
                 income.UserId == userId &&
-                income.Date.Month == month &&
-                income.Date.Year == year)
+                income.Date >= startDate &&
+                income.Date < endDate)
             .ToListAsync();
     }
 
     public async Task<List<Income>> GetByUserYearAsync(
-        string userId,
-        int year)
+    string userId,
+    int year)
     {
+        var startDate = new DateTime(year, 1, 1).ToUniversalTime();
+        var endDate = new DateTime(year + 1, 1, 1).ToUniversalTime();
+
         return await _incomes
             .Find(income =>
                 income.UserId == userId &&
-                income.Date.Year == year)
+                income.Date >= startDate &&
+                income.Date < endDate)
             .ToListAsync();
     }
 
