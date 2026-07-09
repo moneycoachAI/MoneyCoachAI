@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AppLayout from "../components/AppLayout";
 
@@ -33,7 +33,6 @@ import type { NetWorthSummary } from "../types/netWorthTypes";
 
 import { getInvestmentSummary } from "../services/investmentService";
 import type { InvestmentSummary } from "../types/investmentTypes";
-
 
 function DashboardPage() {
   const navigate = useNavigate();
@@ -80,18 +79,21 @@ function DashboardPage() {
     "December",
   ];
 
+  const formatMoney = (amount: number) =>
+    `₹${Number(amount || 0).toLocaleString("en-IN")}`;
+
   const getCardColor = (severity: string) => {
     switch (severity) {
       case "Success":
-        return "#16a34a";
+        return "#21C77A";
       case "Warning":
-        return "#f59e0b";
+        return "#FFB547";
       case "Danger":
-        return "#dc2626";
+        return "#FF6467";
       case "Info":
-        return "#2563eb";
+        return "#4F7CFF";
       default:
-        return "#6b7280";
+        return "#6B7280";
     }
   };
 
@@ -122,6 +124,14 @@ function DashboardPage() {
         return "⚪";
     }
   };
+
+  const latestCard = [...cards].sort(
+    (a, b) => b.year - a.year || b.month - a.month
+  )[0];
+
+  const totalBalance = latestCard
+    ? latestCard.totalIncome - latestCard.totalSpent
+    : 0;
 
   const loadRecentTransactions = async () => {
     const expenses = await getExpenses();
@@ -180,8 +190,6 @@ function DashboardPage() {
     const latestMonthIndex = latestDate.getMonth();
     const latestMonth = latestMonthIndex + 1;
     const latestYear = latestDate.getFullYear();
-
-    console.log("Latest Transaction Date:", latestMonth, latestYear);
 
     const latestIncome = incomeTransactions
       .filter((transaction) => {
@@ -278,26 +286,13 @@ function DashboardPage() {
   };
 
   useEffect(() => {
-  const loadInitialDashboard = async () => {
-    try {
-      setLoading(true);
+    const timer = window.setTimeout(() => {
+      loadDashboardCards();
+    }, 0);
 
-      const data = await getMonthlyDashboardCards(Number(year));
-      setCards(data);
-
-      await loadRecentTransactions();
-    } catch (error) {
-      console.error(error);
-      alert("Failed to load dashboard cards");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  loadInitialDashboard();
-}, []);
-
- 
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const toggleExpand = (card: MonthlyDashboardCard) => {
     const cardKey = `${card.month}-${card.year}`;
@@ -307,702 +302,741 @@ function DashboardPage() {
   const alertCards = cards.filter(
     (card) => card.topSeverity === "Danger" || card.topSeverity === "Warning"
   );
-  
 
   return (
     <AppLayout>
-    <div style={{fontFamily: "Arial, sans-serif" }}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "24px",
-        }}
-      >
-        <div>
-          <h1>MoneyCoachAI Dashboard</h1>
-          <p>Track income, expenses, savings, and smart alerts.</p>
-        </div>
+      <style>
+        {`
+          .dashboard-shell {
+            max-width: 1480px;
+            margin: 0 auto;
+          }
 
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "12px",
-          }}
-        >
-        
-        </div>
-      </div>
+          .dash-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 18px;
+            margin-bottom: 24px;
+          }
 
-      <div style={{ marginBottom: "24px" }}>
-        <input
-          type="number"
-          placeholder="Year"
-          value={year}
-          onChange={(e) => setYear(e.target.value)}
-          style={{ padding: "8px", marginRight: "8px" }}
-        />
+          .dash-title {
+            margin: 0;
+            font-size: 34px;
+            font-weight: 900;
+            letter-spacing: -1px;
+            color: #111827;
+          }
 
-        <button onClick={loadDashboardCards}>Load Year</button>
-      </div>
+          .dash-subtitle {
+            margin-top: 8px;
+            color: var(--mca-muted);
+            font-size: 15px;
+            font-weight: 600;
+          }
 
-      {loading && <p>Loading dashboard...</p>}
+          .dash-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+          }
 
-      <h2>Auto Alerts</h2>
+          .top-card-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 18px;
+            margin-bottom: 22px;
+          }
 
-      {cards.length === 0 ? (
-        <p>No alerts available.</p>
-      ) : alertCards.length === 0 ? (
-        <p>No critical alerts. You are doing well.</p>
-      ) : (
-        <div
-          style={{
-            marginBottom: "24px",
-            maxHeight: "350px",
-            overflowY: "auto",
-            paddingRight: "8px",
-          }}
-        >
-          {alertCards.map((card) => (
-            <div
-              key={`${card.month}-${card.year}-alert`}
-              style={{
-                border: `2px solid ${getCardColor(card.topSeverity)}`,
-                padding: "12px",
-                marginBottom: "10px",
-                borderRadius: "8px",
-              }}
-            >
-              <strong>
-                {getSeverityIcon(card.topSeverity)} {card.topSeverity} -{" "}
-                {monthNames[card.month]} {card.year}
-              </strong>
+          .money-card {
+            padding: 22px;
+            min-height: 150px;
+          }
 
-              <p>{card.topMessage}</p>
-            </div>
-          ))}
-        </div>
-      )}
+          .money-icon {
+            width: 46px;
+            height: 46px;
+            display: grid;
+            place-items: center;
+            border-radius: 17px;
+            background: rgba(255,255,255,.68);
+            font-size: 22px;
+            margin-bottom: 16px;
+          }
 
-      <h2>🏆 Top Spending Category</h2>
+          .money-label {
+            font-size: 14px;
+            color: var(--mca-muted);
+            font-weight: 800;
+          }
 
-      <div style={{ marginBottom: "12px" }}>
-        <select
-          value={topCategoryMonth}
-          onChange={(e) => setTopCategoryMonth(e.target.value)}
-          style={{ padding: "8px", marginRight: "8px" }}
-        >
-          <option value="">Select Month</option>
-          {monthNames.slice(1).map((month, index) => (
-            <option key={month} value={index + 1}>
-              {month}
-            </option>
-          ))}
-        </select>
+          .money-value {
+            margin-top: 8px;
+            font-size: 28px;
+            font-weight: 900;
+            color: #111827;
+          }
 
-        <input
-          type="number"
-          placeholder="Year"
-          value={topCategoryYear}
-          onChange={(e) => setTopCategoryYear(e.target.value)}
-          style={{ padding: "8px", marginRight: "8px" }}
-        />
+          .dash-grid {
+            display: grid;
+            grid-template-columns: 1.25fr .75fr;
+            gap: 20px;
+            margin-bottom: 20px;
+          }
 
-        <button onClick={handleLoadTopCategory}>🔍 View</button>
-      </div>
+          .dash-card {
+            padding: 22px;
+          }
 
-      {topCategory ? (
-        <div
-          style={{
-            maxWidth: "500px",
-            margin: "20px auto",
-            border: "2px solid orange",
-            borderRadius: "16px",
-            padding: "20px",
-            textAlign: "center",
-            backgroundColor: "#fff8e6",
-          }}
-        >
-          <h3>
-            {monthNames[Number(loadedTopCategoryMonth)]} {loadedTopCategoryYear}
-          </h3>
+          .dash-card-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 18px;
+          }
 
-          <h2 style={{ marginTop: "15px" }}>🛒 {topCategory.category}</h2>
+          .soft-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+          }
 
-          <p
-            style={{
-              fontSize: "24px",
-              fontWeight: "bold",
-              color: "#f59e0b",
-            }}
-          >
-            ₹{topCategory.totalSpent}
-          </p>
+          .insight-list,
+          .activity-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+          }
 
-          <p>{topCategory.percentageOfTotal.toFixed(1)}% of all spending this month</p>
+          .scroll-box {
+            max-height: 330px;
+            overflow-y: auto;
+            padding-right: 6px;
+          }
 
-          <div
-            style={{
-              width: "100%",
-              height: "12px",
-              backgroundColor: "#e5e7eb",
-              borderRadius: "8px",
-              marginTop: "12px",
-            }}
-          >
-            <div
-              style={{
-                width: `${topCategory.percentageOfTotal}%`,
-                height: "100%",
-                backgroundColor: "#f59e0b",
-                borderRadius: "8px",
-              }}
+          .soft-item {
+            padding: 14px;
+            border-radius: 18px;
+            background: rgba(255,255,255,.55);
+            border: 1px solid rgba(255,255,255,.65);
+          }
+
+          .activity-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 14px;
+            border-radius: 18px;
+            background: rgba(255,255,255,.55);
+            border: 1px solid rgba(255,255,255,.65);
+          }
+
+          .activity-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 0;
+          }
+
+          .activity-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 15px;
+            display: grid;
+            place-items: center;
+            background: rgba(255,255,255,.75);
+            flex-shrink: 0;
+          }
+
+          .progress-track {
+            width: 100%;
+            height: 10px;
+            border-radius: 999px;
+            background: rgba(17,24,39,.08);
+            overflow: hidden;
+          }
+
+          .progress-fill {
+            height: 100%;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #5B8CFF, #7B61FF);
+          }
+
+          .mini-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 18px;
+            margin-bottom: 20px;
+          }
+
+          .table-card {
+            overflow-x: auto;
+          }
+
+          .mca-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 520px;
+          }
+
+          .mca-table th {
+            text-align: left;
+            color: #6b7280;
+            font-size: 13px;
+            padding: 12px;
+          }
+
+          .mca-table td {
+            padding: 13px 12px;
+            border-top: 1px solid rgba(17,24,39,.06);
+            font-weight: 600;
+          }
+
+          .monthly-scroll {
+            display: flex;
+            gap: 18px;
+            overflow-x: auto;
+            padding-bottom: 14px;
+          }
+
+          .monthly-card {
+            min-width: 320px;
+            padding: 20px;
+          }
+
+          @media (max-width: 1180px) {
+            .top-card-grid,
+            .mini-grid {
+              grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .dash-grid {
+              grid-template-columns: 1fr;
+            }
+          }
+
+          @media (max-width: 650px) {
+            .dash-header {
+              flex-direction: column;
+              align-items: flex-start;
+            }
+
+            .dash-title {
+              font-size: 28px;
+            }
+
+            .dash-actions,
+            .dash-actions input {
+              width: 100%;
+            }
+
+            .top-card-grid,
+            .mini-grid {
+              grid-template-columns: 1fr;
+            }
+          }
+        `}
+      </style>
+
+      <div className="dashboard-shell">
+        <div className="dash-header">
+          <div>
+            <h1 className="dash-title">Good Morning, Rushikesh 👋</h1>
+            <p className="dash-subtitle">
+              Track income, expenses, savings, budgets, alerts and smart insights.
+            </p>
+          </div>
+
+          <div className="dash-actions">
+            <input
+              className="mca-soft-input"
+              type="number"
+              value={year}
+              onChange={(e) => setYear(e.target.value)}
+              placeholder="Year"
             />
-          </div>
-        </div>
-      ) : (
-        <p>No top category found for selected month.</p>
-      )}
 
-      {monthlyComparison && (
-        <>
-          <h2 style={{ textAlign: "center", marginTop: "30px" }}>
-            📈 Monthly Comparison
-          </h2>
-
-          <div
-            style={{
-              border: "2px solid #4caf50",
-              borderRadius: "12px",
-              padding: "20px",
-              marginBottom: "30px",
-            }}
-          >
-            <table style={{ width: "100%", textAlign: "center" }}>
-              <thead>
-                <tr>
-                  <th>Category</th>
-                  <th>{monthNames[monthlyComparison.previousMonth]}</th>
-                  <th>{monthNames[monthlyComparison.currentMonth]}</th>
-                  <th>Trend</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                <tr>
-                  <td>Income</td>
-                  <td>₹{monthlyComparison.previousIncome}</td>
-                  <td>₹{monthlyComparison.currentIncome}</td>
-                  <td
-                    style={{
-                      color:
-                        monthlyComparison.incomeChangePercent >= 0
-                          ? "green"
-                          : "red",
-                    }}
-                  >
-                    {monthlyComparison.incomeChangePercent >= 0 ? "▲ " : "▼ "}
-                    {Math.abs(monthlyComparison.incomeChangePercent)}%
-                  </td>
-                </tr>
-
-                <tr>
-                  <td>Expenses</td>
-                  <td>₹{monthlyComparison.previousSpent}</td>
-                  <td>₹{monthlyComparison.currentSpent}</td>
-                  <td
-                    style={{
-                      color:
-                        monthlyComparison.expenseChangePercent <= 0
-                          ? "green"
-                          : "red",
-                    }}
-                  >
-                    {monthlyComparison.expenseChangePercent <= 0 ? "▼ " : "▲ "}
-                    {Math.abs(monthlyComparison.expenseChangePercent)}%
-                  </td>
-                </tr>
-
-                <tr>
-                  <td>Savings</td>
-                  <td>₹{monthlyComparison.previousSavings}</td>
-                  <td>₹{monthlyComparison.currentSavings}</td>
-                  <td
-                    style={{
-                      color:
-                        monthlyComparison.savingsChangePercent >= 0
-                          ? "green"
-                          : "red",
-                    }}
-                  >
-                    {monthlyComparison.savingsChangePercent >= 0 ? "▲ " : "▼ "}
-                    {Math.abs(monthlyComparison.savingsChangePercent)}%
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </>
-      )}
-
-      {aiInsights.length > 0 && (
-        <>
-          <h2 style={{ textAlign: "center", marginTop: "30px" }}>
-            🤖 AI Advisor Insights
-          </h2>
-
-          <div style={{ marginBottom: "30px" }}>
-            {aiInsights.map((insight, index) => (
-              <div
-                key={index}
-                style={{
-                  border: `2px solid ${getCardColor(insight.severity)}`,
-                  borderRadius: "12px",
-                  padding: "16px",
-                  marginBottom: "12px",
-                  backgroundColor: "#fff",
-                }}
-              >
-                <h3>{insight.title}</h3>
-                <p>{insight.message}</p>
-                <strong>{insight.severity}</strong>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-
-      <h2 style={{ textAlign: "center", marginTop: "30px" }}>🎯 Goals Overview</h2>
-
-      {financialGoals.filter((goal) => goal.progressPercentage < 100).length === 0 ? (
-        <p style={{ textAlign: "center" }}>
-          No active goals. Completed goals are available on the Goals page.
-        </p>
-      ) : (
-        <div
-          style={{
-            border: "2px solid #2563eb",
-            borderRadius: "16px",
-            padding: "20px",
-            marginBottom: "30px",
-          }}
-        >
-          {financialGoals
-            .filter((goal) => goal.progressPercentage < 100)
-            .slice(0, 3)
-            .map((goal) => (
-              <div key={goal.id} style={{ marginBottom: "14px" }}>
-                <strong>🎯 {goal.name}</strong>
-                <span style={{ float: "right" }}>
-                  {goal.progressPercentage.toFixed(1)}%
-                </span>
-
-                <div
-                  style={{
-                    width: "100%",
-                    height: "10px",
-                    backgroundColor: "#e5e7eb",
-                    borderRadius: "8px",
-                    marginTop: "6px",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: `${Math.min(goal.progressPercentage, 100)}%`,
-                      height: "100%",
-                      backgroundColor: "#2563eb",
-                      borderRadius: "8px",
-                    }}
-                  />
-                </div>
-              </div>
-            ))}
-
-          <div style={{ textAlign: "center", marginTop: "20px" }}>
-            <button onClick={() => navigate("/financialGoals")}>
-              🎯 View All Goals
+            <button className="mca-gradient-button" onClick={loadDashboardCards}>
+              {loading ? "Loading..." : "Load Year"}
             </button>
           </div>
         </div>
-      )}
 
-      {netWorthSummary && (
-        <>
-          <h2 style={{ textAlign: "center", marginTop: "30px" }}>
-            💎 Net Worth Overview
-          </h2>
-
-          <div
-            style={{
-              border: "2px solid #7c3aed",
-              borderRadius: "16px",
-              padding: "20px",
-              marginBottom: "30px",
-              textAlign: "center",
-            }}
-          >
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(3, 1fr)",
-                gap: "16px",
-              }}
-            >
-              <div>
-                <strong>Total Assets</strong>
-                <h3 style={{ color: "green" }}>₹{netWorthSummary.totalAssets}</h3>
-              </div>
-
-              <div>
-                <strong>Total Liabilities</strong>
-                <h3 style={{ color: "red" }}>₹{netWorthSummary.totalLiabilities}</h3>
-              </div>
-
-              <div>
-                <strong>Net Worth</strong>
-                <h3 style={{ color: netWorthSummary.netWorth >= 0 ? "green" : "red" }}>
-                  ₹{netWorthSummary.netWorth}
-                </h3>
-              </div>
-            </div>
-
-            <button onClick={() => navigate("/net-worth")}>💎 View Net Worth</button>
+        <div className="top-card-grid">
+          <div className="mca-glass-card money-card">
+            <div className="money-icon">💎</div>
+            <div className="money-label">Total Balance</div>
+            <div className="money-value">{formatMoney(totalBalance)}</div>
           </div>
-        </>
-      )}
 
-      {investmentSummary && (
-        <>
-          <h2 style={{ textAlign: "center", marginTop: "30px" }}>
-            📈 Investment Overview
-          </h2>
+          <div className="mca-glass-card money-card">
+            <div className="money-icon">💰</div>
+            <div className="money-label">Monthly Income</div>
+            <div className="money-value">{formatMoney(latestCard?.totalIncome || 0)}</div>
+          </div>
 
-          <div
-            style={{
-              border: "2px solid #16a34a",
-              borderRadius: "16px",
-              padding: "20px",
-              marginBottom: "30px",
-            }}
-          >
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(3, 1fr)",
-                gap: "20px",
-                textAlign: "center",
-              }}
-            >
+          <div className="mca-glass-card money-card">
+            <div className="money-icon">💸</div>
+            <div className="money-label">Monthly Expenses</div>
+            <div className="money-value">{formatMoney(latestCard?.totalSpent || 0)}</div>
+          </div>
+
+          <div className="mca-glass-card money-card">
+            <div className="money-icon">🏦</div>
+            <div className="money-label">Monthly Savings</div>
+            <div className="money-value">{formatMoney(latestCard?.savings || 0)}</div>
+          </div>
+        </div>
+
+        <div className="dash-grid">
+          <div className="mca-glass-card dash-card">
+            <div className="dash-card-head">
               <div>
-                <strong>Total Invested</strong>
-                <h3>₹{investmentSummary.totalInvested}</h3>
+                <h2 className="mca-section-title">Auto Alerts</h2>
+                <p className="mca-muted">Important budget and spending warnings.</p>
+              </div>
+              <span>🔔</span>
+            </div>
+
+            <div className="insight-list scroll-box">
+              {cards.length === 0 ? (
+                <p className="mca-muted">No alerts available.</p>
+              ) : alertCards.length === 0 ? (
+                <p className="mca-muted">No critical alerts. You are doing well.</p>
+              ) : (
+                alertCards.map((card) => (
+                  <div className="soft-item" key={`${card.month}-${card.year}-alert`}>
+                    <strong style={{ color: getCardColor(card.topSeverity) }}>
+                      {getSeverityIcon(card.topSeverity)} {card.topSeverity} -{" "}
+                      {monthNames[card.month]} {card.year}
+                    </strong>
+                    <p style={{ marginTop: 8 }}>{card.topMessage}</p>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className="mca-glass-card dash-card">
+            <div className="dash-card-head">
+              <div>
+                <h2 className="mca-section-title">AI Coach</h2>
+                <p className="mca-muted">Latest smart insights.</p>
+              </div>
+              <span>🤖</span>
+            </div>
+
+            <div className="insight-list">
+              {aiInsights.length === 0 ? (
+                <p className="mca-muted">No AI insights available.</p>
+              ) : (
+                aiInsights.slice(0, 3).map((insight, index) => (
+                  <div className="soft-item" key={index}>
+                    <strong style={{ color: getCardColor(insight.severity) }}>
+                      {getSeverityIcon(insight.severity)} {insight.title}
+                    </strong>
+                    <p style={{ marginTop: 8 }}>{insight.message}</p>
+                    <strong style={{ display: "block", marginTop: 8 }}>
+                      {insight.severity}
+                    </strong>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="dash-grid">
+          <div className="mca-glass-card dash-card" style={{ minHeight: 0 }}>
+            <div className="dash-card-head">
+              <div>
+                <h2 className="mca-section-title">Top Spending Category</h2>
+                <p className="mca-muted">
+                  {loadedTopCategoryMonth
+                    ? `${monthNames[Number(loadedTopCategoryMonth)]} ${loadedTopCategoryYear}`
+                    : "Select month and year"}
+                </p>
               </div>
 
-              <div>
-                <strong>Current Value</strong>
-                <h3>₹{investmentSummary.totalCurrentValue}</h3>
-              </div>
-
-              <div>
-                <strong>Profit / Loss</strong>
-                <h3
-                  style={{
-                    color:
-                      investmentSummary.totalProfitOrLoss >= 0
-                        ? "green"
-                        : "red",
-                  }}
+              <div className="soft-row">
+                <select
+                  className="mca-soft-input"
+                  value={topCategoryMonth}
+                  onChange={(e) => setTopCategoryMonth(e.target.value)}
                 >
-                  ₹{investmentSummary.totalProfitOrLoss}
-                  <br />({investmentSummary.profitOrLossPercentage}%)
-                </h3>
+                  <option value="">Month</option>
+                  {monthNames.slice(1).map((month, index) => (
+                    <option key={month} value={index + 1}>
+                      {month}
+                    </option>
+                  ))}
+                </select>
+
+                <input
+                  className="mca-soft-input"
+                  style={{ width: 110 }}
+                  type="number"
+                  value={topCategoryYear}
+                  onChange={(e) => setTopCategoryYear(e.target.value)}
+                />
+
+                <button className="mca-gradient-button" onClick={handleLoadTopCategory}>
+                  View
+                </button>
               </div>
             </div>
 
-            <div style={{ textAlign: "center", marginTop: "20px" }}>
-              <button onClick={() => navigate("/investments")}>
-                📈 View Investments
+            {topCategory ? (
+              <>
+                <h2 style={{ fontSize: 32, margin: "10px 0" }}>
+                  🛒 {topCategory.category}
+                </h2>
+
+                <h1 style={{ color: "var(--mca-warning)", margin: "10px 0" }}>
+                  {formatMoney(topCategory.totalSpent)}
+                </h1>
+
+                <p className="mca-muted">
+                  {topCategory.percentageOfTotal.toFixed(1)}% of all spending this month
+                </p>
+
+                <div className="progress-track" style={{ marginTop: 18 }}>
+                  <div
+                    className="progress-fill"
+                    style={{
+                      width: `${Math.min(topCategory.percentageOfTotal, 100)}%`,
+                      background: "linear-gradient(135deg, #FFB547, #FF8A3D)",
+                    }}
+                  />
+                </div>
+              </>
+            ) : (
+              <p className="mca-muted">No top category found for selected month.</p>
+            )}
+          </div>
+
+          {monthlyComparison && (
+            <div className="mca-glass-card dash-card">
+              <div className="dash-card-head">
+                <div>
+                  <h2 className="mca-section-title">Monthly Comparison</h2>
+                  <p className="mca-muted">
+                    {monthNames[monthlyComparison.previousMonth]} vs{" "}
+                    {monthNames[monthlyComparison.currentMonth]}
+                  </p>
+                </div>
+              </div>
+
+              <div className="insight-list">
+                <div className="soft-item">
+                  <strong>Income</strong>
+                  <p>
+                    {formatMoney(monthlyComparison.previousIncome)} →{" "}
+                    {formatMoney(monthlyComparison.currentIncome)}
+                  </p>
+                  <strong style={{ color: monthlyComparison.incomeChangePercent >= 0 ? "#21C77A" : "#FF6467" }}>
+                    {monthlyComparison.incomeChangePercent >= 0 ? "▲" : "▼"}{" "}
+                    {Math.abs(monthlyComparison.incomeChangePercent)}%
+                  </strong>
+                </div>
+
+                <div className="soft-item">
+                  <strong>Expenses</strong>
+                  <p>
+                    {formatMoney(monthlyComparison.previousSpent)} →{" "}
+                    {formatMoney(monthlyComparison.currentSpent)}
+                  </p>
+                  <strong style={{ color: monthlyComparison.expenseChangePercent <= 0 ? "#21C77A" : "#FF6467" }}>
+                    {monthlyComparison.expenseChangePercent <= 0 ? "▼" : "▲"}{" "}
+                    {Math.abs(monthlyComparison.expenseChangePercent)}%
+                  </strong>
+                </div>
+
+                <div className="soft-item">
+                  <strong>Savings</strong>
+                  <p>
+                    {formatMoney(monthlyComparison.previousSavings)} →{" "}
+                    {formatMoney(monthlyComparison.currentSavings)}
+                  </p>
+                  <strong style={{ color: monthlyComparison.savingsChangePercent >= 0 ? "#21C77A" : "#FF6467" }}>
+                    {monthlyComparison.savingsChangePercent >= 0 ? "▲" : "▼"}{" "}
+                    {Math.abs(monthlyComparison.savingsChangePercent)}%
+                  </strong>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="mini-grid">
+          <div className="mca-glass-card dash-card">
+            <h2 className="mca-section-title">Goals Overview</h2>
+
+            <div className="insight-list" style={{ marginTop: 18 }}>
+              {financialGoals.filter((goal) => goal.progressPercentage < 100).length === 0 ? (
+                <p className="mca-muted">No active goals.</p>
+              ) : (
+                financialGoals
+                  .filter((goal) => goal.progressPercentage < 100)
+                  .slice(0, 3)
+                  .map((goal) => (
+                    <div key={goal.id}>
+                      <strong>🎯 {goal.name}</strong>
+                      <span style={{ float: "right" }}>
+                        {goal.progressPercentage.toFixed(1)}%
+                      </span>
+                      <div className="progress-track" style={{ marginTop: 10 }}>
+                        <div
+                          className="progress-fill"
+                          style={{ width: `${Math.min(goal.progressPercentage, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))
+              )}
+
+              <button className="mca-gradient-button" onClick={() => navigate("/financialGoals")}>
+                View Goals
               </button>
             </div>
           </div>
-        </>
-      )}
 
-      {/* ----Recent Financial Activity---- */}
+          <div className="mca-glass-card dash-card">
+            <h2 className="mca-section-title">Net Worth Overview</h2>
 
-<h2 style={{ textAlign: "center" }}>Recent Financial Activity</h2>
+            <h1 style={{ margin: "20px 0 10px" }}>
+              {formatMoney(netWorthSummary?.netWorth || 0)}
+            </h1>
 
-{recentTransactions.length === 0 ? (
-  <p style={{ textAlign: "center" }}>No recent transactions found.</p>
-) : (
-  <div
-    style={{
-      marginBottom: "30px",
-      border: "1px solid #e5e7eb",
-      padding: "20px 24px",
-    }}
-  >
-    {/* Recent Income - Full Width */}
-    <div style={{ marginBottom: "40px" }}>
-      <h3 style={{ textAlign: "center" }}>Recent Income</h3>
+            <p className="mca-muted">Assets: {formatMoney(netWorthSummary?.totalAssets || 0)}</p>
+            <p className="mca-muted">Liabilities: {formatMoney(netWorthSummary?.totalLiabilities || 0)}</p>
 
-      <div
-        style={{
-          maxHeight: "260px",
-          overflowY: "auto",
-          overflowX: "auto",
-        }}
-      >
-        <table
-          border={1}
-          cellPadding={12}
-          style={{
-            width: "100%",
-            textAlign: "center",
-            borderCollapse: "collapse",
-          }}
-        >
-          <thead>
-            <tr>
-              <th>Source</th>
-              <th>Description</th>
-              <th>Date</th>
-              <th>Amount</th>
-            </tr>
-          </thead>
+            <button
+              className="mca-gradient-button"
+              style={{ marginTop: 18 }}
+              onClick={() => navigate("/net-worth")}
+            >
+              View Net Worth
+            </button>
+          </div>
 
-          <tbody>
-            {recentIncome.map((transaction) => (
-              <tr key={`income-${transaction.id}`}>
-                <td>{transaction.categoryOrSource}</td>
-                <td>{transaction.description}</td>
-                <td>{new Date(transaction.date).toLocaleDateString()}</td>
-                <td style={{ color: "green", fontWeight: "bold" }}>
-                  +₹{transaction.amount}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
+          <div className="mca-glass-card dash-card">
+            <h2 className="mca-section-title">Investment Overview</h2>
 
-    {/* Budget and Expenses - Side by Side */}
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "1fr 1fr",
-        gap: "22px",
-      }}
-    >
-      <div>
-        <h3 style={{ textAlign: "center" }}>Recent Budget</h3>
+            <h1 style={{ margin: "20px 0 10px" }}>
+              {formatMoney(investmentSummary?.totalCurrentValue || 0)}
+            </h1>
 
-        <div
-          style={{
-            maxHeight: "260px",
-            overflowY: "auto",
-            overflowX: "auto",
-          }}
-        >
-          <table
-            border={1}
-            cellPadding={12}
-            style={{
-              width: "100%",
-              textAlign: "center",
-              borderCollapse: "collapse",
-            }}
-          >
-            <thead>
-              <tr>
-                <th>Category</th>
-                <th>Month</th>
-                <th>Year</th>
-                <th>Limit</th>
-              </tr>
-            </thead>
+            <p className="mca-muted">
+              Invested: {formatMoney(investmentSummary?.totalInvested || 0)}
+            </p>
 
-            <tbody>
-              {recentBudgets.length === 0 ? (
-                <tr>
-                  <td colSpan={4}>No budget found for recent month.</td>
-                </tr>
-              ) : (
-                recentBudgets.map((budget) => (
-                  <tr key={budget.id}>
-                    <td>{budget.category}</td>
-                    <td>{budget.month}</td>
-                    <td>{budget.year}</td>
-                    <td style={{ color: "blue", fontWeight: "bold" }}>
-                      ₹{budget.monthlyLimit}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+            <strong
+              style={{
+                color:
+                  (investmentSummary?.totalProfitOrLoss || 0) >= 0
+                    ? "#21C77A"
+                    : "#FF6467",
+              }}
+            >
+              {formatMoney(investmentSummary?.totalProfitOrLoss || 0)} (
+              {investmentSummary?.profitOrLossPercentage || 0}%)
+            </strong>
+
+            <button
+              className="mca-gradient-button"
+              style={{ marginTop: 18 }}
+              onClick={() => navigate("/investments")}
+            >
+              View Investments
+            </button>
+          </div>
         </div>
-      </div>
 
-      <div>
-        <h3 style={{ textAlign: "center" }}>Recent Expenses</h3>
+        <div className="mca-glass-card dash-card" style={{ marginBottom: 20 }}>
+          <div className="dash-card-head">
+            <div>
+              <h2 className="mca-section-title">Recent Financial Activity</h2>
+              <p className="mca-muted">Latest income, expenses and budget records.</p>
+            </div>
+          </div>
 
-        <div
-          style={{
-            maxHeight: "260px",
-            overflowY: "auto",
-            overflowX: "auto",
-          }}
-        >
-          <table
-            border={1}
-            cellPadding={12}
-            style={{
-              width: "100%",
-              textAlign: "center",
-              borderCollapse: "collapse",
-            }}
-          >
-            <thead>
-              <tr>
-                <th>Category</th>
-                <th>Description</th>
-                <th>Date</th>
-                <th>Amount</th>
-              </tr>
-            </thead>
+          {recentTransactions.length === 0 ? (
+            <p className="mca-muted">No recent transactions found.</p>
+          ) : (
+            <div className="dash-grid">
+              <div>
+                <h3>Recent Income</h3>
+                <div className="activity-list scroll-box">
+                  {recentIncome.map((transaction) => (
+                    <div className="activity-item" key={`income-${transaction.id}`}>
+                      <div className="activity-left">
+                        <div className="activity-icon">💰</div>
+                        <div>
+                          <strong>{transaction.categoryOrSource}</strong>
+                          <p className="mca-muted">
+                            {transaction.description} •{" "}
+                            {new Date(transaction.date).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                      <strong style={{ color: "#21C77A" }}>
+                        +{formatMoney(transaction.amount)}
+                      </strong>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
-            <tbody>
-              {recentExpenses.length === 0 ? (
-                <tr>
-                  <td colSpan={4}>No expenses found for recent month.</td>
-                </tr>
-              ) : (
-                recentExpenses.map((transaction) => (
-                  <tr key={`expense-${transaction.id}`}>
-                    <td>{transaction.categoryOrSource}</td>
-                    <td>{transaction.description}</td>
-                    <td>{new Date(transaction.date).toLocaleDateString()}</td>
-                    <td style={{ color: "red", fontWeight: "bold" }}>
-                      -₹{transaction.amount}
-                    </td>
+              <div>
+                <h3>Recent Expenses</h3>
+                <div className="activity-list scroll-box">
+                  {recentExpenses.length === 0 ? (
+                    <p className="mca-muted">No expenses found for recent month.</p>
+                  ) : (
+                    recentExpenses.map((transaction) => (
+                      <div className="activity-item" key={`expense-${transaction.id}`}>
+                        <div className="activity-left">
+                          <div className="activity-icon">💸</div>
+                          <div>
+                            <strong>{transaction.categoryOrSource}</strong>
+                            <p className="mca-muted">
+                              {transaction.description} •{" "}
+                              {new Date(transaction.date).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                        <strong style={{ color: "#FF6467" }}>
+                          -{formatMoney(transaction.amount)}
+                        </strong>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div style={{ marginTop: 20 }}>
+            <h3>Recent Budget</h3>
+            <div className="table-card">
+              <table className="mca-table">
+                <thead>
+                  <tr>
+                    <th>Category</th>
+                    <th>Month</th>
+                    <th>Year</th>
+                    <th>Limit</th>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                </thead>
+
+                <tbody>
+                  {recentBudgets.length === 0 ? (
+                    <tr>
+                      <td colSpan={4}>No budget found for recent month.</td>
+                    </tr>
+                  ) : (
+                    recentBudgets.map((budget) => (
+                      <tr key={budget.id}>
+                        <td>{budget.category}</td>
+                        <td>{budget.month}</td>
+                        <td>{budget.year}</td>
+                        <td style={{ color: "#4F7CFF", fontWeight: 900 }}>
+                          {formatMoney(budget.monthlyLimit)}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
-  </div>
-)}
-      <h2>Monthly Financial Overview</h2>
 
-      {cards.length === 0 ? (
-        <p>No dashboard data found for this year.</p>
-      ) : (
-        <div
-          style={{
-            display: "flex",
-            gap: "18px",
-            overflowX: "auto",
-            paddingBottom: "20px",
-          }}
-        >
-          {cards.map((card) => {
-            const cardKey = `${card.month}-${card.year}`;
-            const isExpanded = expandedCard === cardKey;
-            const color = getCardColor(card.topSeverity);
+        <div className="mca-glass-card dash-card" style={{ marginBottom: 20 }}>
+          <div className="dash-card-head">
+            <div>
+              <h2 className="mca-section-title">Monthly Financial Overview</h2>
+              <p className="mca-muted">Monthly income, expenses, savings and smart alerts.</p>
+            </div>
+          </div>
 
-            return (
-              <div
-                key={cardKey}
-                style={{
-                  minWidth: "330px",
-                  border: `3px solid ${color}`,
-                  borderRadius: "16px",
-                  padding: "18px",
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
-                  backgroundColor: "#ffffff",
-                }}
-              >
-                <h3>
-                  {monthNames[card.month]} {card.year}
-                </h3>
+          {cards.length === 0 ? (
+            <p className="mca-muted">No dashboard data found for this year.</p>
+          ) : (
+            <div className="monthly-scroll">
+              {cards.map((card) => {
+                const cardKey = `${card.month}-${card.year}`;
+                const isExpanded = expandedCard === cardKey;
+                const color = getCardColor(card.topSeverity);
 
-                <p>
-                  <strong>💰 Income:</strong> ₹{card.totalIncome}
-                </p>
-                <p>
-                  <strong>💸 Expenses:</strong> ₹{card.totalSpent}
-                </p>
-                <p>
-                  <strong>🏦 Savings:</strong> ₹{card.savings}
-                </p>
-                <p>
-                  <strong>📈 Savings Rate:</strong>{" "}
-                  {card.savingsRate.toFixed(1)}%
-                </p>
-                <p>
-                  <strong>❤️ Health:</strong> {getHealthIcon(card.healthStatus)}{" "}
-                  {card.healthStatus}
-                </p>
+                return (
+                  <div className="mca-glass-card monthly-card" key={cardKey}>
+                    <h3>{monthNames[card.month]} {card.year}</h3>
 
-                <hr />
+                    <p><strong>💰 Income:</strong> {formatMoney(card.totalIncome)}</p>
+                    <p><strong>💸 Expenses:</strong> {formatMoney(card.totalSpent)}</p>
+                    <p><strong>🏦 Savings:</strong> {formatMoney(card.savings)}</p>
+                    <p><strong>📈 Savings Rate:</strong> {card.savingsRate.toFixed(1)}%</p>
+                    <p><strong>❤️ Health:</strong> {getHealthIcon(card.healthStatus)} {card.healthStatus}</p>
 
-                <p style={{ color, fontWeight: "bold" }}>
-                  {getSeverityIcon(card.topSeverity)} {card.topSeverity}
-                </p>
-
-                <p>{card.topMessage}</p>
-
-                {isExpanded && (
-                  <div>
                     <hr />
-                    <p>
-                      <strong>Total Budget:</strong> ₹{card.totalBudget}
-                    </p>
-                    <p>
-                      <strong>Budget Remaining:</strong> ₹{card.remaining}
-                    </p>
-                    <p>
-                      <strong>Total Smart Insights:</strong> {card.suggestionCount}
+
+                    <p style={{ color, fontWeight: 900 }}>
+                      {getSeverityIcon(card.topSeverity)} {card.topSeverity}
                     </p>
 
-                    <button
-                      onClick={() =>
-                        navigate(`/suggestions?month=${card.month}&year=${card.year}`)
-                      }
-                    >
-                      View Full Suggestions
-                    </button>
+                    <p>{card.topMessage}</p>
+
+                    {isExpanded && (
+                      <div>
+                        <hr />
+                        <p><strong>Total Budget:</strong> {formatMoney(card.totalBudget)}</p>
+                        <p><strong>Budget Remaining:</strong> {formatMoney(card.remaining)}</p>
+                        <p><strong>Total Smart Insights:</strong> {card.suggestionCount}</p>
+
+                        <button
+                          className="mca-gradient-button"
+                          style={{ width: "100%", marginTop: 10 }}
+                          onClick={() =>
+                            navigate(`/suggestions?month=${card.month}&year=${card.year}`)
+                          }
+                        >
+                          View Suggestions
+                        </button>
+
+                        <button
+                          className="mca-gradient-button"
+                          style={{ width: "100%", marginTop: 10 }}
+                          onClick={() => handleExportPdf(card.month, card.year)}
+                        >
+                          Export PDF
+                        </button>
+                      </div>
+                    )}
 
                     <button
-                      onClick={() => handleExportPdf(card.month, card.year)}
-                      style={{ marginLeft: "10px" }}
+                      className="mca-gradient-button"
+                      style={{ width: "100%", marginTop: 12 }}
+                      onClick={() => toggleExpand(card)}
                     >
-                      📄 Export PDF
+                      {isExpanded ? "Hide Details" : "Show Details"}
                     </button>
                   </div>
-                )}
-
-                <button
-                  onClick={() => toggleExpand(card)}
-                  style={{ marginTop: "12px", width: "100%" }}
-                >
-                  {isExpanded ? "▲ Hide Insights" : "▼ Show Insights"}
-                </button>
-              </div>
-            );
-          })}
+                );
+              })}
+            </div>
+          )}
         </div>
-      )}
 
-      {cards.length > 0 && <DashboardCharts cards={cards} />}
-    </div>
+        {cards.length > 0 && (
+          <div className="mca-glass-card dash-card">
+            <DashboardCharts cards={cards} />
+          </div>
+        )}
+      </div>
     </AppLayout>
   );
 }

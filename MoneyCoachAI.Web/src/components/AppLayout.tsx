@@ -31,165 +31,278 @@ function AppLayout({ children }: AppLayoutProps) {
   ];
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f8fafc" }}>
+    <div className="mca-app-shell">
       <style>
         {`
-          @media (max-width: 768px) {
-            .sidebar {
-              transform: translateX(-100%);
+          .mca-app-shell {
+            min-height: 100vh;
+            background: var(--mca-bg);
+          }
+
+          .mca-sidebar {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            width: 270px;
+            height: calc(100vh - 40px);
+            padding: 22px 16px;
+            z-index: 1100;
+            overflow-y: auto;
+            transition: transform 0.25s ease;
+            background: rgba(255,255,255,.72);
+            backdrop-filter: blur(24px);
+            border: 1px solid rgba(255,255,255,.6);
+            border-radius: 30px;
+            box-shadow:
+              0 20px 50px rgba(0,0,0,.06),
+              inset 0 1px 0 rgba(255,255,255,.7);
+          }
+
+          .mca-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 4px 8px 24px;
+          }
+
+          .mca-brand-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 14px;
+            display: grid;
+            place-items: center;
+            color: #fff;
+            font-size: 20px;
+            background: linear-gradient(135deg, #5B8CFF, #7B61FF);
+            box-shadow: 0 12px 24px rgba(79,124,255,.24);
+          }
+
+          .mca-brand-title {
+            margin: 0;
+            font-size: 22px;
+            font-weight: 900;
+            letter-spacing: -0.6px;
+            color: #111827;
+            line-height: 1;
+          }
+
+          .mca-brand-title span {
+            color: var(--mca-primary);
+          }
+
+          .mca-brand-subtitle {
+            margin: 6px 0 0;
+            font-size: 11px;
+            color: var(--mca-muted);
+            font-weight: 600;
+          }
+
+          .mca-nav-button {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 13px;
+            padding: 13px 14px;
+            margin-bottom: 7px;
+            border: none;
+            border-radius: 18px;
+            cursor: pointer;
+            text-align: left;
+            font-size: 14px;
+            font-weight: 700;
+            color: #465064;
+            background: transparent;
+          }
+
+          .mca-nav-button:hover {
+            background: rgba(255,255,255,.65);
+          }
+
+          .mca-nav-button.active {
+            color: var(--mca-primary);
+            background: linear-gradient(135deg, rgba(79,124,255,.16), rgba(124,92,252,.12));
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.75);
+          }
+
+          .mca-nav-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 12px;
+            display: grid;
+            place-items: center;
+            background: rgba(255,255,255,.55);
+          }
+
+          .mca-pro-card {
+            margin-top: 22px;
+            padding: 18px;
+            border-radius: 24px;
+            color: #fff;
+            background: linear-gradient(135deg, #111827, #243047);
+            box-shadow: 0 18px 35px rgba(17,24,39,.22);
+          }
+
+          .mca-pro-title {
+            font-weight: 900;
+            margin-bottom: 8px;
+          }
+
+          .mca-pro-text {
+            margin: 0;
+            font-size: 12px;
+            line-height: 1.6;
+            color: rgba(255,255,255,.72);
+          }
+
+          .mca-pro-button {
+            margin-top: 16px;
+            width: 100%;
+            border: none;
+            border-radius: 16px;
+            padding: 12px;
+            color: #fff;
+            font-weight: 800;
+            cursor: pointer;
+            background: linear-gradient(135deg, #5B8CFF, #7B61FF);
+          }
+
+          .mca-logout {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 18px;
+            padding: 13px 14px;
+            border: none;
+            border-radius: 18px;
+            cursor: pointer;
+            text-align: left;
+            font-size: 14px;
+            color: #FF6467;
+            background: rgba(255,100,103,.1);
+            font-weight: 800;
+          }
+
+          .mca-main {
+            margin-left: 310px;
+            min-height: 100vh;
+            padding: 26px 28px 34px 0;
+          }
+
+          .mca-mobile-header {
+            display: none;
+          }
+
+          @media (max-width: 900px) {
+            .mca-sidebar {
+              top: 12px;
+              left: 12px;
+              height: calc(100vh - 24px);
+              transform: translateX(calc(-100% - 24px));
             }
 
-            .sidebar.open {
+            .mca-sidebar.open {
               transform: translateX(0);
             }
 
-            .main-content {
-              margin-left: 0 !important;
-              padding: 80px 16px 24px !important;
+            .mca-main {
+              margin-left: 0;
+              padding: 88px 14px 26px;
             }
 
-            .mobile-header {
-              display: flex !important;
+            .mca-mobile-header {
+              display: flex;
+              position: fixed;
+              top: 12px;
+              left: 12px;
+              right: 12px;
+              height: 64px;
+              align-items: center;
+              justify-content: space-between;
+              padding: 0 14px;
+              z-index: 1000;
+              background: rgba(255,255,255,.72);
+              backdrop-filter: blur(24px);
+              border: 1px solid rgba(255,255,255,.6);
+              border-radius: 22px;
+              box-shadow: var(--mca-shadow);
             }
           }
         `}
       </style>
 
-      {/* Mobile Header */}
-      <div
-        className="mobile-header"
-        style={{
-          display: "none",
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          height: "64px",
-          background: "#ffffff",
-          borderBottom: "1px solid #e5e7eb",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "0 16px",
-          zIndex: 1100,
-        }}
-      >
+      <div className="mca-mobile-header">
         <button
           onClick={() => setSidebarOpen(true)}
-          style={{
-            fontSize: "26px",
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-          }}
+          className="mca-gradient-button"
+          style={{ padding: "10px 13px", borderRadius: "14px" }}
         >
           ☰
         </button>
 
-        <strong>
-          Money<span style={{ color: "#16a34a" }}>CoachAI</span>
+        <strong style={{ fontSize: "19px", color: "#111827" }}>
+          Money<span style={{ color: "var(--mca-primary)" }}>CoachAI</span>
         </strong>
       </div>
 
-      {/* Sidebar */}
-      <aside
-        className={`sidebar ${sidebarOpen ? "open" : ""}`}
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          width: "260px",
-          height: "100vh",
-          background: "#ffffff",
-          borderRight: "1px solid #e5e7eb",
-          padding: "24px 20px",
-          boxSizing: "border-box",
-          zIndex: 1000,
-          transition: "transform 0.25s ease",
-          overflowY: "auto",
-        }}
-      >
-        <h2 style={{ marginTop: 0, marginBottom: "30px" }}>
-          💳 Money<span style={{ color: "#16a34a" }}>CoachAI</span>
-        </h2>
+      <aside className={`mca-sidebar ${sidebarOpen ? "open" : ""}`}>
+        <div className="mca-brand">
+          <div className="mca-brand-icon">📊</div>
+
+          <div>
+            <h2 className="mca-brand-title">
+              Money<span>CoachAI</span>
+            </h2>
+            <p className="mca-brand-subtitle">Manage Smarter, Live Better</p>
+          </div>
+        </div>
 
         <nav>
-          {navItems.map((item) => (
-            <button
-              key={item.path}
-              onClick={() => {
-                navigate(item.path);
-                setSidebarOpen(false);
-              }}
-              style={{
-                width: "100%",
-                display: "flex",
-                alignItems: "center",
-                gap: "12px",
-                padding: "13px 16px",
-                marginBottom: "8px",
-                border: "none",
-                borderRadius: "10px",
-                cursor: "pointer",
-                textAlign: "left",
-                fontSize: "15px",
-                fontWeight: isActive(item.path) ? "bold" : "normal",
-                background: isActive(item.path) ? "#dcfce7" : "transparent",
-                color: isActive(item.path) ? "#16a34a" : "#111827",
-              }}
-            >
-              <span>{item.icon}</span>
-              {item.label}
-            </button>
-          ))}
+          {navItems.map((item) => {
+            const active = isActive(item.path);
 
-          <hr style={{ margin: "22px 0", borderColor: "#e5e7eb" }} />
-
-          <button
-            onClick={handleLogout}
-            style={{
-              width: "100%",
-              display: "flex",
-              alignItems: "center",
-              gap: "12px",
-              padding: "13px 16px",
-              border: "none",
-              borderRadius: "10px",
-              cursor: "pointer",
-              textAlign: "left",
-              fontSize: "15px",
-              color: "#dc2626",
-              background: "transparent",
-            }}
-          >
-            🚪 Logout
-          </button>
+            return (
+              <button
+                key={item.path}
+                onClick={() => {
+                  navigate(item.path);
+                  setSidebarOpen(false);
+                }}
+                className={`mca-nav-button ${active ? "active" : ""}`}
+              >
+                <span className="mca-nav-icon">{item.icon}</span>
+                {item.label}
+              </button>
+            );
+          })}
         </nav>
+
+        <div className="mca-pro-card">
+          <div className="mca-pro-title">💎 Go Premium</div>
+          <p className="mca-pro-text">
+            Unlock AI insights, smart budget alerts, and advanced financial reports.
+          </p>
+          <button className="mca-pro-button">Upgrade Now</button>
+        </div>
+
+        <button onClick={handleLogout} className="mca-logout">
+          🚪 Logout
+        </button>
       </aside>
 
-      {/* Mobile Overlay */}
       {sidebarOpen && (
         <div
           onClick={() => setSidebarOpen(false)}
           style={{
             position: "fixed",
             inset: 0,
-            background: "rgba(0,0,0,0.35)",
-            zIndex: 900,
+            background: "rgba(17,24,39,.35)",
+            zIndex: 1050,
           }}
         />
       )}
 
-      {/* Main Content */}
-      <main
-        className="main-content"
-        style={{
-          marginLeft: "260px",
-          padding: "32px 28px",
-          boxSizing: "border-box",
-        }}
-      >
-        {children}
-      </main>
+      <main className="mca-main">{children}</main>
     </div>
   );
 }
