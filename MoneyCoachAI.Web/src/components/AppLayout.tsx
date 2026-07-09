@@ -31,7 +31,7 @@ function AppLayout({ children }: AppLayoutProps) {
   ];
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f8fafc" }}>
+    <div style={{ minHeight: "100vh", background: "#090b17", color: "#e2e8f0" }}>
       <style>
         {`
           @media (max-width: 768px) {
@@ -65,8 +65,9 @@ function AppLayout({ children }: AppLayoutProps) {
           left: 0,
           right: 0,
           height: "64px",
-          background: "#ffffff",
-          borderBottom: "1px solid #e5e7eb",
+          background: "#0f172a",
+          borderBottom: "1px solid #1f2937",
+          color: "#e2e8f0",
           alignItems: "center",
           justifyContent: "space-between",
           padding: "0 16px",
@@ -99,13 +100,14 @@ function AppLayout({ children }: AppLayoutProps) {
           left: 0,
           width: "260px",
           height: "100vh",
-          background: "#ffffff",
-          borderRight: "1px solid #e5e7eb",
+          background: "#0f172a",
+          borderRight: "1px solid #111827",
           padding: "24px 20px",
           boxSizing: "border-box",
           zIndex: 1000,
           transition: "transform 0.25s ease",
           overflowY: "auto",
+          color: "#e2e8f0",
         }}
       >
         <h2 style={{ marginTop: 0, marginBottom: "30px" }}>
@@ -133,8 +135,8 @@ function AppLayout({ children }: AppLayoutProps) {
                 textAlign: "left",
                 fontSize: "15px",
                 fontWeight: isActive(item.path) ? "bold" : "normal",
-                background: isActive(item.path) ? "#dcfce7" : "transparent",
-                color: isActive(item.path) ? "#16a34a" : "#111827",
+                background: isActive(item.path) ? "#2563eb" : "transparent",
+                color: isActive(item.path) ? "#ffffff" : "#cbd5e1",
               }}
             >
               <span>{item.icon}</span>
