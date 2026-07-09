@@ -191,10 +191,12 @@ useEffect(() => {
                 <td>{expense.description}</td>
                 <td>{new Date(expense.date).toLocaleDateString()}</td>
                 <td>
-                  <div className="action-buttons">
-                    <button onClick={() => handleEditClick(expense)}>Edit</button>
-                    <button onClick={() => handleDeleteExpense(expense.id)}>Delete</button>
-                  </div>
+                <button onClick={() => handleEditClick(expense)}>
+                    Edit
+                  </button>
+                  <button onClick={() => handleDeleteExpense(expense.id)}>
+                    Delete
+                  </button>
                 </td>
               </tr>
             ))}

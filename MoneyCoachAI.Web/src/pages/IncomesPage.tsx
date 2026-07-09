@@ -190,10 +190,13 @@ function IncomesPage() {
                 <td>{income.description}</td>
                 <td>{new Date(income.date).toLocaleDateString()}</td>
                 <td>
-                  <div className="action-buttons">
-                    <button onClick={() => handleEditClick(income)}>Edit</button>
-                    <button onClick={() => handleDeleteIncome(income.id)}>Delete</button>
-                  </div>
+                  <button onClick={() => handleEditClick(income)}>
+                    Edit
+                  </button>
+
+                  <button onClick={() => handleDeleteIncome(income.id)}>
+                    Delete
+                  </button>
                 </td>
               </tr>
             ))}
