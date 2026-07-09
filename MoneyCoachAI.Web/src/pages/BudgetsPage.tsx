@@ -192,13 +192,10 @@ function BudgetsPage() {
                 <td>{budget.month}</td>
                 <td>{budget.year}</td>
                 <td>
-                  <button onClick={() => handleEditClick(budget)}>
-                    Edit
-                  </button>
-
-                  <button onClick={() => handleDeleteBudget(budget.id)}>
-                    Delete
-                  </button>
+                  <div className="action-buttons">
+                    <button onClick={() => handleEditClick(budget)}>Edit</button>
+                    <button onClick={() => handleDeleteBudget(budget.id)}>Delete</button>
+                  </div>
                 </td>
               </tr>
             ))}

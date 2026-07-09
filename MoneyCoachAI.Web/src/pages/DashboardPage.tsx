@@ -412,7 +412,7 @@ function DashboardPage() {
   const latestCard = sortedCards[sortedCards.length - 1] ?? null;
 
   const sectionCardStyle = {
-    backgroundColor: "#0f172a",
+    backgroundColor: "#1f2937",
     border: "1px solid #334155",
     borderRadius: "18px",
     boxShadow: "0 18px 46px rgba(0, 0, 0, 0.38)",
@@ -505,22 +505,30 @@ function DashboardPage() {
               <p style={{ margin: 0, color: "#94a3b8" }}>No critical alerts. You are doing well.</p>
             ) : (
               <div style={{ display: "grid", gap: "12px", maxHeight: "320px", overflowY: "auto", paddingRight: "6px" }}>
-                {alertCards.map((card) => (
-                  <div
-                    key={`${card.month}-${card.year}-alert`}
-                    style={{
-                      borderLeft: `4px solid ${getCardColor(card.topSeverity)}`,
-                      padding: "12px 14px",
-                      borderRadius: "12px",
-                      backgroundColor: "#111827",
-                    }}
-                  >
-                    <strong style={{ display: "block", marginBottom: "4px" }}>
-                      {getSeverityIcon(card.topSeverity)} {card.topSeverity} - {monthNames[card.month]} {card.year}
-                    </strong>
-                    <span style={{ color: "#cbd5e1" }}>{card.topMessage}</span>
-                  </div>
-                ))}
+                {alertCards.map((card) => {
+                  const alertBackground = card.topSeverity === "Danger" ? "#dc2626" : "#facc15";
+                  const alertBorder = card.topSeverity === "Danger" ? "#991b1b" : "#c2410c";
+                  const alertTextColor = card.topSeverity === "Danger" ? "#f8fafc" : "#0f172a";
+
+                  return (
+                    <div
+                      key={`${card.month}-${card.year}-alert`}
+                      style={{
+                        padding: "16px 18px",
+                        borderRadius: "14px",
+                        backgroundColor: alertBackground,
+                        color: alertTextColor,
+                        boxShadow: "0 14px 24px rgba(0, 0, 0, 0.18)",
+                        border: `1px solid ${alertBorder}`,
+                      }}
+                    >
+                      <strong style={{ display: "block", marginBottom: "8px", fontSize: "1rem" }}>
+                        {getSeverityIcon(card.topSeverity)} {card.topSeverity} - {monthNames[card.month]} {card.year}
+                      </strong>
+                      <span style={{ color: alertTextColor, opacity: 0.95, lineHeight: 1.6 }}>{card.topMessage}</span>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </section>
@@ -637,7 +645,7 @@ function DashboardPage() {
                     border: `1px solid ${getCardColor(insight.severity)}`,
                     borderRadius: "14px",
                     padding: "14px 16px",
-                    backgroundColor: "#0f172a",
+                    backgroundColor: "#111827",
                   }}
                 >
                   <h3 style={{ margin: "0 0 6px", color: "#f8fafc" }}>{insight.title}</h3>
@@ -663,13 +671,13 @@ function DashboardPage() {
                   .filter((goal) => goal.progressPercentage < 100)
                   .slice(0, 3)
                   .map((goal) => (
-                    <div key={goal.id} style={{ marginBottom: "14px" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                    <div key={goal.id} style={{ marginBottom: "14px", padding: "16px", borderRadius: "14px", backgroundColor: "#111827", border: "1px solid #334155" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
                         <strong>🎯 {goal.name}</strong>
                         <span style={{ color: "#60a5fa", fontWeight: 600 }}>{goal.progressPercentage.toFixed(1)}%</span>
                       </div>
-                        <div style={{ width: "100%", height: "10px", backgroundColor: "#1f2937", borderRadius: "999px" }}>
-                          <div style={{ width: `${Math.min(goal.progressPercentage, 100)}%`, height: "100%", backgroundColor: "#60a5fa", borderRadius: "999px" }} />
+                      <div style={{ width: "100%", height: "10px", backgroundColor: "#1f2937", borderRadius: "999px" }}>
+                        <div style={{ width: `${Math.min(goal.progressPercentage, 100)}%`, height: "100%", backgroundColor: "#60a5fa", borderRadius: "999px" }} />
                       </div>
                     </div>
                   ))}
@@ -855,7 +863,7 @@ function DashboardPage() {
                     key={cardKey}
                     style={{
                       minWidth: "330px",
-                      border: `1px solid ${color}`,
+                      border: `3px solid ${color}`,
                       borderRadius: "16px",
                       padding: "18px",
                       boxShadow: "0 18px 46px rgba(0, 0, 0, 0.35)",
@@ -895,7 +903,7 @@ function DashboardPage() {
 
                           <button
                             onClick={() => handleExportPdf(card.month, card.year)}
-                            style={{ padding: "8px 10px", borderRadius: "10px", border: "1px solid #334155", backgroundColor: "#0f172a", color: "#e2e8f0", cursor: "pointer" }}
+                            style={{ padding: "8px 10px", borderRadius: "10px", border: "1px solid #334155", backgroundColor: "#1e293b", color: "#e2e8f0", cursor: "pointer" }}
                           >
                             📄 Export PDF
                           </button>
@@ -905,7 +913,7 @@ function DashboardPage() {
 
                     <button
                       onClick={() => toggleExpand(card)}
-                      style={{ marginTop: "12px", width: "100%", padding: "8px 10px", borderRadius: "10px", border: "1px solid #334155", backgroundColor: "#0f172a", color: "#e2e8f0", cursor: "pointer" }}
+                      style={{ marginTop: "12px", width: "100%", padding: "8px 10px", borderRadius: "10px", border: "1px solid #334155", backgroundColor: "#1e293b", color: "#e2e8f0", cursor: "pointer" }}
                     >
                       {isExpanded ? "▲ Hide Insights" : "▼ Show Insights"}
                     </button>
@@ -917,7 +925,7 @@ function DashboardPage() {
         </section>
 
         {cards.length > 0 && (
-          <section style={sectionCardStyle}>
+          <section style={{ ...sectionCardStyle, backgroundColor: "#1e293b" }}>
             <h2 style={{ marginTop: 0, marginBottom: "12px", color: "#f8fafc" }}>Charts</h2>
             <DashboardCharts cards={cards} />
           </section>

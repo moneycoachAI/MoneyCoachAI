@@ -188,9 +188,10 @@ function AppLayout({ children }: AppLayoutProps) {
           marginLeft: "260px",
           padding: "32px 28px",
           boxSizing: "border-box",
+          minHeight: "100vh",
         }}
       >
-        {children}
+        <div className="page-card">{children}</div>
       </main>
     </div>
   );
