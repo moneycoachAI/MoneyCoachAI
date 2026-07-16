@@ -90,6 +90,24 @@ public class InvestmentService
         };
     }
 
+    public async Task UpdateCurrentValueAsync(
+    string investmentId,
+    decimal currentValue,
+    string userId)
+    {
+        var investment = await _repository.GetByIdAsync(investmentId);
+
+        if (investment == null)
+            throw new Exception("Investment not found.");
+
+        if (investment.UserId != userId)
+            throw new Exception("Unauthorized.");
+
+        investment.CurrentValue = currentValue;
+
+        await _repository.UpdateAsync(investment);
+    }
+
     public async Task DeleteInvestmentAsync(
         string id,
         string userId)

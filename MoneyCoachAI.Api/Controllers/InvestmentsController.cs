@@ -66,6 +66,30 @@ public class InvestmentsController : ControllerBase
         return Ok(summary);
     }
 
+    [HttpPut("{id}/current-value")]
+    public async Task<IActionResult> UpdateCurrentValue(
+    string id,
+    [FromBody] decimal currentValue)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
+        await _investmentService.UpdateCurrentValueAsync(
+            id,
+            currentValue,
+            userId
+        );
+
+        return Ok(new
+        {
+            message = "Current value updated successfully."
+        });
+    }
+
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteInvestment(string id)
     {

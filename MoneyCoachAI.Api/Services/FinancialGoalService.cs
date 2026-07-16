@@ -27,6 +27,7 @@ public class FinancialGoalService
             Name = goal.Name,
             TargetAmount = goal.TargetAmount,
             CurrentAmount = goal.CurrentAmount,
+            CreatedAt = goal.CreatedAt,
             TargetDate = goal.TargetDate,
 
             ProgressPercentage =
@@ -58,7 +59,9 @@ public class FinancialGoalService
             TargetAmount = request.TargetAmount,
             CurrentAmount = 0,
             TargetDate = request.TargetDate,
-            ProgressHistory = new List<GoalProgressEntry>()
+            CreatedAt = DateTime.UtcNow,
+            ProgressHistory = new List<GoalProgressEntry>(),
+                       
         };
 
         await _goalRepository.CreateAsync(goal);

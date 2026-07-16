@@ -38,3 +38,15 @@ export const getInvestmentSummary =
 
   return response.data;
 };
+
+export const updateInvestmentCurrentValue = async (
+    id: string,
+    currentValue: number
+) => {
+    const response = await axiosClient.put(
+        `/investments/${id}/current-value`,
+        currentValue
+    );
+
+    return response.data;
+};

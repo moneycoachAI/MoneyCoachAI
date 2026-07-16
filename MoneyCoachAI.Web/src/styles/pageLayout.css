@@ -1,0 +1,138 @@
+/* =========================================
+   Shared responsive page layout
+========================================= */
+
+.mca-page {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  margin: 0 auto;
+  padding: 8px 0 32px;
+}
+
+.mca-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 28px;
+}
+
+.mca-page-title {
+  margin: 0;
+  color: #111827;
+  font-size: clamp(28px, 4vw, 42px);
+  font-weight: 900;
+  line-height: 1.15;
+  letter-spacing: -0.8px;
+}
+
+.mca-page-subtitle {
+  margin: 10px 0 0;
+  color: var(--mca-muted);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.mca-page-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.mca-responsive-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.mca-two-column-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.mca-form-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.mca-table-wrapper {
+  width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  border-radius: 20px;
+}
+
+.mca-table-wrapper table {
+  width: 100%;
+  min-width: 680px;
+}
+
+.mca-responsive-card {
+  min-width: 0;
+  overflow: hidden;
+}
+
+@media (max-width: 1180px) {
+  .mca-responsive-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mca-form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .mca-page {
+    padding: 4px 0 24px;
+  }
+
+  .mca-page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 18px;
+    margin-bottom: 22px;
+  }
+
+  .mca-page-actions {
+    width: 100%;
+  }
+
+  .mca-page-actions button {
+    flex: 1;
+    min-width: 130px;
+  }
+
+  .mca-responsive-grid,
+  .mca-two-column-grid,
+  .mca-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mca-page-title {
+    font-size: 30px;
+  }
+}
+
+@media (max-width: 480px) {
+  .mca-page-title {
+    font-size: 27px;
+  }
+
+  .mca-page-subtitle {
+    font-size: 14px;
+  }
+
+  .mca-page-actions {
+    flex-direction: column;
+  }
+
+  .mca-page-actions button {
+    width: 100%;
+    flex: none;
+  }
+}

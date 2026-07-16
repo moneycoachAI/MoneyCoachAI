@@ -15,4 +15,6 @@ public class FinancialGoalResponse
     public DateTime? TargetDate { get; set; }
 
     public List<GoalProgressEntryResponse> ProgressHistory { get; set; } = [];
+
+    public DateTime CreatedAt { get; set; }
 }

@@ -9,7 +9,11 @@ export interface FinancialGoal {
   targetAmount: number;
   currentAmount: number;
   progressPercentage: number;
+
+  createdAt: string;
+
   targetDate?: string;
+
   progressHistory: GoalProgressEntry[];
 }
 

@@ -36,7 +36,33 @@ function AppLayout({ children }: AppLayoutProps) {
         {`
           .mca-app-shell {
             min-height: 100vh;
-            background: var(--mca-bg);
+            width: 100%;
+
+            background:
+              radial-gradient(
+                circle at 20% 10%,
+                rgba(91, 140, 255, 0.12),
+                transparent 28%
+              ),
+              radial-gradient(
+                circle at 85% 18%,
+                rgba(124, 92, 252, 0.12),
+                transparent 30%
+              ),
+              radial-gradient(
+                circle at 70% 80%,
+                rgba(33, 199, 122, 0.08),
+                transparent 30%
+              ),
+              linear-gradient(
+                135deg,
+                #F3F5F7 0%,
+                #ECEFF3 35%,
+                #E7EBF0 70%,
+                #F8F9FB 100%
+              );
+
+            background-attachment: fixed;
           }
 
           .mca-sidebar {
@@ -45,17 +71,30 @@ function AppLayout({ children }: AppLayoutProps) {
             left: 20px;
             width: 270px;
             height: calc(100vh - 40px);
+
             padding: 22px 16px;
             z-index: 1100;
+
             overflow-y: auto;
-            transition: transform 0.25s ease;
-            background: rgba(255,255,255,.72);
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+
+            background: rgba(255, 255, 255, 0.58);
+
             backdrop-filter: blur(24px);
-            border: 1px solid rgba(255,255,255,.6);
+            -webkit-backdrop-filter: blur(24px);
+
+            border: 1px solid rgba(255, 255, 255, 0.65);
             border-radius: 30px;
+
             box-shadow:
-              0 20px 50px rgba(0,0,0,.06),
-              inset 0 1px 0 rgba(255,255,255,.7);
+              0 20px 50px rgba(0, 0, 0, 0.06),
+              inset 0 1px 0 rgba(255, 255, 255, 0.8);
+          }
+          
+
+          .mca-sidebar::-webkit-scrollbar {
+            display: none;
           }
 
           .mca-brand {
@@ -184,20 +223,35 @@ function AppLayout({ children }: AppLayoutProps) {
           }
 
           .mca-main {
-            margin-left: 310px;
+            margin-left: 290px;
             min-height: 100vh;
-            padding: 26px 28px 34px 0;
-          }
 
+            padding: 26px 0 34px 12px;
+
+            background: transparent;
+            box-sizing: border-box;
+            overflow-x: clip;
+          }
           .mca-mobile-header {
             display: none;
           }
 
           @media (max-width: 900px) {
+            .mca-app-shell {
+              width: 100%;
+              max-width: 100%;
+              min-width: 0;
+              overflow-x: hidden;
+            }
+
             .mca-sidebar {
               top: 12px;
               left: 12px;
+
+              width: min(270px, calc(100vw - 24px));
+              max-width: calc(100vw - 24px);
               height: calc(100vh - 24px);
+
               transform: translateX(calc(-100% - 24px));
             }
 
@@ -206,26 +260,47 @@ function AppLayout({ children }: AppLayoutProps) {
             }
 
             .mca-main {
-              margin-left: 0;
-              padding: 88px 14px 26px;
+              margin: 0 !important;
+              margin-left: 0 !important;
+
+              width: 100% !important;
+              max-width: 100% !important;
+              min-width: 0 !important;
+
+              padding: 84px 0 24px !important;
+
+              box-sizing: border-box;
+              overflow-x: hidden;
             }
 
             .mca-mobile-header {
               display: flex;
+
               position: fixed;
               top: 12px;
-              left: 12px;
-              right: 12px;
+              left: 8px;
+              right: 8px;
+
+              width: auto;
+              max-width: none;
               height: 64px;
+
               align-items: center;
               justify-content: space-between;
+
               padding: 0 14px;
+
               z-index: 1000;
-              background: rgba(255,255,255,.72);
+
+              background: rgba(255, 255, 255, 0.72);
               backdrop-filter: blur(24px);
-              border: 1px solid rgba(255,255,255,.6);
+              -webkit-backdrop-filter: blur(24px);
+
+              border: 1px solid rgba(255, 255, 255, 0.6);
               border-radius: 22px;
+
               box-shadow: var(--mca-shadow);
+              box-sizing: border-box;
             }
           }
         `}

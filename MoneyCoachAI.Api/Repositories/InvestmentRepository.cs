@@ -20,9 +20,25 @@ public class InvestmentRepository
             .ToListAsync();
     }
 
+
     public async Task CreateAsync(Investment investment)
     {
         await _investments.InsertOneAsync(investment);
+    }
+
+    public async Task UpdateAsync(Investment investment)
+    {
+        await _investments.ReplaceOneAsync(
+            x => x.Id == investment.Id,
+            investment
+        );
+    }
+
+    public async Task<Investment?> GetByIdAsync(string id)
+    {
+        return await _investments
+            .Find(i => i.Id == id)
+            .FirstOrDefaultAsync();
     }
 
     public async Task DeleteAsync(string id, string userId)
@@ -31,4 +47,5 @@ public class InvestmentRepository
             i => i.Id == id &&
                  i.UserId == userId);
     }
+
 }
