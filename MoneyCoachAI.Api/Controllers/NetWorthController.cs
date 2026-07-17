@@ -48,6 +48,29 @@ public class NetWorthController : ControllerBase
         return Ok("Net worth item created successfully");
     }
 
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateItem(
+    string id,
+    CreateNetWorthItemRequest request)
+    {
+        var userId =
+            User.FindFirstValue(
+                ClaimTypes.NameIdentifier);
+
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
+        await _netWorthService.UpdateItemAsync(
+            id,
+            userId,
+            request);
+
+        return Ok(
+            "Net worth item updated successfully");
+    }
+
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteItem(string id)
     {

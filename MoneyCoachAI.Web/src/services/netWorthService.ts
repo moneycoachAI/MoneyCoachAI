@@ -54,3 +54,13 @@ export const getNetWorthTrend = async (): Promise<
 
   return response.data;
 };
+
+export const updateNetWorthItem = async (
+    id: string,
+    request: CreateNetWorthItemRequest
+) => {
+    await axiosClient.put(
+        `/NetWorth/${id}`,
+        request
+    );
+};

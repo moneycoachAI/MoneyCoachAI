@@ -51,6 +51,33 @@ public class NetWorthService
         await CreateSnapshotAsync(userId);
     }
 
+    public async Task UpdateItemAsync(
+    string id,
+    string userId,
+    CreateNetWorthItemRequest request)
+    {
+        var item =
+            await _netWorthRepository.GetByIdAsync(id);
+
+        if (item == null)
+        {
+            throw new Exception("Item not found.");
+        }
+
+        if (item.UserId != userId)
+        {
+            throw new Exception("Unauthorized.");
+        }
+
+        item.Name = request.Name;
+        item.Amount = request.Amount;
+        item.Type = request.Type;
+
+        await _netWorthRepository.UpdateAsync(item);
+
+        await CreateSnapshotAsync(userId);
+    }
+
     public async Task<NetWorthSummaryResponse> GetSummaryAsync(string userId)
     {
         var items = await _netWorthRepository.GetByUserAsync(userId);

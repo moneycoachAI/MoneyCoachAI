@@ -25,6 +25,21 @@ public class NetWorthRepository
         await _netWorthItems.InsertOneAsync(item);
     }
 
+    public async Task<NetWorthItem?> GetByIdAsync(string id)
+    {
+        return await _netWorthItems
+            .Find(item => item.Id == id)
+            .FirstOrDefaultAsync();
+    }
+
+    public async Task UpdateAsync(NetWorthItem item)
+    {
+        await _netWorthItems.ReplaceOneAsync(
+            x => x.Id == item.Id,
+            item
+        );
+    }
+
     public async Task DeleteAsync(string id, string userId)
     {
         await _netWorthItems.DeleteOneAsync(

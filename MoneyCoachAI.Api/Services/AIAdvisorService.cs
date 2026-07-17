@@ -43,8 +43,11 @@ public class AIAdvisorService
 
         if(string.IsNullOrWhiteSpace(_openAISettings.ApiKey))
         {
-            var fallbackAdvice = string.Join("\n",
-                suggestions.Select(suggestion => $"-{suggestion.Message}"));
+            var fallbackAdvice = suggestions.Count > 0
+                ? string.Join(
+                    "\n",
+                    suggestions.Select(suggestion => $"-{suggestion.Message}"))
+                : "- No specific financial warnings were found for this month.";
 
             return new AIAdviceResponse
             {
@@ -61,7 +64,7 @@ public class AIAdvisorService
             {
                 new
                 {
-                    role = "System",
+                    role = "system",
                     content = "You are MoneyCoachAI, a helpful personal finance assistant. Give practical, safe, simple financial advice based only on the provided spending data. Do not give investment guarantees."
                 },
                 new
@@ -97,7 +100,7 @@ public class AIAdvisorService
 
         var advice = document
             .RootElement
-            .GetProperty("choice")[0]
+            .GetProperty("choices")[0]
             .GetProperty("message")
             .GetProperty("content")
             .GetString();

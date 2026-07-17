@@ -88,8 +88,14 @@ function NotificationsPage() {
   const loadNotifications = async () => {
     try {
       const data = await getNotifications();
-      setNotifications(data);
-    } catch (error) {
+      setNotifications(
+        [...data].sort(
+          (firstNotification, secondNotification) =>
+            new Date(secondNotification.createdAt).getTime() -
+            new Date(firstNotification.createdAt).getTime()
+        )
+      );
+          } catch (error) {
       console.error("Failed to load notifications:", error);
       alert("Failed to load notifications");
     } finally {
@@ -97,14 +103,13 @@ function NotificationsPage() {
     }
   };
 
-    useEffect(() => {
-    const loadInitialNotifications = async () => {
-      await loadNotifications();
-    };
+   useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      void loadNotifications();
+    }, 0);
 
-    loadInitialNotifications();
+    return () => window.clearTimeout(timeoutId);
   }, []);
-
 
 
   const handleMarkAllRead = async () => {
@@ -136,6 +141,14 @@ function NotificationsPage() {
   };
 
   const handleDeleteNotification = async (notificationId: string) => {
+    const confirmed = window.confirm(
+    "Are you sure you want to delete this notification?"
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
     try {
       setActionLoadingId(notificationId);
 
@@ -164,6 +177,7 @@ function NotificationsPage() {
         {`
           .notifications-page {
             min-width: 0;
+            padding: 1%;
           }
 
           .notifications-summary {
@@ -456,6 +470,10 @@ function NotificationsPage() {
               padding: 16px;
               border-radius: 18px;
             }
+            
+            .notifications-page {
+              padding: 2%;
+            }
 
             .notification-card-header {
               flex-wrap: wrap;
@@ -482,11 +500,32 @@ function NotificationsPage() {
             .notifications-empty-state {
               min-height: 330px;
             }
+
+            .mca-page-header {
+              align-items: flex-start;
+            }
+
+            .mca-page-actions {
+              width: 100%;
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 8px;
+            }
+
+            .mca-page-actions button {
+              width: 100%;
+              padding-left: 10px;
+              padding-right: 10px;
+            }
           }
 
           @media (max-width: 480px) {
             .notification-heading {
               width: 100%;
+            }
+
+            .notifications-page {
+              padding: 2%;
             }
 
             .notification-new-badge {
@@ -507,12 +546,19 @@ function NotificationsPage() {
             }
 
             .notification-card-actions {
-              flex-direction: column;
+              flex-direction: row;
+              justify-content: flex-end;
+              gap: 8px;
             }
 
             .notification-card-actions button {
-              width: 100%;
-              flex: none;
+              width: auto;
+              min-width: 105px;
+              flex: 0 0 auto;
+            }
+
+            .mca-page-actions {
+              grid-template-columns: 1fr;
             }
           }
         `}

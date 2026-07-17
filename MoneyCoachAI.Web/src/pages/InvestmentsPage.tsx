@@ -1064,7 +1064,7 @@ function InvestmentsPage() {
   min-width: 0;
   height: 40px;
 
-  padding: 0 14px;
+  padding: 0 14 px;
 
   border-radius: 12px;
   font-size: 13px;
