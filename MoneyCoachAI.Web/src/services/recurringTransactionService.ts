@@ -34,3 +34,13 @@ export const generateRecurringTransactions = async (
 
   return response.data;
 };
+
+export const updateRecurringTransaction = async (
+  id: string,
+  request: CreateRecurringTransactionRequest
+) => {
+  await axiosClient.put(
+    `/RecurringTransactions/${id}`,
+    request
+  );
+};

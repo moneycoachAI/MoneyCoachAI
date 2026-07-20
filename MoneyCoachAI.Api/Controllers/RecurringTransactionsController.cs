@@ -101,4 +101,30 @@ public class RecurringTransactionsController : ControllerBase
 
         return Ok($"{generatedCount} recurring transactions generated successfully.");
     }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateRecurringTransaction(
+    string id,
+    CreateRecurringTransactionRequest request)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
+        var updated =
+            await _service.UpdateRecurringTransactionAsync(
+                id,
+                userId,
+                request);
+
+        if (!updated)
+        {
+            return NotFound("Recurring transaction not found");
+        }
+
+        return Ok("Recurring transaction updated successfully");
+    }
 }

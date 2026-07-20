@@ -59,6 +59,29 @@ public class RecurringTransactionService
         await _repository.CreateAsync(transaction);
     }
 
+    public async Task<bool> UpdateRecurringTransactionAsync(
+    string id,
+    string userId,
+    CreateRecurringTransactionRequest request)
+    {
+        var transaction =
+            await _repository.GetByIdAsync(id, userId);
+
+        if (transaction == null)
+        {
+            return false;
+        }
+
+        transaction.Title = request.Title.Trim();
+        transaction.Amount = request.Amount;
+        transaction.Category = request.Category.Trim();
+        transaction.Type = request.Type;
+        transaction.Frequency = request.Frequency;
+        transaction.StartDate = request.StartDate;
+
+        return await _repository.UpdateAsync(transaction);
+    }
+
     public async Task<int> GenerateForMonthAsync(
     string userId,
     int month,

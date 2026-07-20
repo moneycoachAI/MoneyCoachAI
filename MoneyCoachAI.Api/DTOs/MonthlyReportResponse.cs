@@ -6,5 +6,9 @@ public class MonthlyReportResponse
 
     public int Year { get; set; }
 
+    public decimal TotalIncome { get; set; }
+
     public decimal TotalSpent { get; set; }
+
+    public decimal Savings { get; set; }
 }

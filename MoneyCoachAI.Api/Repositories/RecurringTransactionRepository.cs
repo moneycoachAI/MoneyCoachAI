@@ -25,6 +25,30 @@ public class RecurringTransactionRepository
         await _recurringTransactions.InsertOneAsync(transaction);
     }
 
+    public async Task<RecurringTransaction?> GetByIdAsync(
+    string id,
+    string userId)
+    {
+        return await _recurringTransactions
+            .Find(transaction =>
+                transaction.Id == id &&
+                transaction.UserId == userId)
+            .FirstOrDefaultAsync();
+    }
+
+    public async Task<bool> UpdateAsync(
+    RecurringTransaction transaction)
+    {
+        var result =
+            await _recurringTransactions.ReplaceOneAsync(
+                existing =>
+                    existing.Id == transaction.Id &&
+                    existing.UserId == transaction.UserId,
+                transaction);
+
+        return result.MatchedCount > 0;
+    }
+
     public async Task DeleteAsync(string id, string userId)
     {
         await _recurringTransactions.DeleteOneAsync(

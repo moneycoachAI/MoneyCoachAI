@@ -7,13 +7,16 @@ public class ReportService
 {
     private readonly ExpenseRepository _expenseRepository;
     private readonly BudgetRepository _budgetRepository;
+    private readonly IncomeRepository _incomeRepository;
 
     public ReportService(
         ExpenseRepository expenseRepository,
-        BudgetRepository budgetRepository)
+        BudgetRepository budgetRepository,
+        IncomeRepository incomeRepository)
     {
         _expenseRepository = expenseRepository;
         _budgetRepository = budgetRepository;
+        _incomeRepository = incomeRepository;
     }
 
     public async Task<MonthlyReportResponse> GetMonthlyReportAsync(
@@ -26,13 +29,28 @@ public class ReportService
             month,
             year);
 
-        var totalSpent = expenses.Sum(expense => expense.Amount);
+        var incomes =
+            await _incomeRepository.GetByUserMonthYearAsync(
+                userId,
+                month,
+                year);
+
+        var totalIncome =
+            incomes.Sum(income => income.Amount);
+
+        var totalSpent =
+            expenses.Sum(expense => expense.Amount);
 
         return new MonthlyReportResponse
         {
             Month = month,
             Year = year,
-            TotalSpent = totalSpent
+
+            TotalIncome = totalIncome,
+
+            TotalSpent = totalSpent,
+
+            Savings = totalIncome - totalSpent
         };
     }
 
@@ -51,7 +69,14 @@ public class ReportService
             .Select(group => new CategoryReportResponse
             {
                 Category = group.Key,
-                TotalSpent = group.Sum(expense => expense.Amount)
+                TotalSpent = group.Sum(expense => expense.Amount),
+
+                Descriptions = group
+                    .Where(expense =>
+                        !string.IsNullOrWhiteSpace(expense.Description))
+                    .Select(expense => expense.Description.Trim())
+                    .Distinct()
+                    .ToList()
             })
             .ToList();
 

@@ -23,9 +23,17 @@ function AppLayout({ children }: AppLayoutProps) {
     { label: "Incomes", icon: "💰", path: "/incomes" },
     { label: "Budgets", icon: "📊", path: "/budgets" },
     { label: "Goals", icon: "🎯", path: "/financialGoals" },
+    {
+      label: "Recurring Transactions",
+      icon: "🔁",
+      path: "/recurring",
+    },
     { label: "Investments", icon: "📈", path: "/investments" },
     { label: "Net Worth", icon: "💎", path: "/net-worth" },
+    { label: "Reports", icon: "📑", path: "/reports" },
+    { label: "Suggestions", icon: "💡", path: "/suggestions" },
     { label: "Notifications", icon: "🔔", path: "/notifications" },
+    { label: "AI Advisor", icon: "🤖", path: "/ai-advisor" },
     { label: "Profile", icon: "👤", path: "/profile" },
     { label: "Settings", icon: "⚙️", path: "/settings" },
   ];
