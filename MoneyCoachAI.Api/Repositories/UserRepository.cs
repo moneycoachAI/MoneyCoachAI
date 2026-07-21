@@ -46,4 +46,22 @@ public class UserRepository
             .Find(user => user.Email == email)
             .AnyAsync();
     }
+
+    public async Task UpdatePasswordAsync(
+    string userId,
+    string passwordHash
+    )
+    {
+        var update = Builders<User>
+            .Update
+            .Set(
+                user => user.PasswordHash,
+                passwordHash
+            );
+
+        await _users.UpdateOneAsync(
+            user => user.Id == userId,
+            update
+        );
+    }
 }

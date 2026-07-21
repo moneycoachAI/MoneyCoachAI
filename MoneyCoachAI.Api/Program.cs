@@ -16,8 +16,17 @@ builder.Services.Configure<MongoDbSettings>(
 builder.Services.Configure<JwtSettings>(
     builder.Configuration.GetSection("JwtSettings"));
 
+//Google Auth
+builder.Services.Configure<GoogleAuthSettings>(
+    builder.Configuration.GetSection("GoogleAuth"));
+
 builder.Services.Configure<OpenAISettings>(
     builder.Configuration.GetSection("OpenAISettings"));
+
+//Email Settings
+builder.Services.Configure<EmailSettings>(
+    builder.Configuration.GetSection("EmailSettings")
+);
 
 //Database Service
 builder.Services.AddHttpClient<AIAdvisorService>();
@@ -52,6 +61,12 @@ builder.Services.AddScoped<UserSettingsRepository>();
 builder.Services.AddScoped<UserSettingsService>();
 
 builder.Services.AddScoped<ProfileService>();
+
+builder.Services.AddScoped<PasswordResetTokenRepository>();
+
+builder.Services.AddScoped<EmailService>();
+
+builder.Services.AddScoped<PasswordResetService>();
 
 builder.Services.AddSwaggerGen(options =>
 {

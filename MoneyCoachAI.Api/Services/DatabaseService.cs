@@ -50,4 +50,7 @@ public class DatabaseService
 
     public IMongoCollection<UserSettings> UserSettingsCollection =>
     _database.GetCollection<UserSettings>("UserSettings");
+
+    public IMongoCollection<PasswordResetToken> PasswordResetTokens =>
+    _database.GetCollection<PasswordResetToken>("PasswordResetTokens");
 }

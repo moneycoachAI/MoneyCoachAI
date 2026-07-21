@@ -17,6 +17,8 @@ import InvestmentsPage from "../pages/InvestmentsPage";
 import NotificationsPage from "../pages/NotificationsPage";
 import SettingsPage from "../pages/SettingsPage";
 import ProfilePage from "../pages/ProfilePage";
+import ForgotPasswordPage from "../pages/ForgotPasswordPage";
+import ResetPasswordPage from "../pages/ResetPasswordPage";
 
 function AppRoutes() {
     return(
@@ -104,6 +106,17 @@ function AppRoutes() {
                         <ProfilePage></ProfilePage>
                     </ProtectRoute>
                   } />
+
+                 <Route
+                path="/forgot-password"
+                element={<ForgotPasswordPage />}
+                />
+                    
+                <Route
+                path="/reset-password"
+                element={<ResetPasswordPage />}
+                />
+                                
             </Routes>
         </BrowserRouter>
     );

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+//import MoneyCoachLogo from "./branding/MoneyCoachLogo";
 
 type AppLayoutProps = {
   children: React.ReactNode;

@@ -1,0 +1,58 @@
+.mca-brand-logo {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  flex-shrink: 0;
+}
+
+.mca-brand-logo--sidebar {
+  width: 48px;
+  height: 48px;
+}
+
+.mca-brand-logo--mobile {
+  width: 42px;
+  height: 42px;
+}
+
+.mca-brand-logo--auth {
+  width: min(340px, 90%);
+  height: auto;
+}
+
+.mca-brand-logo--header {
+  width: min(245px, 100%);
+  height: auto;
+}
+
+@media (max-width: 1100px) {
+  .mca-brand-logo--auth {
+    width: min(285px, 88%);
+  }
+}
+
+@media (max-width: 768px) {
+  .mca-brand-logo--sidebar {
+    width: 42px;
+    height: 42px;
+  }
+
+  .mca-brand-logo--mobile {
+    width: 38px;
+    height: 38px;
+  }
+
+  .mca-brand-logo--header {
+    width: 210px;
+  }
+}
+
+@media (max-width: 480px) {
+  .mca-brand-logo--auth {
+    width: min(240px, 82vw);
+  }
+
+  .mca-brand-logo--header {
+    width: 185px;
+  }
+}

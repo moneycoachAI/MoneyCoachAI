@@ -40,4 +40,18 @@ public class AuthController : ControllerBase
 
         return Ok(result);
     }
+
+    [HttpPost("google")]
+    public async Task<IActionResult> GoogleLogin(
+        GoogleLoginRequest request)
+    {
+        var result = await _authService.GoogleLoginAsync(request);
+
+        if (result == null)
+        {
+            return Unauthorized("Google authentication failed");
+        }
+
+        return Ok(result);
+    }
 }

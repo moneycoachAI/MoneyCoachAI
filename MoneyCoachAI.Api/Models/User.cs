@@ -19,5 +19,9 @@ public class User
 
     public string ProfileImageUrl { get; set; } = string.Empty;
 
+    public string AuthProvider { get; set; } = "Local";
+
+    public string GoogleSubject { get; set; } = string.Empty;
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
