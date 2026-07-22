@@ -961,13 +961,13 @@ const loginStyles = `
 
     text-align: center;
 
-    transform: translateY(-80px);
+    transform: translateY(-90px);
   }
 
   .login-main-logo {
     display: block;
 
-    width: clamp(460px,38vw,700px);
+    width: clamp(460px,36vw,700px);
 
     max-width: 170%;
     height: auto;
@@ -1048,31 +1048,7 @@ const loginStyles = `
     justify-content: center;
   }
 
-  .login-card {
-    width: 100%;
-    max-width: 455px;
-
-    padding:
-      clamp(22px, 3vh, 31px)
-      clamp(22px, 2.7vw, 32px);
-
-    border:
-      1px solid
-      rgba(255, 255, 255, 0.76);
-
-    border-radius: 29px;
-
-    background:
-      rgba(255, 255, 255, 0.58);
-
-    box-shadow:
-      0 24px 70px
-      rgba(76, 29, 149, 0.1),
-      inset 0 1px 0
-      rgba(255, 255, 255, 0.96);
-
-    backdrop-filter: blur(22px);
-  }
+  
 
   .login-mobile-logo {
     display: none;
@@ -1312,7 +1288,7 @@ const loginStyles = `
 
     color: #475569;
 
-    font-size: 0.68rem;
+    font-size: 0.7rem;
     font-weight: 900;
   }
 
@@ -1615,7 +1591,7 @@ const loginStyles = `
         4.5rem
       );
 
-    line-height: 0.94;
+    line-height: 1.30;
     letter-spacing: -0.06em;
   }
 
@@ -2083,9 +2059,36 @@ const loginStyles = `
       padding-bottom: 13px;
     }
 
+    .login-card {
+      width: 100%;
+      max-width: 455px;
+
+      padding:
+        clamp(22px, 3vh, 31px)
+        clamp(22px, 2.7vw, 32px);
+
+      border:
+        1px solid
+        rgba(255, 255, 255, 0.76);
+
+      border-radius: 29px;
+
+      background:
+        rgba(255, 255, 255, 0.58);
+
+      box-shadow:
+        0 24px 70px
+        rgba(76, 29, 149, 0.1),
+        inset 0 1px 0
+        rgba(255, 255, 255, 0.96);
+
+      backdrop-filter: blur(22px);
+    }
+
     .login-main-logo {
-      width: 445px;
+      max-width: 165%;
       max-height: 275px;
+      
     }
 
     .login-brand-badge {
