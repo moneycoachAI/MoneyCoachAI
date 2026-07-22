@@ -9,6 +9,11 @@ import {
   updateBudget,
 } from "../services/budgetService";
 
+import {
+  getCurrentMonthInputValue,
+  isFutureMonth,
+} from "../utils/dateUtils";
+
 import { categories } from "../constants/categories";
 import type { Budget } from "../types/budgetTypes";
 
@@ -50,6 +55,8 @@ function BudgetsPage() {
   const [searchText, setSearchText] = useState("");
   const [filterCategory, setFilterCategory] = useState("");
   const [filterPeriod, setFilterPeriod] = useState("");
+
+  const currentMonthValue = getCurrentMonthInputValue();
 
   const loadBudgets = async () => {
     try {
@@ -114,6 +121,11 @@ function BudgetsPage() {
 
     if (!selectedMonth || !selectedYear) {
       alert("Please select a valid budget month");
+      return;
+    }
+
+    if (isFutureMonth(selectedMonth, selectedYear)) {
+      alert("Budget month cannot be in the future.");
       return;
     }
 
@@ -1391,6 +1403,7 @@ function BudgetsPage() {
                 className="budget-input"
                 type="month"
                 value={budgetPeriod}
+                 max={currentMonthValue}
                 onChange={(event) =>
                   setBudgetPeriod(event.target.value)
                 }
@@ -1467,6 +1480,7 @@ function BudgetsPage() {
               className="budget-input"
               type="month"
               value={filterPeriod}
+              max={currentMonthValue}
               onChange={(event) =>
                 setFilterPeriod(event.target.value)
               }

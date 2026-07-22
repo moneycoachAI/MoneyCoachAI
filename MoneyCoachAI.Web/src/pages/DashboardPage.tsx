@@ -37,6 +37,8 @@ import type { InvestmentSummary } from "../types/investmentTypes";
 import { getProfile } from "../services/profileService";
 import type { UserProfile } from "../types/profileTypes";
 
+import { isFutureMonth } from "../utils/dateUtils";
+
 function DashboardPage() {
   const navigate = useNavigate();
 
@@ -274,10 +276,24 @@ const [motivationIndex, setMotivationIndex] = useState(0);
   };
 
   const loadDashboardCards = async () => {
+    const selectedYear = Number(year);
+
+    if (
+      !Number.isInteger(selectedYear) ||
+      selectedYear < 2000 ||
+      selectedYear > new Date().getFullYear()
+    ) {
+      alert("Please enter a valid year.");
+      return;
+    }
+
     try {
       setLoading(true);
-      const data = await getMonthlyDashboardCards(Number(year));
+
+      const data = await getMonthlyDashboardCards(selectedYear);
+
       setCards(data);
+
       await loadRecentTransactions();
     } catch (error) {
       console.error(error);
@@ -288,11 +304,34 @@ const [motivationIndex, setMotivationIndex] = useState(0);
   };
 
   const handleLoadTopCategory = async () => {
-    try {
-      const month = Number(topCategoryMonth);
-      const selectedYear = Number(topCategoryYear);
+    const month = Number(topCategoryMonth);
+    const selectedYear = Number(topCategoryYear);
 
+    if (
+      !Number.isInteger(month) ||
+      month < 1 ||
+      month > 12
+    ) {
+      alert("Please select a valid month.");
+      return;
+    }
+
+    if (
+      !Number.isInteger(selectedYear) ||
+      selectedYear < 2000
+    ) {
+      alert("Please enter a valid year.");
+      return;
+    }
+
+    if (isFutureMonth(month, selectedYear)) {
+      alert("Future months cannot be selected.");
+      return;
+    }
+
+    try {
       const data = await getTopCategory(month, selectedYear);
+
       setTopCategory(data);
 
       setLoadedTopCategoryMonth(topCategoryMonth);
@@ -1222,6 +1261,8 @@ const [motivationIndex, setMotivationIndex] = useState(0);
               className="mca-soft-input"
               type="number"
               value={year}
+              min={1997}
+              max={new Date().getFullYear()}
               onChange={(e) => setYear(e.target.value)}
               placeholder="Year"
             />
@@ -1383,6 +1424,8 @@ const [motivationIndex, setMotivationIndex] = useState(0);
                     style={{ width: 110 }}
                     type="number"
                     value={topCategoryYear}
+                    min={1997}
+                    max={new Date().getFullYear()}
                     onChange={(e) => setTopCategoryYear(e.target.value)}
                   />
 

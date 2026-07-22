@@ -11,6 +11,11 @@ import {
   updateIncome,
 } from "../services/incomeService";
 
+import {
+  getTodayDateInputValue,
+  isFutureDate,
+} from "../utils/dateUtils";
+
 import type { Income } from "../types/incomeTypes";
 
 function IncomesPage() {
@@ -35,6 +40,8 @@ function IncomesPage() {
 
   const [searchText, setSearchText] = useState("");
   const [filterSource, setFilterSource] = useState("");
+
+  const today = getTodayDateInputValue();
 
   const loadIncomes = async () => {
     try {
@@ -91,6 +98,11 @@ function IncomesPage() {
 
     if (!date) {
       alert("Please select a date");
+      return;
+    }
+
+    if (isFutureDate(date)) {
+      alert("Income date cannot be in the future.");
       return;
     }
 
@@ -1281,6 +1293,7 @@ function IncomesPage() {
                 className="income-input"
                 type="date"
                 value={date}
+                max={today}
                 onChange={(event) =>
                   setDate(event.target.value)
                 }

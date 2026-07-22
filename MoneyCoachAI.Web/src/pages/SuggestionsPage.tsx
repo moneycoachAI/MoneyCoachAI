@@ -4,6 +4,10 @@ import AppLayout from "../components/AppLayout";
 import { getSuggestions } from "../services/suggestionService";
 import type { SuggestionResponse } from "../types/suggestionTypes";
 
+import {
+  isFutureMonth,
+} from "../utils/dateUtils";
+
 type Notice = {
   type: "error";
   message: string;
@@ -71,6 +75,15 @@ function SuggestionsPage() {
       setNotice({
         type: "error",
         message: "Please enter a valid year between 2000 and 2100.",
+      });
+      return;
+    }
+
+    if (isFutureMonth(monthNumber, yearNumber)) {
+      setNotice({
+        type: "error",
+        message:
+          "Suggestions cannot be loaded for a future month.",
       });
       return;
     }
@@ -150,7 +163,7 @@ function SuggestionsPage() {
               id="suggestions-year"
               type="number"
               min="2000"
-              max="2100"
+              max={new Date().getFullYear()}
               value={year}
               disabled={loading}
               onChange={(event) => {

@@ -8,6 +8,10 @@ import {
 import AppLayout from "../components/AppLayout";
 import { getAIAdvice } from "../services/aiService";
 
+import {
+  isFutureMonth,
+} from "../utils/dateUtils";
+
 type ChatRole = "assistant" | "user";
 
 type ChatMessage = {
@@ -127,8 +131,15 @@ function AIAdvisorPage() {
       return;
     }
 
-    if (month < 1 || month > 12 || year < 2000 || year > 2100) {
+    if (month < 1 || month > 12 || year < 2000) {
       setError("Please select a valid financial period.");
+      return;
+    }
+
+    if (isFutureMonth(month, year)) {
+      setError(
+        "AI guidance cannot be generated for a future financial period."
+      );
       return;
     }
 
@@ -254,7 +265,7 @@ function AIAdvisorPage() {
                   aria-label="Financial year"
                   type="number"
                   min="2000"
-                  max="2100"
+                  max={new Date().getFullYear()}
                   value={year}
                   disabled={loading}
                   onChange={(event) =>

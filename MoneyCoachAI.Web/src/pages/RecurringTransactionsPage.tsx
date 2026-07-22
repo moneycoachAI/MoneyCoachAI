@@ -14,6 +14,12 @@ import type {
   RecurringTransaction,
 } from "../types/recurringTransactionTypes";
 
+import {
+  getTodayDateInputValue,
+  isFutureDate,
+  isFutureMonth,
+} from "../utils/dateUtils";
+
 type Notice = {
   type: "success" | "error";
   message: string;
@@ -62,6 +68,8 @@ function RecurringTransactionsPage() {
   const currentMonth = String(currentDate.getMonth() + 1);
   const currentYear = String(currentDate.getFullYear());
 
+  const today = getTodayDateInputValue();
+
   const [transactions, setTransactions] = useState<RecurringTransaction[]>([]);
 
   const [title, setTitle] = useState("");
@@ -91,9 +99,16 @@ function RecurringTransactionsPage() {
   const [listNotice, setListNotice] = useState<Notice | null>(null);
 
   const yearOptions = useMemo(() => {
-    const year = currentDate.getFullYear();
+    const currentYearNumber =
+      currentDate.getFullYear();
 
-    return Array.from({ length: 7 }, (_, index) => String(year - 2 + index));
+    const startYear = currentYearNumber - 5;
+
+    return Array.from(
+      { length: 6 },
+      (_, index) =>
+        String(startYear + index)
+    );
   }, []);
 
   const incomeTransactions = useMemo(
@@ -163,6 +178,15 @@ function RecurringTransactionsPage() {
       setFormNotice({
         type: "error",
         message: "Please complete all recurring transaction fields.",
+      });
+      return;
+    }
+
+    if (isFutureDate(startDate)) {
+      setFormNotice({
+        type: "error",
+        message:
+          "Recurring transaction start date cannot be in the future.",
       });
       return;
     }
@@ -247,6 +271,15 @@ function RecurringTransactionsPage() {
       setListNotice({
         type: "error",
         message: "Please complete all edit fields.",
+      });
+      return;
+    }
+
+    if (isFutureDate(editingTransaction.startDate)) {
+      setListNotice({
+        type: "error",
+        message:
+          "Recurring transaction start date cannot be in the future.",
       });
       return;
     }
@@ -351,6 +384,21 @@ function RecurringTransactionsPage() {
         type: "error",
         message: "Please select a valid year.",
       });
+      return;
+    }
+
+    if (
+      isFutureMonth(
+        selectedMonth,
+        selectedYear
+      )
+    ) {
+      setGenerateNotice({
+        type: "error",
+        message:
+          "Recurring entries cannot be generated for a future month.",
+      });
+
       return;
     }
 
@@ -525,6 +573,7 @@ function RecurringTransactionsPage() {
                 id="recurring-start-date"
                 type="date"
                 value={startDate}
+                max={today}
                 disabled={creating}
                 onChange={(event) => setStartDate(event.target.value)}
                 required
@@ -576,11 +625,29 @@ function RecurringTransactionsPage() {
                   disabled={generating}
                   onChange={(event) => setGenerateMonth(event.target.value)}
                 >
-                  {MONTH_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
+                  {MONTH_OPTIONS.map((option) => {
+                    const optionMonth =
+                      Number(option.value);
+
+                    const optionYear =
+                      Number(generateYear);
+
+                    const isFutureOption =
+                      isFutureMonth(
+                        optionMonth,
+                        optionYear
+                      );
+
+                    return (
+                      <option
+                        key={option.value}
+                        value={option.value}
+                        disabled={isFutureOption}
+                      >
+                        {option.label}
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
 
@@ -590,7 +657,33 @@ function RecurringTransactionsPage() {
                   id="generate-year"
                   value={generateYear}
                   disabled={generating}
-                  onChange={(event) => setGenerateYear(event.target.value)}
+                  onChange={(event) => {
+                    const nextYear =
+                      event.target.value;
+
+                    setGenerateYear(nextYear);
+
+                    const selectedMonthNumber =
+                      Number(generateMonth);
+
+                    const selectedYearNumber =
+                      Number(nextYear);
+
+                    if (
+                      isFutureMonth(
+                        selectedMonthNumber,
+                        selectedYearNumber
+                      )
+                    ) {
+                      setGenerateMonth(
+                        String(
+                          currentDate.getMonth() + 1
+                        )
+                      );
+                    }
+
+                    setGenerateNotice(null);
+                  }}
                 >
                   {yearOptions.map((option) => (
                     <option key={option} value={option}>
@@ -672,6 +765,7 @@ function RecurringTransactionsPage() {
                 title="Recurring Income"
                 description="Scheduled income sources"
                 tone="income"
+                today={today}
                 transactions={incomeTransactions}
                 deletingId={deletingId}
                 editingId={editingId}
@@ -690,6 +784,7 @@ function RecurringTransactionsPage() {
                 title="Recurring Expenses"
                 description="Scheduled expense payments"
                 tone="expense"
+                today={today}
                 transactions={expenseTransactions}
                 deletingId={deletingId}
                 editingId={editingId}
@@ -742,6 +837,7 @@ type RecurringGroupProps = {
   title: string;
   description: string;
   tone: "income" | "expense";
+  today: string;
   transactions: RecurringTransaction[];
   deletingId: string | null;
   editingId: string | null;
@@ -762,6 +858,7 @@ function RecurringGroup({
   title,
   description,
   tone,
+  today,
   transactions,
   deletingId,
   editingId,
@@ -931,6 +1028,7 @@ function RecurringGroup({
                           id={`edit-date-${transaction.id}`}
                           type="date"
                           value={editingTransaction.startDate}
+                          max={today}
                           disabled={savingEdit}
                           onChange={(event) =>
                             setEditingTransaction((current) => ({

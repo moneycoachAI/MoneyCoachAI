@@ -26,6 +26,11 @@ import type {
   InvestmentSummary,
 } from "../types/investmentTypes";
 
+import {
+  getTodayDateInputValue,
+  isFutureDate,
+} from "../utils/dateUtils";
+
 const investmentTypes = [
   "Mutual Fund",
   "Stock",
@@ -59,6 +64,8 @@ function InvestmentsPage() {
   const [investedAmount, setInvestedAmount] = useState("");
   const [currentValue, setCurrentValue] = useState("");
   const [investmentDate, setInvestmentDate] = useState("");
+
+  const today = getTodayDateInputValue();
 
   const [searchText, setSearchText] = useState("");
   const [filterType, setFilterType] = useState("");
@@ -214,6 +221,11 @@ function InvestmentsPage() {
 
     if (!investmentDate) {
       alert("Please select an investment date");
+      return;
+    }
+
+    if (isFutureDate(investmentDate)) {
+      alert("Investment date cannot be in the future.");
       return;
     }
 
@@ -1823,6 +1835,7 @@ function InvestmentsPage() {
                 className="investment-input"
                 type="date"
                 value={investmentDate}
+                max={today}
                 onChange={(event) =>
                   setInvestmentDate(
                     event.target.value

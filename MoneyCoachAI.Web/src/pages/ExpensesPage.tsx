@@ -12,9 +12,16 @@ import {
 import { categories } from "../constants/categories";
 import type { Expense } from "../types/expenseTypes";
 
+import {
+  getTodayDateInputValue,
+  isFutureDate,
+} from "../utils/dateUtils";
+
 import "../styles/pageLayout.css";
 
 function ExpensesPage() {
+  const today = getTodayDateInputValue();
+
   const [expenses, setExpenses] = useState<Expense[]>([]);
 
   const [openActionMenuId, setOpenActionMenuId] =
@@ -93,6 +100,11 @@ function ExpensesPage() {
 
     if (!date) {
       alert("Please select a date");
+      return;
+    }
+
+    if (isFutureDate(date)) {
+      alert("Expense date cannot be in the future.");
       return;
     }
 
@@ -1110,6 +1122,7 @@ function ExpensesPage() {
                 className="expense-input"
                 type="date"
                 value={date}
+                max={today}
                 onChange={(event) => setDate(event.target.value)}
                 required
               />

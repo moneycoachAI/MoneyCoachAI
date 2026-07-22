@@ -13,6 +13,10 @@ import type {
   MonthlyReportResponse,
 } from "../types/reportTypes";
 
+import {
+  isFutureMonth,
+} from "../utils/dateUtils";
+
 type Notice = {
   type: "error";
   message: string;
@@ -115,6 +119,14 @@ function ReportsPage() {
       return;
     }
 
+    if (isFutureMonth(selectedMonth, selectedYear)) {
+      setNotice({
+        type: "error",
+        message: "Reports cannot be generated for a future month.",
+      });
+      return;
+    }
+
     try {
       setLoading(true);
       setNotice(null);
@@ -192,7 +204,7 @@ function ReportsPage() {
               id="reports-year"
               type="number"
               min="2000"
-              max="2100"
+              max={new Date().getFullYear()}
               value={year}
               disabled={loading}
               onChange={(event) => {

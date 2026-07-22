@@ -13,6 +13,10 @@ import {
 import type { FinancialGoal } from "../types/financialGoalTypes";
 import type { GoalRecommendation } from "../types/goalRecommendationTypes";
 
+import {
+  getTodayDateInputValue,
+} from "../utils/dateUtils";
+
 function FinancialGoalsPage() {
   const [goals, setGoals] = useState<FinancialGoal[]>([]);
   const [recommendations, setRecommendations] = useState<
@@ -23,6 +27,8 @@ function FinancialGoalsPage() {
   const [name, setName] = useState("");
   const [targetAmount, setTargetAmount] = useState("");
   const [targetDate, setTargetDate] = useState("");
+
+  const today = getTodayDateInputValue();
 
   const [progressAmounts, setProgressAmounts] = useState<
     Record<string, string>
@@ -105,6 +111,11 @@ function FinancialGoalsPage() {
 
     if (!targetAmount || Number(targetAmount) <= 0) {
       alert("Please enter a valid target amount");
+      return;
+    }
+
+    if (targetDate && targetDate < today) {
+      alert("Goal target date cannot be in the past.");
       return;
     }
 
@@ -1664,6 +1675,7 @@ function FinancialGoalsPage() {
                 className="goal-input"
                 type="date"
                 value={targetDate}
+                min={today}
                 onChange={(event) =>
                   setTargetDate(event.target.value)
                 }
