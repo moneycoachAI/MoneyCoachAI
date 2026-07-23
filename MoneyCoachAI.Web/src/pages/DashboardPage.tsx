@@ -48,7 +48,7 @@ function DashboardPage() {
 
   const [year, setYear] = useState("2026");
   const [cards, setCards] = useState<MonthlyDashboardCard[]>([]);
-  const [expandedCard, setExpandedCard] = useState<string | null>(null);
+  const [openMonthlyMenu, setOpenMonthlyMenu] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const [recentTransactions, setRecentTransactions] = useState<financialActivity[]>([]);
@@ -395,10 +395,6 @@ const [motivationIndex, setMotivationIndex] = useState(0);
 
   const currentMotivation = financialMotivations[motivationIndex];
 
-  const toggleExpand = (card: MonthlyDashboardCard) => {
-    const cardKey = `${card.month}-${card.year}`;
-    setExpandedCard((current) => (current === cardKey ? null : cardKey));
-  };
 
   const alertCards = cards.filter(
     (card) => card.topSeverity === "Danger" || card.topSeverity === "Warning"
@@ -486,25 +482,98 @@ const [motivationIndex, setMotivationIndex] = useState(0);
 
           .top-card-grid {
             display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
+            grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 18px;
             margin-bottom: 22px;
           }
 
           .money-card {
-            padding: 22px;
+            position: relative;
+            isolation: isolate;
+
             min-height: 150px;
+            padding: 22px;
+
+            overflow: hidden;
+
+            transition:
+              transform 0.22s ease,
+              box-shadow 0.22s ease;
+          }
+
+          .money-card::after {
+            content: "";
+
+            position: absolute;
+            right: -42px;
+            bottom: -54px;
+            z-index: -1;
+
+            width: 128px;
+            height: 128px;
+
+            border-radius: 42% 58% 64% 36% / 48% 36% 64% 52%;
+
+            background:
+              linear-gradient(
+                145deg,
+                rgba(124, 92, 252, 0.13),
+                rgba(91, 140, 255, 0.04)
+              );
+
+            transform: rotate(18deg);
+          }
+
+          .money-card:hover {
+            transform: translateY(-3px);
+
+            box-shadow:
+              0 18px 42px rgba(76, 29, 149, 0.1),
+              inset 0 1px 0 rgba(255, 255, 255, 0.86);
+          }
+
+          .money-card:nth-child(2)::after {
+            background:
+              linear-gradient(
+                145deg,
+                rgba(33, 199, 122, 0.13),
+                rgba(91, 140, 255, 0.04)
+              );
+          }
+
+          .money-card:nth-child(3)::after {
+            background:
+              linear-gradient(
+                145deg,
+                rgba(255, 100, 103, 0.13),
+                rgba(255, 181, 71, 0.05)
+              );
           }
 
           .money-icon {
-            width: 46px;
-            height: 46px;
             display: grid;
             place-items: center;
-            border-radius: 17px;
-            background: rgba(255,255,255,.68);
-            font-size: 22px;
+
+            width: 46px;
+            height: 46px;
+
             margin-bottom: 16px;
+
+            border: 1px solid rgba(255, 255, 255, 0.82);
+            border-radius: 17px;
+
+            background:
+              linear-gradient(
+                145deg,
+                rgba(255, 255, 255, 0.92),
+                rgba(255, 255, 255, 0.55)
+              );
+
+            box-shadow:
+              0 10px 22px rgba(76, 29, 149, 0.08),
+              inset 0 1px 0 rgba(255, 255, 255, 0.98);
+
+            font-size: 22px;
           }
 
           .money-label {
@@ -620,21 +689,98 @@ const [motivationIndex, setMotivationIndex] = useState(0);
 
          
           .soft-item {
-            padding: 14px;
+            position: relative;
+
+            padding: 14px 14px 14px 17px;
+
+            border: 1px solid rgba(255, 255, 255, 0.68);
             border-radius: 18px;
-            background: rgba(255,255,255,.55);
-            border: 1px solid rgba(255,255,255,.65);
+
+            background:
+              linear-gradient(
+                145deg,
+                rgba(255, 255, 255, 0.72),
+                rgba(255, 255, 255, 0.47)
+              );
+          }
+
+          .soft-item::after {
+            content: "";
+
+            position: absolute;
+            top: 16px;
+            right: 14px;
+
+            width: 7px;
+            height: 7px;
+
+            border-radius: 50%;
+
+            background:
+              linear-gradient(
+                135deg,
+                #5b8cff,
+                #7b61ff
+              );
+
+            box-shadow:
+              0 0 0 5px rgba(124, 92, 252, 0.08);
           }
 
           .activity-item {
+            position: relative;
+
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 12px;
-            padding: 14px;
+
+            padding: 14px 14px 14px 18px;
+
+            border: 1px solid rgba(255, 255, 255, 0.68);
             border-radius: 18px;
-            background: rgba(255,255,255,.55);
-            border: 1px solid rgba(255,255,255,.65);
+
+            background:
+              linear-gradient(
+                145deg,
+                rgba(255, 255, 255, 0.72),
+                rgba(255, 255, 255, 0.48)
+              );
+
+            transition:
+              transform 0.18s ease,
+              background 0.18s ease;
+          }
+
+          .activity-item::before {
+            content: "";
+
+            position: absolute;
+            top: 14px;
+            bottom: 14px;
+            left: 7px;
+
+            width: 3px;
+
+            border-radius: 999px;
+
+            background:
+              linear-gradient(
+                180deg,
+                #5b8cff,
+                #7b61ff
+              );
+          }
+
+          .activity-item:hover {
+            transform: translateX(3px);
+
+            background:
+              linear-gradient(
+                145deg,
+                rgba(255, 255, 255, 0.86),
+                rgba(255, 255, 255, 0.58)
+              );
           }
 
           .activity-left {
@@ -673,6 +819,54 @@ const [motivationIndex, setMotivationIndex] = useState(0);
             grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 18px;
             margin-bottom: 20px;
+          }
+
+          .overview-card {
+            position: relative;
+
+            display: flex;
+            flex-direction: column;
+
+            min-height: 270px;
+
+            overflow: hidden;
+          }
+
+          .overview-card::after {
+            content: "";
+
+            position: absolute;
+            right: -54px;
+            bottom: -72px;
+
+            width: 168px;
+            height: 168px;
+
+            border-radius: 50%;
+
+            background:
+              radial-gradient(
+                circle,
+                rgba(124, 92, 252, 0.12),
+                transparent 68%
+              );
+
+            pointer-events: none;
+          }
+
+          .overview-card-content {
+            display: flex;
+            flex: 1;
+            flex-direction: column;
+          }
+
+          .overview-card-action {
+            margin-top: auto;
+            padding-top: 18px;
+          }
+
+          .overview-card-action .mca-gradient-button {
+            margin-top: 0 !important;
           }
 
           .table-card {
@@ -828,7 +1022,143 @@ const [motivationIndex, setMotivationIndex] = useState(0);
             display: none;
           }
 
+          .monthly-card {
+            position: relative;
 
+            min-height: 420px;
+
+            overflow: visible;
+
+            transition:
+              transform 0.22s ease,
+              box-shadow 0.22s ease;
+          }
+
+          .monthly-card:hover {
+            transform: translateY(-3px);
+
+            box-shadow:
+              0 20px 44px rgba(15, 23, 42, 0.1),
+              inset 0 1px 0 rgba(255, 255, 255, 0.88);
+          }
+
+          .monthly-status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+
+            width: fit-content;
+
+            margin: 4px 0 10px;
+            padding: 6px 10px;
+
+            border-radius: 999px;
+
+            background: rgba(255, 255, 255, 0.66);
+
+            font-size: 11px;
+            font-weight: 900;
+          }
+
+          .monthly-card-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 14px;
+          }
+
+          .monthly-card-head h3 {
+            margin: 0;
+            padding-right: 8px;
+          }
+
+          .monthly-menu {
+            position: relative;
+            flex: 0 0 auto;
+          }
+
+          .monthly-menu-trigger {
+            display: grid;
+            place-items: center;
+
+            width: 36px;
+            height: 36px;
+
+            padding: 0;
+
+            border: 1px solid rgba(124, 92, 252, 0.2);
+            border-radius: 12px;
+
+            background: #ffffff;
+            color: #6c4dff;
+
+            box-shadow: 0 8px 18px rgba(76, 29, 149, 0.1);
+
+            cursor: pointer;
+
+            font-size: 22px;
+            font-weight: 900;
+            line-height: 1;
+          }
+
+          .monthly-menu-trigger:hover,
+          .monthly-menu-trigger.active {
+            background: #f3efff;
+            border-color: rgba(124, 92, 252, 0.35);
+          }
+
+          .monthly-menu-popover {
+            position: absolute;
+            top: 58px;
+            right: 18px;
+            z-index: 100;
+
+            display: grid;
+            gap: 6px;
+
+            width: 190px;
+            padding: 8px;
+
+            border: 1px solid rgba(124, 92, 252, 0.16);
+            border-radius: 14px;
+
+            background: #ffffff;
+
+            box-shadow:
+              0 18px 42px rgba(15, 23, 42, 0.18),
+              inset 0 1px 0 rgba(255, 255, 255, 0.96);
+          }
+
+          .monthly-menu-popover button {
+            display: flex;
+            align-items: center;
+
+            width: 100%;
+            min-height: 42px;
+
+            padding: 0 12px;
+
+            border: 0;
+            border-radius: 10px;
+
+            background: #f8fafc;
+            color: #334155;
+
+            cursor: pointer;
+
+            font: inherit;
+            font-size: 12px;
+            font-weight: 800;
+            line-height: 1.2;
+            text-align: left;
+            white-space: nowrap;
+          }
+
+          .monthly-menu-popover button:hover {
+            background: #eee9ff;
+            color: #5b4df5;
+          }
 
           .recent-three-grid {
             display: grid;
@@ -1043,16 +1373,56 @@ const [motivationIndex, setMotivationIndex] = useState(0);
 
           .dashboard-motivation {
             position: relative;
-            height: 215px;
-            margin-top: 14px;
-            padding: 10px 24px 18px;
 
             display: flex;
             align-items: center;
             justify-content: center;
 
-            text-align: center;
+            height: 215px;
+            margin-top: 14px;
+            padding: 14px 26px 20px;
+
             overflow: hidden;
+
+            border: 1px solid rgba(255, 255, 255, 0.52);
+            border-radius: 30px;
+
+            background:
+              linear-gradient(
+                135deg,
+                rgba(255, 255, 255, 0.34),
+                rgba(124, 92, 252, 0.06),
+                rgba(255, 181, 71, 0.05)
+              );
+
+            box-shadow:
+              inset 0 1px 0 rgba(255, 255, 255, 0.72);
+
+            text-align: center;
+          }
+
+          .dashboard-motivation::before {
+            content: "✦";
+
+            position: absolute;
+            top: 16px;
+            left: 18px;
+
+            color: rgba(124, 92, 252, 0.34);
+
+            font-size: 22px;
+          }
+
+          .dashboard-motivation::after {
+            content: "✦";
+
+            position: absolute;
+            right: 22px;
+            bottom: 18px;
+
+            color: rgba(255, 181, 71, 0.38);
+
+            font-size: 18px;
           }
 
           .motivation-slide {
@@ -1165,6 +1535,77 @@ const [motivationIndex, setMotivationIndex] = useState(0);
             }
           }
 
+          .chart-card {
+            position: relative;
+
+            overflow: hidden;
+
+            border: 1px solid rgba(255, 255, 255, 0.9);
+
+            background:
+              linear-gradient(
+                145deg,
+                rgba(255, 255, 255, 0.92),
+                rgba(248, 250, 255, 0.86)
+              );
+
+            box-shadow:
+              0 18px 44px rgba(15, 23, 42, 0.08),
+              inset 0 1px 0 rgba(255, 255, 255, 1);
+
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+          }
+
+          .chart-card::before {
+            content: "";
+
+            position: absolute;
+            top: -90px;
+            right: -80px;
+
+            width: 220px;
+            height: 220px;
+
+            border-radius: 50%;
+
+            background:
+              radial-gradient(
+                circle,
+                rgba(126, 217, 174, 0.11),
+                transparent 68%
+              );
+
+            pointer-events: none;
+          }
+
+          .chart-card::after {
+            content: "";
+
+            position: absolute;
+            bottom: -110px;
+            left: -90px;
+
+            width: 240px;
+            height: 240px;
+
+            border-radius: 50%;
+
+            background:
+              radial-gradient(
+                circle,
+                rgba(142, 120, 255, 0.09),
+                transparent 68%
+              );
+
+            pointer-events: none;
+          }
+
+          .chart-card > div {
+            position: relative;
+            z-index: 1;
+          }
+
           @media (max-width: 650px) {
             .dashboard-motivation {
               height: auto;
@@ -1227,11 +1668,105 @@ const [motivationIndex, setMotivationIndex] = useState(0);
               width: 100%;
             }
 
-            .top-card-grid,
+            .top-card-grid {
+              grid-template-columns: repeat(3, minmax(0, 1fr));
+              gap: 8px;
+            }
+
             .mini-grid {
               grid-template-columns: 1fr;
+              gap: 12px;
+            }
+
+            .mini-grid > :last-child {
+              grid-column: auto;
+            }
+
+            .money-card {
+              min-height: 112px;
+              padding: 12px 9px;
+            }
+
+            .money-icon {
+              width: 34px;
+              height: 34px;
+              margin-bottom: 8px;
+              border-radius: 12px;
+              font-size: 16px;
+            }
+
+            .money-label {
+              font-size: 9px;
+              line-height: 1.25;
+            }
+
+            .money-value {
+              margin-top: 6px;
+              font-size: 16px;
+              line-height: 1.15;
+              overflow-wrap: anywhere;
+            }
+
+            .overview-card {
+              min-height: 230px;
+            }
+
+            .monthly-card-head {
+              margin-bottom: 10px;
+            }
+
+            .monthly-menu-popover {
+              position: static;
+
+              width: 100%;
+              margin: 0 0 12px;
+              padding: 7px;
+
+              border-radius: 13px;
+
+              box-shadow:
+                0 10px 24px rgba(15, 23, 42, 0.11);
+            }
+
+            .monthly-menu-popover button {
+              min-height: 40px;
+              justify-content: center;
+              text-align: center;
             }
           }
+          @media (max-width: 390px) {
+            .top-card-grid {
+              gap: 6px;
+            }
+
+            .money-card {
+              min-height: 104px;
+              padding: 10px 7px;
+              border-radius: 17px;
+            }
+
+            .money-icon {
+              width: 30px;
+              height: 30px;
+              margin-bottom: 7px;
+              font-size: 14px;
+            }
+
+            .money-label {
+              font-size: 8px;
+            }
+
+            .money-value {
+              font-size: 14px;
+            }
+
+            .monthly-card {
+              flex-basis: 286px;
+              min-width: 286px;
+              padding: 17px;
+            }
+          }
+
             .chart-card {
               width: 100%;
               min-width: 0;
@@ -1292,11 +1827,6 @@ const [motivationIndex, setMotivationIndex] = useState(0);
             <div className="money-value">{formatMoney(latestCard?.totalSpent || 0)}</div>
           </div>
 
-          <div className="mca-glass-card money-card mca-glow-purple">
-            <div className="money-icon">🏦</div>
-            <div className="money-label">Monthly Savings</div>
-            <div className="money-value">{formatMoney(latestCard?.savings || 0)}</div>
-          </div>
         </div>
 
         <div className="dash-grid alerts-ai-grid">
@@ -1565,10 +2095,10 @@ const [motivationIndex, setMotivationIndex] = useState(0);
         
 
         <div className="mini-grid">
-          <div className="mca-glass-card dash-card mca-glow-blue">
+          <div className="mca-glass-card dash-card mca-glow-blue overview-card">
             <h2 className="mca-section-title">Goals Overview</h2>
 
-            <div className="insight-list" style={{ marginTop: 18 }}>
+            <div className="insight-list overview-card-content" style={{ marginTop: 18 }}>
               {financialGoals.filter((goal) => goal.progressPercentage < 100).length === 0 ? (
                 <p className="mca-muted">No active goals.</p>
               ) : (
@@ -1591,61 +2121,77 @@ const [motivationIndex, setMotivationIndex] = useState(0);
                   ))
               )}
 
-              <button className="mca-gradient-button" onClick={() => navigate("/financialGoals")}>
-                View Goals
-              </button>
+              <div className="overview-card-action">
+                <button
+                  className="mca-gradient-button"
+                  onClick={() => navigate("/financialGoals")}
+                >
+                  View Goals
+                </button>
+              </div>
             </div>
           </div>
 
-          <div className="mca-glass-card dash-card mca-glow-purple">
+          <div className="mca-glass-card dash-card mca-glow-purple overview-card">
             <h2 className="mca-section-title">Net Worth Overview</h2>
 
-            <h1 style={{ margin: "20px 0 10px" }}>
-              {formatMoney(netWorthSummary?.netWorth || 0)}
-            </h1>
+            <div className="overview-card-content">
+              <h1 style={{ margin: "20px 0 10px" }}>
+                {formatMoney(netWorthSummary?.netWorth || 0)}
+              </h1>
 
-            <p className="mca-muted">Assets: {formatMoney(netWorthSummary?.totalAssets || 0)}</p>
-            <p className="mca-muted">Liabilities: {formatMoney(netWorthSummary?.totalLiabilities || 0)}</p>
+              <p className="mca-muted">
+                Assets: {formatMoney(netWorthSummary?.totalAssets || 0)}
+              </p>
 
-            <button
-              className="mca-gradient-button"
-              style={{ marginTop: 18 }}
-              onClick={() => navigate("/net-worth")}
-            >
-              View Net Worth
-            </button>
+              <p className="mca-muted">
+                Liabilities: {formatMoney(netWorthSummary?.totalLiabilities || 0)}
+              </p>
+
+              <div className="overview-card-action">
+                <button
+                  className="mca-gradient-button"
+                  onClick={() => navigate("/net-worth")}
+                >
+                  View Net Worth
+                </button>
+              </div>
+            </div>
           </div>
 
-          <div className="mca-glass-card dash-card mca-glow-green">
+          <div className="mca-glass-card dash-card mca-glow-green overview-card">
             <h2 className="mca-section-title">Investment Overview</h2>
 
-            <h1 style={{ margin: "20px 0 10px" }}>
-              {formatMoney(investmentSummary?.totalCurrentValue || 0)}
-            </h1>
+            <div className="overview-card-content">
+              <h1 style={{ margin: "20px 0 10px" }}>
+                {formatMoney(investmentSummary?.totalCurrentValue || 0)}
+              </h1>
 
-            <p className="mca-muted">
-              Invested: {formatMoney(investmentSummary?.totalInvested || 0)}
-            </p>
+              <p className="mca-muted">
+                Invested: {formatMoney(investmentSummary?.totalInvested || 0)}
+              </p>
 
-            <strong
-              style={{
-                color:
-                  (investmentSummary?.totalProfitOrLoss || 0) >= 0
-                    ? "#21C77A"
-                    : "#FF6467",
-              }}
-            >
-              {formatMoney(investmentSummary?.totalProfitOrLoss || 0)} (
-              {investmentSummary?.profitOrLossPercentage || 0}%)
-            </strong>
+              <strong
+                style={{
+                  color:
+                    (investmentSummary?.totalProfitOrLoss || 0) >= 0
+                      ? "#21C77A"
+                      : "#FF6467",
+                }}
+              >
+                {formatMoney(investmentSummary?.totalProfitOrLoss || 0)} (
+                {investmentSummary?.profitOrLossPercentage || 0}%)
+              </strong>
 
-            <button
-              className="mca-gradient-button"
-              style={{ marginTop: 18 }}
-              onClick={() => navigate("/investments")}
-            >
-              View Investments
-            </button>
+              <div className="overview-card-action">
+                <button
+                  className="mca-gradient-button"
+                  onClick={() => navigate("/investments")}
+                >
+                  View Investments
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -1786,61 +2332,91 @@ const [motivationIndex, setMotivationIndex] = useState(0);
             <div className="monthly-scroll">
               {activeCards.map((card) => {
                 const cardKey = `${card.month}-${card.year}`;
-                const isExpanded = expandedCard === cardKey;
+                const menuOpen = openMonthlyMenu === cardKey;
                 const color = getCardColor(card.topSeverity);
 
                 return (
                   <div className="mca-glass-card monthly-card" key={cardKey}>
-                    <h3>{monthNames[card.month]} {card.year}</h3>
+                    <div className="monthly-card-head">
+                      <h3>
+                        {monthNames[card.month]} {card.year}
+                      </h3>
 
-                    <p><strong>💰 Income:</strong> {formatMoney(card.totalIncome)}</p>
-                    <p><strong>💸 Expenses:</strong> {formatMoney(card.totalSpent)}</p>
-                    <p><strong>🏦 Savings:</strong> {formatMoney(card.savings)}</p>
-                    <p><strong>📈 Savings Rate:</strong> {card.savingsRate.toFixed(1)}%</p>
-                    <p><strong>❤️ Health:</strong> {getHealthIcon(card.healthStatus)} {card.healthStatus}</p>
-
-                    <hr />
-
-                    <p style={{ color, fontWeight: 900 }}>
-                      {getSeverityIcon(card.topSeverity)} {card.topSeverity}
-                    </p>
-
-                    <p>{card.topMessage}</p>
-
-                    {isExpanded && (
-                      <div>
-                        <hr />
-                        <p><strong>Total Budget:</strong> {formatMoney(card.totalBudget)}</p>
-                        <p><strong>Budget Remaining:</strong> {formatMoney(card.remaining)}</p>
-                        <p><strong>Total Smart Insights:</strong> {card.suggestionCount}</p>
-
+                      <div className="monthly-menu">
                         <button
-                          className="mca-gradient-button"
-                          style={{ width: "100%", marginTop: 10 }}
+                          type="button"
+                          className={`monthly-menu-trigger ${menuOpen ? "active" : ""}`}
+                          aria-label={`Open ${monthNames[card.month]} ${card.year} actions`}
+                          aria-expanded={menuOpen}
                           onClick={() =>
-                            navigate(`/suggestions?month=${card.month}&year=${card.year}`)
+                            setOpenMonthlyMenu((current) =>
+                              current === cardKey ? null : cardKey
+                            )
                           }
                         >
-                          View Suggestions
+                          ⋮
+                        </button>
+                      </div>
+                    </div>
+
+                    {menuOpen && (
+                      <div className="monthly-menu-popover">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOpenMonthlyMenu(null);
+                            navigate(
+                              `/suggestions?month=${card.month}&year=${card.year}`
+                            );
+                          }}
+                        >
+                          View suggestions
                         </button>
 
                         <button
-                          className="mca-gradient-button"
-                          style={{ width: "100%", marginTop: 10 }}
-                          onClick={() => handleExportPdf(card.month, card.year)}
+                          type="button"
+                          onClick={() => {
+                            setOpenMonthlyMenu(null);
+                            void handleExportPdf(card.month, card.year);
+                          }}
                         >
                           Export PDF
                         </button>
                       </div>
                     )}
 
-                    <button
-                      className="mca-gradient-button"
-                      style={{ width: "100%", marginTop: 12 }}
-                      onClick={() => toggleExpand(card)}
+                    <p>
+                      <strong>💰 Income:</strong> {formatMoney(card.totalIncome)}
+                    </p>
+
+                    <p>
+                      <strong>💸 Expenses:</strong> {formatMoney(card.totalSpent)}
+                    </p>
+
+                    <p>
+                      <strong>🏦 Savings:</strong> {formatMoney(card.savings)}
+                    </p>
+
+                    <p>
+                      <strong>📈 Savings Rate:</strong>{" "}
+                      {card.savingsRate.toFixed(1)}%
+                    </p>
+
+                    <p>
+                      <strong>❤️ Health:</strong>{" "}
+                      {getHealthIcon(card.healthStatus)} {card.healthStatus}
+                    </p>
+
+                    <hr />
+
+                    <div
+                      className="monthly-status-pill"
+                      style={{ color }}
                     >
-                      {isExpanded ? "Hide Details" : "Show Details"}
-                    </button>
+                      {getSeverityIcon(card.topSeverity)} {card.topSeverity}
+                    </div>
+
+                    <p>{card.topMessage}</p>
                   </div>
                 );
               })}

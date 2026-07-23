@@ -20,9 +20,16 @@ interface DashboardChartsProps {
   cards: MonthlyDashboardCard[];
 }
 
-const PIE_COLORS = ["#FF6467", "#4F7CFF"];
+const PIE_COLORS = ["#FF7F91", "#91A9FF"];
 
 function DashboardCharts({ cards }: DashboardChartsProps) {
+  const tooltipStyle = {
+    border: "1px solid rgba(148, 163, 184, 0.16)",
+    borderRadius: "14px",
+    background: "rgba(255, 255, 255, 0.96)",
+    boxShadow: "0 16px 34px rgba(15, 23, 42, 0.12)",
+    fontSize: "12px",
+  };
   const incomeExpenseData = cards.map((card) => ({
     month: `${card.month}/${card.year}`,
     income: card.totalIncome,
@@ -74,11 +81,21 @@ function DashboardCharts({ cards }: DashboardChartsProps) {
         minWidth: 0,
       }}
     >
-      <h2 style={{ margin: "0 0 24px" }}>Charts Dashboard</h2>
+      <h2
+        style={{
+          margin: "0 0 24px",
+          color: "#111827",
+          letterSpacing: "-0.03em",
+        }}
+      >
+        Charts Dashboard
+      </h2>
 
       {/* Income vs Expenses */}
       <section style={{ marginBottom: "40px" }}>
-        <h3 style={{ margin: "0 0 16px" }}>Income vs Expenses</h3>
+        <h3 style={{ margin: "0 0 16px", color: "#1F2937" }}>
+          Income vs Expenses
+        </h3>
 
         <div
           style={{
@@ -102,21 +119,35 @@ function DashboardCharts({ cards }: DashboardChartsProps) {
                 left: 0,
               }}
             >
+              <defs>
+                <linearGradient id="incomeBarGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#28C982" />
+                  <stop offset="100%" stopColor="#9BE8C4" />
+                </linearGradient>
+
+                <linearGradient id="expenseBarGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#FF7F91" />
+                  <stop offset="100%" stopColor="#FFC1CB" />
+                </linearGradient>
+              </defs>
+
               <CartesianGrid
                 strokeDasharray="3 3"
-                stroke="rgba(107, 114, 128, 0.18)"
+                stroke="rgba(100, 116, 139, 0.22)"
               />
 
               <XAxis
                 dataKey="month"
-                tick={{ fill: "#6B7280", fontSize: 12 }}
+                tick={{ fill: "#475569", fontSize: 12, fontWeight: 600 }}
               />
 
               <YAxis
-                tick={{ fill: "#6B7280", fontSize: 12 }}
+                tick={{ fill: "#475569", fontSize: 12, fontWeight: 600 }}
               />
 
               <Tooltip
+                contentStyle={tooltipStyle}
+                cursor={{ fill: "rgba(124, 92, 252, 0.04)" }}
                 formatter={(value) =>
                   `₹${Number(value).toLocaleString("en-IN")}`
                 }
@@ -127,14 +158,14 @@ function DashboardCharts({ cards }: DashboardChartsProps) {
               <Bar
                 dataKey="income"
                 name="Income"
-                fill="#21C77A"
+                fill="url(#incomeBarGradient)"
                 radius={[8, 8, 0, 0]}
               />
 
               <Bar
                 dataKey="expenses"
                 name="Expenses"
-                fill="#FF6467"
+                fill="url(#expenseBarGradient)"
                 radius={[8, 8, 0, 0]}
               />
             </BarChart>
@@ -144,7 +175,9 @@ function DashboardCharts({ cards }: DashboardChartsProps) {
 
       {/* Savings Trend */}
       <section style={{ marginBottom: "40px" }}>
-        <h3 style={{ margin: "0 0 16px" }}>Savings Trend</h3>
+        <h3 style={{ margin: "0 0 16px", color: "#1F2937" }}>
+          Savings Trend
+        </h3>
 
         <div
           style={{
@@ -168,21 +201,30 @@ function DashboardCharts({ cards }: DashboardChartsProps) {
                 left: 0,
               }}
             >
+              <defs>
+                <linearGradient id="savingsLineGradient" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stopColor="#5B8CFF" />
+                  <stop offset="55%" stopColor="#7C5CFC" />
+                  <stop offset="100%" stopColor="#9C7BFF" />
+                </linearGradient>
+              </defs>
+
               <CartesianGrid
                 strokeDasharray="3 3"
-                stroke="rgba(107, 114, 128, 0.18)"
+                stroke="rgba(100, 116, 139, 0.22)"
               />
 
               <XAxis
                 dataKey="month"
-                tick={{ fill: "#6B7280", fontSize: 12 }}
+                tick={{ fill: "#475569", fontSize: 12, fontWeight: 600 }}
               />
 
               <YAxis
-                tick={{ fill: "#6B7280", fontSize: 12 }}
+                tick={{ fill: "#475569", fontSize: 12, fontWeight: 600 }}
               />
 
               <Tooltip
+                contentStyle={tooltipStyle}
                 formatter={(value) =>
                   `₹${Number(value).toLocaleString("en-IN")}`
                 }
@@ -194,12 +236,12 @@ function DashboardCharts({ cards }: DashboardChartsProps) {
                 type="monotone"
                 dataKey="savings"
                 name="Savings"
-                stroke="#4F7CFF"
-                strokeWidth={3}
+                stroke="url(#savingsLineGradient)"
+                strokeWidth={4}
                 dot={{
                   r: 4,
                   fill: "#ffffff",
-                  stroke: "#4F7CFF",
+                  stroke: "#7C5CFC",
                   strokeWidth: 2,
                 }}
                 activeDot={{
@@ -261,6 +303,7 @@ function DashboardCharts({ cards }: DashboardChartsProps) {
                 </Pie>
 
                 <Tooltip
+                  contentStyle={tooltipStyle}
                   formatter={(value) =>
                     `₹${Number(value).toLocaleString("en-IN")}`
                   }
