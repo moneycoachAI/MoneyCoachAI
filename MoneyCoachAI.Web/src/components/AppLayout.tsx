@@ -170,8 +170,7 @@ function AppLayout({
 
             padding: 14px 12px 16px;
 
-            overflow-y: auto;
-            overflow-x: hidden;
+            overflow: hidden;
 
             border:
               1px solid
@@ -211,6 +210,7 @@ function AppLayout({
           .mca-brand {
             position: relative;
             display: flex;
+            flex: 0 0 auto;
             align-items: center;
             gap: 10px;
 
@@ -282,14 +282,14 @@ function AppLayout({
 
           .mca-sidebar-close {
             position: absolute;
-            top: 7px;
+            
             right: 1px;
 
             display: none;
             place-items: center;
 
-            width: 30px;
-            height: 30px;
+            width: 35px;
+            height: 35px;
 
             padding: 0;
 
@@ -314,10 +314,44 @@ function AppLayout({
 
           .mca-sidebar-nav {
             display: flex;
+            flex: 1 1 auto;
             flex-direction: column;
 
             width: 100%;
+            min-height: 0;
             margin-top: 2px;
+            padding-right: 4px;
+
+            overflow-y: auto;
+            overflow-x: hidden;
+
+            scrollbar-width: thin;
+            scrollbar-color: rgba(124, 92, 252, 0.58) transparent;
+          }
+
+          .mca-sidebar-nav::-webkit-scrollbar {
+            width: 6px;
+          }
+
+          .mca-sidebar-nav::-webkit-scrollbar-track {
+            background: transparent;
+          }
+
+          .mca-sidebar-nav::-webkit-scrollbar-thumb {
+            border-radius: 999px;
+            background: linear-gradient(
+              180deg,
+              #8b5cf6,
+              #6d28d9
+            );
+          }
+
+          .mca-sidebar-nav::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(
+              180deg,
+              #7c3aed,
+              #5b21b6
+            );
           }
 
           .mca-nav-button {
@@ -408,69 +442,8 @@ function AppLayout({
           */
 
           .mca-sidebar-bottom {
-            margin-top: auto;
-          }
-
-          .mca-pro-card {
-            margin-top: 15px;
-            padding: 16px;
-
-            border-radius: 22px;
-
-            background:
-              linear-gradient(
-                135deg,
-                #111827,
-                #243047
-              );
-
-            box-shadow:
-              0 18px 35px
-              rgba(17, 24, 39, 0.2);
-
-            color: #ffffff;
-          }
-
-          .mca-pro-title {
-            margin-bottom: 7px;
-
-            font-size: 13px;
-            font-weight: 900;
-          }
-
-          .mca-pro-text {
-            margin: 0;
-
-            color:
-              rgba(255, 255, 255, 0.72);
-
-            font-size: 11px;
-            line-height: 1.55;
-          }
-
-          .mca-pro-button {
-            width: 100%;
-
-            margin-top: 12px;
-            padding: 10px;
-
-            border: 0;
-            border-radius: 14px;
-
-            background:
-              linear-gradient(
-                135deg,
-                #5b8cff,
-                #7b61ff
-              );
-
-            color: #ffffff;
-
-            cursor: pointer;
-
-            font: inherit;
-            font-size: 12px;
-            font-weight: 850;
+            flex: 0 0 auto;
+            margin-top: 10px;
           }
 
           .mca-logout {
@@ -481,7 +454,7 @@ function AppLayout({
             width: 100%;
             min-height: 48px;
 
-            margin-top: 12px;
+            margin-top: 0;
             padding: 10px 13px;
 
             border: 0;
@@ -585,7 +558,7 @@ function AppLayout({
             
             max-width:
               calc(100vw - 135px);
-            height: 130px;
+            height: 125px;
 
             object-fit: contain;
             object-position: center;
@@ -620,8 +593,8 @@ function AppLayout({
             }
 
             .mca-sidebar {
-              top: 10px;
-              bottom: 10px;
+              top: 24px;
+              bottom: auto;
               left: 10px;
 
               width:
@@ -631,7 +604,10 @@ function AppLayout({
                 );
 
               min-width: 0;
-              height: auto;
+              height: min(640px, calc(100dvh - 48px));
+              max-height: calc(100dvh - 48px);
+
+              overflow: hidden;
 
               transform:
                 translateX(
@@ -738,12 +714,12 @@ function AppLayout({
             .mca-brand-text-logo {
               width: 138px;
               height: 30px;
-              transform: scale(1.75);
+              transform: scale(3);
             }
 
             .mca-brand-subtitle {
               margin-top: 3px;
-              font-size: 8px;
+              font-size: 10px;
             }
 
             .mca-nav-button {
@@ -849,25 +825,6 @@ function AppLayout({
         </nav>
 
         <div className="mca-sidebar-bottom">
-          <div className="mca-pro-card">
-            <div className="mca-pro-title">
-              💎 Go Premium
-            </div>
-
-            <p className="mca-pro-text">
-              Unlock AI insights, smart
-              budget alerts and advanced
-              reports.
-            </p>
-
-            <button
-              type="button"
-              className="mca-pro-button"
-            >
-              Upgrade Now
-            </button>
-          </div>
-
           <button
             type="button"
             className="mca-logout"
