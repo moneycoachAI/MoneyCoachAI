@@ -1,4 +1,5 @@
-﻿import { useEffect, useState } from "react";
+﻿
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AppLayout from "../components/AppLayout";
 
@@ -616,7 +617,6 @@ const [motivationIndex, setMotivationIndex] = useState(0);
   const alertCards = cards.filter(
     (card) => card.topSeverity === "Danger" || card.topSeverity === "Warning"
   );
-
 
 
   const getGreeting = () => {
@@ -1536,55 +1536,6 @@ const [motivationIndex, setMotivationIndex] = useState(0);
           }
 
 
-          .empty-dashboard{
-              display:flex;
-              flex-direction:column;
-              align-items:center;
-              justify-content:center;
-
-              padding:55px 30px;
-
-              text-align:center;
-              min-height: 330px;
-          }
-
-          .empty-icon{
-              font-size:70px;
-              margin-bottom:16px;
-          }
-
-          .empty-dashboard h2{
-              margin:0;
-              font-size:28px;
-              color:#111827;
-          }
-
-          .empty-dashboard p{
-              max-width:600px;
-              color:#6B7280;
-              line-height:1.7;
-              margin-top:14px;
-          }
-
-          .empty-features{
-              display:flex;
-              gap:14px;
-              flex-wrap:wrap;
-              justify-content:center;
-              margin:26px 0;
-          }
-
-          .empty-features span{
-              padding:10px 18px;
-              border-radius:999px;
-
-              background:rgba(91,140,255,.08);
-
-              color:#5B61FF;
-
-              font-weight:700;
-          }
-
           .alerts-ai-grid {
             align-items: stretch;
           }
@@ -1593,36 +1544,14 @@ const [motivationIndex, setMotivationIndex] = useState(0);
             height: 100%;
           }
 
-          .alert-empty-state {
-            min-height: 0;
-            height: auto;
-            padding: 18px 20px 22px;
+          .alerts-ai-grid-single {
+            grid-template-columns: 1fr;
           }
 
-          .alert-empty-state .empty-icon {
-            font-size: 46px;
-            margin-bottom: 8px;
+          .alerts-ai-grid-single > .dash-card {
+            width: 100%;
           }
 
-          .alert-empty-state h2 {
-            margin: 0;
-            font-size: 22px;
-          }
-
-          .alert-empty-state p {
-            margin: 8px 0 0;
-            line-height: 1.5;
-          }
-
-          .alert-empty-state .empty-features {
-            margin: 16px 0 0;
-            gap: 10px;
-          }
-
-          .alert-empty-state .empty-features span {
-            padding: 8px 14px;
-            font-size: 13px;
-          }
 
           .dashboard-motivation {
             position: relative;
@@ -1787,6 +1716,70 @@ const [motivationIndex, setMotivationIndex] = useState(0);
               transform: translateY(-5px);
             }
           }
+
+          .compact-section-head {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+
+  min-width: 0;
+}
+
+.compact-section-head h2 {
+  margin: 0;
+}
+
+.compact-section-head p {
+  margin: 0;
+}
+
+.compact-month-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  flex: 0 0 auto;
+}
+
+.compact-month-input {
+  width: 180px;
+  min-width: 0;
+  height: 46px;
+
+  padding: 0 14px;
+
+  border: 1px solid rgba(124, 92, 252, 0.16);
+  border-radius: 15px;
+
+  background: rgba(255, 255, 255, 0.76);
+  color: #1f2937;
+
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+
+  outline: none;
+}
+
+.compact-month-input:focus {
+  border-color: rgba(124, 92, 252, 0.45);
+
+  box-shadow:
+    0 0 0 4px rgba(124, 92, 252, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+.compact-view-button {
+  min-width: 88px;
+  height: 46px;
+  padding: 0 20px;
+
+  white-space: nowrap;
+}
 
           .section-filter-row {
             display: flex;
@@ -2040,6 +2033,41 @@ const [motivationIndex, setMotivationIndex] = useState(0);
             .monthly-card {
               scroll-snap-align: start;
             }
+
+            .dash-card-head.compact-responsive-head {
+  display: block;
+}
+
+.compact-section-head {
+  width: 100%;
+}
+
+.compact-section-head .mca-section-title {
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.compact-section-head .mca-muted {
+  margin-top: 7px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.compact-month-actions {
+  width: 100%;
+  margin-top: 14px;
+}
+
+.compact-month-input {
+  flex: 1;
+  width: auto;
+}
+
+.compact-view-button {
+  flex: 0 0 86px;
+  min-width: 86px;
+  padding: 0 12px;
+}
           }
 
 
@@ -2303,36 +2331,26 @@ const [motivationIndex, setMotivationIndex] = useState(0);
 
         </div>
 
-        <div className="dash-grid alerts-ai-grid">
-          <div className="mca-glass-card dash-card mca-glow-red">
-            <div className="dash-card-head">
-              <div>
-                <h2 className="mca-section-title">Auto Alerts</h2>
-                <p className="mca-muted">Important budget and spending warnings.</p>
-              </div>
-              <span>🔔</span>
-            </div>
-
-            <div className={`insight-list ${alertCards.length > 0 ? "scroll-box" : ""}`}>
-              {alertCards.length === 0 ? (
-                <div className="empty-dashboard alert-empty-state">
-                  <div className="empty-icon">📅</div>
-
-                  <h2>No Financial Data Found</h2>
-
-                  <p>
-                    We couldn't find any financial records for{" "}
-                    <strong>{year}</strong>.
+        <div
+          className={`dash-grid alerts-ai-grid ${
+            alertCards.length === 0 ? "alerts-ai-grid-single" : ""
+          }`}
+        >
+          {alertCards.length > 0 && (
+            <div className="mca-glass-card dash-card mca-glow-red">
+              <div className="dash-card-head">
+                <div>
+                  <h2 className="mca-section-title">Auto Alerts</h2>
+                  <p className="mca-muted">
+                    Important budget and spending warnings.
                   </p>
-
-                  <div className="empty-features">
-                    <span>💰 Add Income</span>
-                    <span>💸 Add Expenses</span>
-                    <span>📊 Create Budget</span>
-                  </div>
                 </div>
-              ) : (
-                alertCards.map((card) => (
+
+                <span>🔔</span>
+              </div>
+
+              <div className="insight-list scroll-box">
+                {alertCards.map((card) => (
                   <div
                     key={`${card.month}-${card.year}-alert`}
                     className={`alert-item ${
@@ -2362,10 +2380,10 @@ const [motivationIndex, setMotivationIndex] = useState(0);
 
                     <p style={{ marginTop: 10 }}>{card.topMessage}</p>
                   </div>
-                ))
-              )}
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="mca-glass-card dash-card mca-glow-purple">
             <div className="dash-card-head">
@@ -2399,41 +2417,39 @@ const [motivationIndex, setMotivationIndex] = useState(0);
         <div className="dash-grid">
           <div>
             <div className="mca-glass-card dash-card mca-glow-orange" style={{ minHeight: 0 }}>
-              <div className="dash-card-head">
-                <div>
+              <div className="dash-card-head compact-responsive-head">
+                <div className="compact-section-head">
                   <h2 className="mca-section-title">Top Spending Category</h2>
+
                   <p className="mca-muted">
                     {loadedTopCategoryMonth
                       ? `${monthNames[Number(loadedTopCategoryMonth)]} ${loadedTopCategoryYear}`
-                      : "Select month and year"}
+                      : "Select a month to view your highest spending category."}
                   </p>
                 </div>
 
-                <div className="soft-row">
-                  <select
-                    className="mca-soft-input"
-                    value={topCategoryMonth}
-                    onChange={(e) => setTopCategoryMonth(e.target.value)}
-                  >
-                    <option value="">Month</option>
-                    {monthNames.slice(1).map((month, index) => (
-                      <option key={month} value={index + 1}>
-                        {month}
-                      </option>
-                    ))}
-                  </select>
-
+                <div className="compact-month-actions">
                   <input
-                    className="mca-soft-input"
-                    style={{ width: 110 }}
-                    type="number"
-                    value={topCategoryYear}
-                    min={1997}
-                    max={new Date().getFullYear()}
-                    onChange={(e) => setTopCategoryYear(e.target.value)}
+                    type="month"
+                    className="compact-month-input"
+                    value={toMonthInputValue(
+                      topCategoryMonth,
+                      topCategoryYear
+                    )}
+                    max={currentMonthValue}
+                    onChange={(event) =>
+                      updateMonthAndYear(
+                        event.target.value,
+                        setTopCategoryMonth,
+                        setTopCategoryYear
+                      )
+                    }
                   />
 
-                  <button className="mca-gradient-button" onClick={handleLoadTopCategory}>
+                  <button
+                    className="mca-gradient-button compact-view-button"
+                    onClick={handleLoadTopCategory}
+                  >
                     View
                   </button>
                 </div>
@@ -2772,50 +2788,41 @@ const [motivationIndex, setMotivationIndex] = useState(0);
         </div>
 
         <div className="mca-glass-card dash-card" style={{ marginBottom: 20 }}>
-          <div className="dash-card-head">
-            <div>
-              <h2 className="mca-section-title">Recent Financial Activity</h2>
-              <p className="mca-muted">
-                Income, expenses and budget records for {activityPeriodText}.
-              </p>
-            </div>
+              <div className="dash-card-head compact-responsive-head">
+        <div className="compact-section-head">
+          <h2 className="mca-section-title">Monthly Financial Activity</h2>
 
-            <div className="section-filter-row">
-              <div className="section-filter-group">
-                <label>Month</label>
-                <select
-                  className="mca-soft-input"
-                  value={activityMonth}
-                  onChange={(event) => setActivityMonth(event.target.value)}
-                >
-                  {monthNames.slice(1).map((monthName, index) => (
-                    <option key={`activity-${monthName}`} value={index + 1}>
-                      {monthName}
-                    </option>
-                  ))}
-                </select>
-              </div>
+          <p className="mca-muted">
+            Income, expenses and budget records for {activityPeriodText}.
+          </p>
+        </div>
 
-              <div className="section-filter-group">
-                <label>Year</label>
-                <input
-                  className="mca-soft-input"
-                  type="number"
-                  min={2000}
-                  max={new Date().getFullYear()}
-                  value={activityYear}
-                  onChange={(event) => setActivityYear(event.target.value)}
-                />
-              </div>
+        <div className="compact-month-actions">
+          <input
+            type="month"
+            className="compact-month-input"
+            value={toMonthInputValue(
+              activityMonth,
+              activityYear
+            )}
+            max={currentMonthValue}
+            onChange={(event) =>
+              updateMonthAndYear(
+                event.target.value,
+                setActivityMonth,
+                setActivityYear
+              )
+            }
+          />
 
-              <button
-                className="mca-gradient-button"
-                onClick={handleLoadRecentActivity}
-              >
-                View Activity
-              </button>
-            </div>
-          </div>
+          <button
+            className="mca-gradient-button compact-view-button"
+            onClick={handleLoadRecentActivity}
+          >
+            View
+          </button>
+        </div>
+      </div>
 
           {recentTransactions.length === 0 ? (
             <p className="mca-muted">{`No financial activity found for ${activityPeriodText}.`}</p>
