@@ -440,6 +440,18 @@ const [motivationIndex, setMotivationIndex] = useState(0);
   ? latestCard.totalIncome - latestCard.totalSpent
   : 0;
 
+  const incomeDifference =
+  (monthlyComparison?.currentIncome ?? 0) -
+  (monthlyComparison?.previousIncome ?? 0);
+
+  const expenseDifference =
+  (monthlyComparison?.currentSpent ?? 0) -
+  (monthlyComparison?.previousSpent ?? 0);
+
+  const savingsDifference =
+  (monthlyComparison?.currentSavings ?? 0) -
+  (monthlyComparison?.previousSavings ?? 0);
+
   return (
     <AppLayout>
       <style>
@@ -588,6 +600,40 @@ const [motivationIndex, setMotivationIndex] = useState(0);
             font-weight: 900;
             color: #111827;
           }
+
+          .comparison-change{
+            display:flex;
+            align-items:center;
+            gap:10px;
+            margin-top:12px;
+            font-weight:700;
+            font-size:15px;
+            flex-wrap:wrap;
+        }
+
+        .comparison-change.positive{
+            color:#22c55e;
+        }
+
+        .comparison-change.negative{
+            color:#ef4444;
+        }
+
+        .comparison-amount{
+            display:flex;
+            align-items:center;
+            gap:4px;
+            white-space:nowrap;
+        }
+
+        .comparison-divider{
+            color:#9ca3af;
+            font-weight:600;
+        }
+
+        .comparison-percent{
+            white-space:nowrap;
+        }
 
           .dash-grid {
             display: grid;
@@ -2060,8 +2106,24 @@ const [motivationIndex, setMotivationIndex] = useState(0);
                     {formatMoney(monthlyComparison.currentIncome)}
                   </p>
                   <strong style={{ color: monthlyComparison.incomeChangePercent >= 0 ? "#21C77A" : "#FF6467" }}>
-                    {monthlyComparison.incomeChangePercent >= 0 ? "▲" : "▼"}{" "}
-                    {Math.abs(monthlyComparison.incomeChangePercent)}%
+                    <div
+                      className={`comparison-change ${
+                        incomeDifference >= 0 ? "positive" : "negative"
+                      }`}
+                    >
+                      <span className="comparison-amount">
+                        {incomeDifference >= 0 ? "▲" : "▼"}{" "}
+                        {incomeDifference >= 0 ? "+" : "-"}
+                        {formatMoney(Math.abs(incomeDifference))}
+                      </span>
+
+                      <span className="comparison-divider">•</span>
+
+                      <span className="comparison-percent">
+                        {monthlyComparison.incomeChangePercent >= 0 ? "+" : ""}
+                        {monthlyComparison.incomeChangePercent.toFixed(1)}%
+                      </span>
+                    </div>
                   </strong>
                 </div>
 
@@ -2072,8 +2134,24 @@ const [motivationIndex, setMotivationIndex] = useState(0);
                     {formatMoney(monthlyComparison.currentSpent)}
                   </p>
                   <strong style={{ color: monthlyComparison.expenseChangePercent <= 0 ? "#21C77A" : "#FF6467" }}>
-                    {monthlyComparison.expenseChangePercent <= 0 ? "▼" : "▲"}{" "}
-                    {Math.abs(monthlyComparison.expenseChangePercent)}%
+                    <div
+                      className={`comparison-change ${
+                        expenseDifference >= 0 ? "negative" : "positive"
+                      }`}
+                    >
+                      <span className="comparison-amount">
+                        {expenseDifference >= 0 ? "▲" : "▼"}{" "}
+                        {expenseDifference >= 0 ? "+" : "-"}
+                        {formatMoney(Math.abs(expenseDifference))}
+                      </span>
+
+                      <span className="comparison-divider">•</span>
+
+                      <span className="comparison-percent">
+                        {monthlyComparison.expenseChangePercent >= 0 ? "+" : ""}
+                        {Math.abs(monthlyComparison.expenseChangePercent).toFixed(1)}%
+                      </span>
+                    </div>
                   </strong>
                 </div>
 
@@ -2084,8 +2162,24 @@ const [motivationIndex, setMotivationIndex] = useState(0);
                     {formatMoney(monthlyComparison.currentSavings)}
                   </p>
                   <strong style={{ color: monthlyComparison.savingsChangePercent >= 0 ? "#21C77A" : "#FF6467" }}>
-                    {monthlyComparison.savingsChangePercent >= 0 ? "▲" : "▼"}{" "}
-                    {Math.abs(monthlyComparison.savingsChangePercent)}%
+                    <div
+                      className={`comparison-change ${
+                        savingsDifference >= 0 ? "positive" : "negative"
+                      }`}
+                    >
+                      <span className="comparison-amount">
+                        {savingsDifference >= 0 ? "▲" : "▼"}{" "}
+                        {savingsDifference >= 0 ? "+" : "-"}
+                        {formatMoney(Math.abs(savingsDifference))}
+                      </span>
+
+                      <span className="comparison-divider">•</span>
+
+                      <span className="comparison-percent">
+                        {monthlyComparison.savingsChangePercent >= 0 ? "+" : ""}
+                        {monthlyComparison.savingsChangePercent.toFixed(1)}%
+                      </span>
+                    </div>
                   </strong>
                 </div>
               </div>
