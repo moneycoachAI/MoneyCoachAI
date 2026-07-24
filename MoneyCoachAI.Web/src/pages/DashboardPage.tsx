@@ -56,6 +56,21 @@ function DashboardPage() {
   const [recentExpenses, setRecentExpenses] = useState<financialActivity[]>([]);
   const [recentBudgets, setRecentBudgets] = useState<Budget[]>([]);
 
+  const [allIncomeTransactions, setAllIncomeTransactions] =
+    useState<financialActivity[]>([]);
+  const [allExpenseTransactions, setAllExpenseTransactions] =
+    useState<financialActivity[]>([]);
+  const [allBudgets, setAllBudgets] = useState<Budget[]>([]);
+
+  const [activityMonth, setActivityMonth] = useState("");
+  const [activityYear, setActivityYear] = useState("");
+
+  const [comparisonPreviousMonth, setComparisonPreviousMonth] = useState("");
+  const [comparisonPreviousYear, setComparisonPreviousYear] = useState("");
+  const [comparisonCurrentMonth, setComparisonCurrentMonth] = useState("");
+  const [comparisonCurrentYear, setComparisonCurrentYear] = useState("");
+  const [comparisonLoading, setComparisonLoading] = useState(false);
+
   const [topCategory, setTopCategory] = useState<TopCategory | null>(null);
   const [topCategoryMonth, setTopCategoryMonth] = useState("");
   const [topCategoryYear, setTopCategoryYear] = useState("");
@@ -127,6 +142,30 @@ const [motivationIndex, setMotivationIndex] = useState(0);
     "December",
   ];
 
+  const today = new Date();
+  const currentMonthValue = `${today.getFullYear()}-${String(
+    today.getMonth() + 1
+  ).padStart(2, "0")}`;
+
+  const toMonthInputValue = (month: string, selectedYear: string) => {
+    if (!month || !selectedYear) {
+      return "";
+    }
+
+    return `${selectedYear}-${month.padStart(2, "0")}`;
+  };
+
+  const updateMonthAndYear = (
+    value: string,
+    setMonth: (month: string) => void,
+    setSelectedYear: (year: string) => void
+  ) => {
+    const [selectedYear, selectedMonth] = value.split("-");
+
+    setSelectedYear(selectedYear || "");
+    setMonth(selectedMonth ? String(Number(selectedMonth)) : "");
+  };
+
   const formatMoney = (amount: number) =>
     `₹${Number(amount || 0).toLocaleString("en-IN")}`;
 
@@ -173,6 +212,58 @@ const [motivationIndex, setMotivationIndex] = useState(0);
     }
   };
 
+  const calculateChangePercent = (
+    previousValue: number,
+    currentValue: number
+  ) => {
+    if (previousValue === 0) {
+      return currentValue === 0 ? 0 : 100;
+    }
+
+    return ((currentValue - previousValue) / Math.abs(previousValue)) * 100;
+  };
+
+  const applyRecentActivityFilter = (
+    month: number,
+    selectedYear: number,
+    incomeTransactions: financialActivity[],
+    expenseTransactions: financialActivity[],
+    budgets: Budget[]
+  ) => {
+    const selectedMonthIndex = month - 1;
+
+    const filteredIncome = incomeTransactions
+      .filter((transaction) => {
+        const date = new Date(transaction.date);
+
+        return (
+          date.getMonth() === selectedMonthIndex &&
+          date.getFullYear() === selectedYear
+        );
+      })
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    const filteredExpenses = expenseTransactions
+      .filter((transaction) => {
+        const date = new Date(transaction.date);
+
+        return (
+          date.getMonth() === selectedMonthIndex &&
+          date.getFullYear() === selectedYear
+        );
+      })
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    const filteredBudgets = budgets.filter(
+      (budget) => budget.month === month && budget.year === selectedYear
+    );
+
+    setRecentIncome(filteredIncome);
+    setRecentExpenses(filteredExpenses);
+    setRecentTransactions([...filteredIncome, ...filteredExpenses]);
+    setRecentBudgets(filteredBudgets);
+  };
+
   const loadRecentTransactions = async () => {
     const expenses = await getExpenses();
     const incomes = await getIncomes();
@@ -205,6 +296,10 @@ const [motivationIndex, setMotivationIndex] = useState(0);
       date: income.date,
     }));
 
+    setAllIncomeTransactions(incomeTransactions);
+    setAllExpenseTransactions(expenseTransactions);
+    setAllBudgets(budgets);
+
     const allTransactions = [...expenseTransactions, ...incomeTransactions].sort(
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
     );
@@ -231,45 +326,32 @@ const [motivationIndex, setMotivationIndex] = useState(0);
     const latestMonth = latestMonthIndex + 1;
     const latestYear = latestDate.getFullYear();
 
-    const latestIncome = incomeTransactions
-      .filter((transaction) => {
-        const date = new Date(transaction.date);
-        return (
-          date.getMonth() === latestMonthIndex &&
-          date.getFullYear() === latestYear
-        );
-      })
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    setActivityMonth(latestMonth.toString());
+    setActivityYear(latestYear.toString());
 
-    const latestExpenses = expenseTransactions
-      .filter((transaction) => {
-        const date = new Date(transaction.date);
-        return (
-          date.getMonth() === latestMonthIndex &&
-          date.getFullYear() === latestYear
-        );
-      })
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-    setRecentIncome(latestIncome);
-    setRecentExpenses(latestExpenses);
-    setRecentTransactions([...latestIncome, ...latestExpenses]);
+    applyRecentActivityFilter(
+      latestMonth,
+      latestYear,
+      incomeTransactions,
+      expenseTransactions,
+      budgets
+    );
 
     setTopCategoryMonth(latestMonth.toString());
     setTopCategoryYear(latestYear.toString());
     setLoadedTopCategoryMonth(latestMonth.toString());
     setLoadedTopCategoryYear(latestYear.toString());
 
-    const latestBudgets = budgets.filter(
-      (budget) => budget.month === latestMonth && budget.year === latestYear
-    );
-    setRecentBudgets(latestBudgets);
-
     const categoryData = await getTopCategory(latestMonth, latestYear);
     setTopCategory(categoryData);
 
     const comparisonData = await getMonthlyComparison(latestMonth, latestYear);
     setMonthlyComparison(comparisonData);
+
+    setComparisonPreviousMonth(comparisonData.previousMonth.toString());
+    setComparisonPreviousYear(comparisonData.previousYear.toString());
+    setComparisonCurrentMonth(comparisonData.currentMonth.toString());
+    setComparisonCurrentYear(comparisonData.currentYear.toString());
 
     const insightData = await getAiAdvisorInsights(latestMonth, latestYear);
     setAiInsights(insightData);
@@ -340,6 +422,141 @@ const [motivationIndex, setMotivationIndex] = useState(0);
       console.error(error);
       alert("Failed to load top category");
     }
+  };
+
+  const handleCompareMonths = async () => {
+    const previousMonth = Number(comparisonPreviousMonth);
+    const previousYear = Number(comparisonPreviousYear);
+    const currentMonth = Number(comparisonCurrentMonth);
+    const currentYear = Number(comparisonCurrentYear);
+
+    if (
+      !Number.isInteger(previousMonth) ||
+      previousMonth < 1 ||
+      previousMonth > 12 ||
+      !Number.isInteger(currentMonth) ||
+      currentMonth < 1 ||
+      currentMonth > 12
+    ) {
+      alert("Please select valid comparison months.");
+      return;
+    }
+
+    if (
+      !Number.isInteger(previousYear) ||
+      previousYear < 2000 ||
+      previousYear > new Date().getFullYear() ||
+      !Number.isInteger(currentYear) ||
+      currentYear < 2000 ||
+      currentYear > new Date().getFullYear()
+    ) {
+      alert("Please enter valid comparison years.");
+      return;
+    }
+
+    if (
+      isFutureMonth(previousMonth, previousYear) ||
+      isFutureMonth(currentMonth, currentYear)
+    ) {
+      alert("Future months cannot be selected.");
+      return;
+    }
+
+    try {
+      setComparisonLoading(true);
+
+      const [previousCards, currentCards] =
+        previousYear === currentYear
+          ? await getMonthlyDashboardCards(previousYear).then((data) => [
+              data,
+              data,
+            ])
+          : await Promise.all([
+              getMonthlyDashboardCards(previousYear),
+              getMonthlyDashboardCards(currentYear),
+            ]);
+
+      const previousCard = previousCards.find(
+        (card) => card.month === previousMonth && card.year === previousYear
+      );
+
+      const currentCard = currentCards.find(
+        (card) => card.month === currentMonth && card.year === currentYear
+      );
+
+      const previousIncome = Number(previousCard?.totalIncome || 0);
+      const currentIncome = Number(currentCard?.totalIncome || 0);
+      const previousSpent = Number(previousCard?.totalSpent || 0);
+      const currentSpent = Number(currentCard?.totalSpent || 0);
+      const previousSavings = Number(previousCard?.savings || 0);
+      const currentSavings = Number(currentCard?.savings || 0);
+
+      setMonthlyComparison({
+        previousMonth,
+        previousYear,
+        currentMonth,
+        currentYear,
+        previousIncome,
+        currentIncome,
+        previousSpent,
+        currentSpent,
+        previousSavings,
+        currentSavings,
+        incomeChangePercent: calculateChangePercent(
+          previousIncome,
+          currentIncome
+        ),
+        expenseChangePercent: calculateChangePercent(
+          previousSpent,
+          currentSpent
+        ),
+        savingsChangePercent: calculateChangePercent(
+          previousSavings,
+          currentSavings
+        ),
+      });
+    } catch (error) {
+      console.error("Failed to compare selected months:", error);
+      alert("Failed to compare selected months.");
+    } finally {
+      setComparisonLoading(false);
+    }
+  };
+
+  const handleLoadRecentActivity = () => {
+    const month = Number(activityMonth);
+    const selectedYear = Number(activityYear);
+
+    if (
+      !Number.isInteger(month) ||
+      month < 1 ||
+      month > 12
+    ) {
+      alert("Please select a valid activity month.");
+      return;
+    }
+
+    if (
+      !Number.isInteger(selectedYear) ||
+      selectedYear < 2000 ||
+      selectedYear > new Date().getFullYear()
+    ) {
+      alert("Please enter a valid activity year.");
+      return;
+    }
+
+    if (isFutureMonth(month, selectedYear)) {
+      alert("Future months cannot be selected.");
+      return;
+    }
+
+    applyRecentActivityFilter(
+      month,
+      selectedYear,
+      allIncomeTransactions,
+      allExpenseTransactions,
+      allBudgets
+    );
   };
 
   const handleExportPdf = async (month: number, year: number) => {
@@ -424,33 +641,57 @@ const [motivationIndex, setMotivationIndex] = useState(0);
 
   const displayName = profile?.fullName?.trim() || "MoneyCoachAI User";
 
+  const selectedDashboardYear = Number(year);
+
   const activeCards = cards.filter(
     (card) =>
-      Number(card.totalIncome) > 0 ||
-      Number(card.totalSpent) > 0 ||
-      Number(card.totalBudget) > 0 ||
-      Number(card.savings) !== 0
+      card.year === selectedDashboardYear &&
+      (
+        Number(card.totalIncome) > 0 ||
+        Number(card.totalSpent) > 0 ||
+        Number(card.totalBudget) > 0 ||
+        Number(card.savings) !== 0
+      )
   );
 
   const latestCard = [...activeCards].sort(
-    (a, b) => b.year - a.year || b.month - a.month
+    (a, b) => b.month - a.month
   )[0];
+
+  const hasSummaryData = Boolean(latestCard);
 
   const totalBalance = latestCard
   ? latestCard.totalIncome - latestCard.totalSpent
   : 0;
 
   const incomeDifference =
-  (monthlyComparison?.currentIncome ?? 0) -
-  (monthlyComparison?.previousIncome ?? 0);
+    (monthlyComparison?.currentIncome ?? 0) -
+    (monthlyComparison?.previousIncome ?? 0);
 
   const expenseDifference =
-  (monthlyComparison?.currentSpent ?? 0) -
-  (monthlyComparison?.previousSpent ?? 0);
+    (monthlyComparison?.currentSpent ?? 0) -
+    (monthlyComparison?.previousSpent ?? 0);
 
   const savingsDifference =
-  (monthlyComparison?.currentSavings ?? 0) -
-  (monthlyComparison?.previousSavings ?? 0);
+    (monthlyComparison?.currentSavings ?? 0) -
+    (monthlyComparison?.previousSavings ?? 0);
+
+  const hasComparisonData = Boolean(
+    monthlyComparison &&
+      (
+        monthlyComparison.previousIncome !== 0 ||
+        monthlyComparison.currentIncome !== 0 ||
+        monthlyComparison.previousSpent !== 0 ||
+        monthlyComparison.currentSpent !== 0 ||
+        monthlyComparison.previousSavings !== 0 ||
+        monthlyComparison.currentSavings !== 0
+      )
+  );
+
+  const activityPeriodText =
+    activityMonth && activityYear
+      ? `${monthNames[Number(activityMonth)]} ${activityYear}`
+      : "latest month";
 
   return (
     <AppLayout>
@@ -600,40 +841,6 @@ const [motivationIndex, setMotivationIndex] = useState(0);
             font-weight: 900;
             color: #111827;
           }
-
-          .comparison-change{
-            display:flex;
-            align-items:center;
-            gap:10px;
-            margin-top:12px;
-            font-weight:700;
-            font-size:15px;
-            flex-wrap:wrap;
-        }
-
-        .comparison-change.positive{
-            color:#22c55e;
-        }
-
-        .comparison-change.negative{
-            color:#ef4444;
-        }
-
-        .comparison-amount{
-            display:flex;
-            align-items:center;
-            gap:4px;
-            white-space:nowrap;
-        }
-
-        .comparison-divider{
-            color:#9ca3af;
-            font-weight:600;
-        }
-
-        .comparison-percent{
-            white-space:nowrap;
-        }
 
           .dash-grid {
             display: grid;
@@ -980,7 +1187,7 @@ const [motivationIndex, setMotivationIndex] = useState(0);
                 rgba(248, 250, 255, 0.66)
               );
 
-            overflow: hidden;
+            overflow: visible;
           }
 
           .monthly-overview-section::before,
@@ -1424,7 +1631,7 @@ const [motivationIndex, setMotivationIndex] = useState(0);
             align-items: center;
             justify-content: center;
 
-            height: 215px;
+            height: 288px;
             margin-top: 14px;
             padding: 14px 26px 20px;
 
@@ -1581,6 +1788,155 @@ const [motivationIndex, setMotivationIndex] = useState(0);
             }
           }
 
+          .section-filter-row {
+            display: flex;
+            align-items: end;
+            justify-content: flex-end;
+            gap: 10px;
+            flex-wrap: wrap;
+          }
+
+          .section-filter-group {
+            display: grid;
+            gap: 5px;
+          }
+
+          .section-filter-group label {
+            color: #6b7280;
+            font-size: 10px;
+            font-weight: 800;
+          }
+
+          .section-filter-group .mca-soft-input {
+            min-width: 104px;
+          }
+
+          .comparison-period-row {
+            display: grid;
+            grid-template-columns: minmax(145px, 1fr) auto minmax(145px, 1fr) auto;
+            align-items: end;
+            gap: 10px;
+
+            width: 100%;
+            margin-bottom: 18px;
+          }
+
+          .comparison-period-field {
+            display: grid;
+            gap: 6px;
+          }
+
+          .comparison-period-field label {
+            color: #6b7280;
+            font-size: 10px;
+            font-weight: 800;
+          }
+
+          .comparison-month-input {
+            width: 100%;
+            min-width: 0;
+            height: 46px;
+
+            padding: 0 14px;
+
+            border: 1px solid rgba(124, 92, 252, 0.12);
+            border-radius: 15px;
+
+            background: rgba(255, 255, 255, 0.72);
+            color: #1f2937;
+
+            box-shadow:
+              inset 0 1px 0 rgba(255, 255, 255, 0.82);
+
+            font: inherit;
+            font-size: 13px;
+            font-weight: 700;
+
+            outline: none;
+          }
+
+          .comparison-month-input:focus {
+            border-color: rgba(124, 92, 252, 0.42);
+            box-shadow:
+              0 0 0 4px rgba(124, 92, 252, 0.08),
+              inset 0 1px 0 rgba(255, 255, 255, 0.9);
+          }
+
+          .comparison-filter-divider {
+            align-self: center;
+            margin-top: 17px;
+
+            color: #8b5cf6;
+            font-size: 12px;
+            font-weight: 900;
+          }
+
+          .section-empty-message {
+            padding: 18px;
+            border: 1px dashed rgba(124, 92, 252, 0.24);
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.46);
+            color: #6b7280;
+            line-height: 1.5;
+            text-align: center;
+          }
+
+          .money-empty-text {
+            margin-top: 8px;
+            color: #6b7280;
+            font-size: 11px;
+            font-weight: 700;
+            line-height: 1.35;
+          }
+
+          .comparison-change {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+
+            margin-top: 12px;
+
+            font-size: 15px;
+            font-weight: 800;
+
+            white-space: nowrap;
+          }
+
+          .comparison-change.positive {
+            color: #17b26a;
+          }
+
+          .comparison-change.negative {
+            color: #ef4444;
+          }
+
+          .comparison-amount {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+          }
+
+          .comparison-divider {
+            color: #9ca3af;
+            font-size: 17px;
+            font-weight: 700;
+          }
+
+          .comparison-percent {
+            font-weight: 800;
+          }
+
+          @media (max-width: 390px) {
+            .comparison-change {
+              gap: 7px;
+              font-size: 13px;
+            }
+
+            .comparison-divider {
+              font-size: 15px;
+            }
+          }
+
           .chart-card {
             position: relative;
 
@@ -1666,6 +2022,24 @@ const [motivationIndex, setMotivationIndex] = useState(0);
             .dashboard-motivation p {
               font-size: 13px;
             }
+
+            .monthly-overview-section {
+              padding-left: 10px;
+              padding-right: 10px;
+              overflow: visible;
+            }
+
+            .monthly-scroll {
+              width: 100%;
+              padding: 8px 0 14px;
+              overflow-x: auto;
+              overflow-y: visible;
+              scroll-snap-type: x mandatory;
+            }
+
+            .monthly-card {
+              scroll-snap-align: start;
+            }
           }
 
 
@@ -1711,6 +2085,34 @@ const [motivationIndex, setMotivationIndex] = useState(0);
 
             .dash-actions,
             .dash-actions input {
+              width: 100%;
+            }
+
+            .section-filter-row {
+              width: 100%;
+              justify-content: flex-start;
+            }
+
+            .section-filter-group {
+              flex: 1 1 120px;
+            }
+
+            .section-filter-group .mca-soft-input {
+              width: 100%;
+              min-width: 0;
+            }
+
+            .comparison-period-row {
+              grid-template-columns: 1fr;
+              gap: 10px;
+            }
+
+            .comparison-filter-divider {
+              margin: -2px 0;
+              text-align: center;
+            }
+
+            .comparison-period-row .mca-gradient-button {
               width: 100%;
             }
 
@@ -1807,10 +2209,11 @@ const [motivationIndex, setMotivationIndex] = useState(0);
             }
 
             .monthly-card {
-              flex-basis: 286px;
-              min-width: 286px;
-              padding: 17px;
-            }
+  flex: 0 0 calc(100vw - 36px);
+  min-width: calc(100vw - 36px);
+  max-width: calc(100vw - 36px);
+  padding: 18px;
+}
           }
 
             .chart-card {
@@ -1858,19 +2261,44 @@ const [motivationIndex, setMotivationIndex] = useState(0);
           <div className="mca-glass-card money-card mca-glow-purple">
             <div className="money-icon">💎</div>
             <div className="money-label">Total Balance</div>
-            <div className="money-value">{formatMoney(totalBalance)}</div>
+            <div className="money-value">
+              {hasSummaryData ? formatMoney(totalBalance) : "No data"}
+            </div>
+            {!hasSummaryData && (
+              <div className="money-empty-text">
+                No financial records found for {year}.
+              </div>
+            )}
           </div>
 
           <div className="mca-glass-card money-card mca-glow-purple">
             <div className="money-icon">💰</div>
             <div className="money-label">Monthly Income</div>
-            <div className="money-value">{formatMoney(latestCard?.totalIncome || 0)}</div>
+            <div className="money-value">
+              {hasSummaryData
+                ? formatMoney(latestCard?.totalIncome || 0)
+                : "No data"}
+            </div>
+            {!hasSummaryData && (
+              <div className="money-empty-text">
+                Add income to view this summary. {year}
+              </div>
+            )}
           </div>
 
           <div className="mca-glass-card money-card mca-glow-purple">
             <div className="money-icon">💸</div>
             <div className="money-label">Monthly Expenses</div>
-            <div className="money-value">{formatMoney(latestCard?.totalSpent || 0)}</div>
+            <div className="money-value">
+              {hasSummaryData
+                ? formatMoney(latestCard?.totalSpent || 0)
+                : "No data"}
+            </div>
+            {!hasSummaryData && (
+              <div className="money-empty-text">
+                Add expenses to view this summary. {year}
+              </div>
+            )}
           </div>
 
         </div>
@@ -2092,12 +2520,71 @@ const [motivationIndex, setMotivationIndex] = useState(0);
                 <div>
                   <h2 className="mca-section-title">Monthly Comparison</h2>
                   <p className="mca-muted">
-                    {monthNames[monthlyComparison.previousMonth]} vs{" "}
-                    {monthNames[monthlyComparison.currentMonth]}
+                    {monthNames[monthlyComparison.previousMonth]}{" "}
+                    {monthlyComparison.previousYear} vs{" "}
+                    {monthNames[monthlyComparison.currentMonth]}{" "}
+                    {monthlyComparison.currentYear}
                   </p>
                 </div>
               </div>
 
+              <div className="comparison-period-row">
+                <div className="comparison-period-field">
+                  <label>From</label>
+                  <input
+                    className="comparison-month-input"
+                    type="month"
+                    value={toMonthInputValue(
+                      comparisonPreviousMonth,
+                      comparisonPreviousYear
+                    )}
+                    max={currentMonthValue}
+                    onChange={(event) =>
+                      updateMonthAndYear(
+                        event.target.value,
+                        setComparisonPreviousMonth,
+                        setComparisonPreviousYear
+                      )
+                    }
+                  />
+                </div>
+
+                <span className="comparison-filter-divider">vs</span>
+
+                <div className="comparison-period-field">
+                  <label>To</label>
+                  <input
+                    className="comparison-month-input"
+                    type="month"
+                    value={toMonthInputValue(
+                      comparisonCurrentMonth,
+                      comparisonCurrentYear
+                    )}
+                    max={currentMonthValue}
+                    onChange={(event) =>
+                      updateMonthAndYear(
+                        event.target.value,
+                        setComparisonCurrentMonth,
+                        setComparisonCurrentYear
+                      )
+                    }
+                  />
+                </div>
+
+                <button
+                  className="mca-gradient-button"
+                  onClick={handleCompareMonths}
+                  disabled={comparisonLoading}
+                >
+                  {comparisonLoading ? "Comparing..." : "Compare"}
+                </button>
+              </div>
+
+              {!hasComparisonData ? (
+                <div className="section-empty-message">
+                  No comparison data found for the selected months.
+                </div>
+              ) : (
               <div className="insight-list">
                 <div className="soft-item">
                   <strong>Income</strong>
@@ -2105,26 +2592,24 @@ const [motivationIndex, setMotivationIndex] = useState(0);
                     {formatMoney(monthlyComparison.previousIncome)} →{" "}
                     {formatMoney(monthlyComparison.currentIncome)}
                   </p>
-                  <strong style={{ color: monthlyComparison.incomeChangePercent >= 0 ? "#21C77A" : "#FF6467" }}>
-                    <div
-                      className={`comparison-change ${
-                        incomeDifference >= 0 ? "positive" : "negative"
-                      }`}
-                    >
-                      <span className="comparison-amount">
-                        {incomeDifference >= 0 ? "▲" : "▼"}{" "}
-                        {incomeDifference >= 0 ? "+" : "-"}
-                        {formatMoney(Math.abs(incomeDifference))}
-                      </span>
+                  <div
+                    className={`comparison-change ${
+                      incomeDifference >= 0 ? "positive" : "negative"
+                    }`}
+                  >
+                    <span className="comparison-amount">
+                      {incomeDifference >= 0 ? "▲" : "▼"}{" "}
+                      {incomeDifference >= 0 ? "+" : "-"}
+                      {formatMoney(Math.abs(incomeDifference))}
+                    </span>
 
-                      <span className="comparison-divider">•</span>
+                    <span className="comparison-divider">•</span>
 
-                      <span className="comparison-percent">
-                        {monthlyComparison.incomeChangePercent >= 0 ? "+" : ""}
-                        {monthlyComparison.incomeChangePercent.toFixed(1)}%
-                      </span>
-                    </div>
-                  </strong>
+                    <span className="comparison-percent">
+                      {monthlyComparison.incomeChangePercent >= 0 ? "+" : "-"}
+                      {Math.abs(monthlyComparison.incomeChangePercent).toFixed(1)}%
+                    </span>
+                  </div>
                 </div>
 
                 <div className="soft-item">
@@ -2133,26 +2618,24 @@ const [motivationIndex, setMotivationIndex] = useState(0);
                     {formatMoney(monthlyComparison.previousSpent)} →{" "}
                     {formatMoney(monthlyComparison.currentSpent)}
                   </p>
-                  <strong style={{ color: monthlyComparison.expenseChangePercent <= 0 ? "#21C77A" : "#FF6467" }}>
-                    <div
-                      className={`comparison-change ${
-                        expenseDifference >= 0 ? "negative" : "positive"
-                      }`}
-                    >
-                      <span className="comparison-amount">
-                        {expenseDifference >= 0 ? "▲" : "▼"}{" "}
-                        {expenseDifference >= 0 ? "+" : "-"}
-                        {formatMoney(Math.abs(expenseDifference))}
-                      </span>
+                  <div
+                    className={`comparison-change ${
+                      expenseDifference <= 0 ? "positive" : "negative"
+                    }`}
+                  >
+                    <span className="comparison-amount">
+                      {expenseDifference >= 0 ? "▲" : "▼"}{" "}
+                      {expenseDifference >= 0 ? "+" : "-"}
+                      {formatMoney(Math.abs(expenseDifference))}
+                    </span>
 
-                      <span className="comparison-divider">•</span>
+                    <span className="comparison-divider">•</span>
 
-                      <span className="comparison-percent">
-                        {monthlyComparison.expenseChangePercent >= 0 ? "+" : ""}
-                        {Math.abs(monthlyComparison.expenseChangePercent).toFixed(1)}%
-                      </span>
-                    </div>
-                  </strong>
+                    <span className="comparison-percent">
+                      {monthlyComparison.expenseChangePercent >= 0 ? "+" : "-"}
+                      {Math.abs(monthlyComparison.expenseChangePercent).toFixed(1)}%
+                    </span>
+                  </div>
                 </div>
 
                 <div className="soft-item">
@@ -2161,28 +2644,27 @@ const [motivationIndex, setMotivationIndex] = useState(0);
                     {formatMoney(monthlyComparison.previousSavings)} →{" "}
                     {formatMoney(monthlyComparison.currentSavings)}
                   </p>
-                  <strong style={{ color: monthlyComparison.savingsChangePercent >= 0 ? "#21C77A" : "#FF6467" }}>
-                    <div
-                      className={`comparison-change ${
-                        savingsDifference >= 0 ? "positive" : "negative"
-                      }`}
-                    >
-                      <span className="comparison-amount">
-                        {savingsDifference >= 0 ? "▲" : "▼"}{" "}
-                        {savingsDifference >= 0 ? "+" : "-"}
-                        {formatMoney(Math.abs(savingsDifference))}
-                      </span>
+                  <div
+                    className={`comparison-change ${
+                      savingsDifference >= 0 ? "positive" : "negative"
+                    }`}
+                  >
+                    <span className="comparison-amount">
+                      {savingsDifference >= 0 ? "▲" : "▼"}{" "}
+                      {savingsDifference >= 0 ? "+" : "-"}
+                      {formatMoney(Math.abs(savingsDifference))}
+                    </span>
 
-                      <span className="comparison-divider">•</span>
+                    <span className="comparison-divider">•</span>
 
-                      <span className="comparison-percent">
-                        {monthlyComparison.savingsChangePercent >= 0 ? "+" : ""}
-                        {monthlyComparison.savingsChangePercent.toFixed(1)}%
-                      </span>
-                    </div>
-                  </strong>
+                    <span className="comparison-percent">
+                      {monthlyComparison.savingsChangePercent >= 0 ? "+" : "-"}
+                      {Math.abs(monthlyComparison.savingsChangePercent).toFixed(1)}%
+                    </span>
+                  </div>
                 </div>
               </div>
+              )}
             </div>
           )}
         </div>
@@ -2293,12 +2775,50 @@ const [motivationIndex, setMotivationIndex] = useState(0);
           <div className="dash-card-head">
             <div>
               <h2 className="mca-section-title">Recent Financial Activity</h2>
-              <p className="mca-muted">Latest income, expenses and budget records.</p>
+              <p className="mca-muted">
+                Income, expenses and budget records for {activityPeriodText}.
+              </p>
+            </div>
+
+            <div className="section-filter-row">
+              <div className="section-filter-group">
+                <label>Month</label>
+                <select
+                  className="mca-soft-input"
+                  value={activityMonth}
+                  onChange={(event) => setActivityMonth(event.target.value)}
+                >
+                  {monthNames.slice(1).map((monthName, index) => (
+                    <option key={`activity-${monthName}`} value={index + 1}>
+                      {monthName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="section-filter-group">
+                <label>Year</label>
+                <input
+                  className="mca-soft-input"
+                  type="number"
+                  min={2000}
+                  max={new Date().getFullYear()}
+                  value={activityYear}
+                  onChange={(event) => setActivityYear(event.target.value)}
+                />
+              </div>
+
+              <button
+                className="mca-gradient-button"
+                onClick={handleLoadRecentActivity}
+              >
+                View Activity
+              </button>
             </div>
           </div>
 
           {recentTransactions.length === 0 ? (
-            <p className="mca-muted">No recent transactions found.</p>
+            <p className="mca-muted">{`No financial activity found for ${activityPeriodText}.`}</p>
           ) : (
             
           <div className="recent-three-grid">
@@ -2311,7 +2831,7 @@ const [motivationIndex, setMotivationIndex] = useState(0);
 
               <div className="activity-list scroll-box activity-scroll">
                 {recentIncome.length === 0 ? (
-                  <p className="mca-muted">No income found for recent month.</p>
+                  <p className="mca-muted">{`No income found for ${activityPeriodText}.`}</p>
                 ) : (
                   recentIncome.map((transaction) => (
                     <div className="activity-item" key={`income-${transaction.id}`}>
@@ -2346,7 +2866,7 @@ const [motivationIndex, setMotivationIndex] = useState(0);
 
               <div className="activity-list scroll-box activity-scroll">
                 {recentExpenses.length === 0 ? (
-                  <p className="mca-muted">No expenses found for recent month.</p>
+                  <p className="mca-muted">{`No expenses found for ${activityPeriodText}.`}</p>
                 ) : (
                   recentExpenses.map((transaction) => (
                     <div className="activity-item" key={`expense-${transaction.id}`}>
@@ -2382,7 +2902,7 @@ const [motivationIndex, setMotivationIndex] = useState(0);
 
               <div className="budget-card-list budget-scroll">
                 {recentBudgets.length === 0 ? (
-                  <p className="mca-muted">No budget found for recent month.</p>
+                  <p className="mca-muted">{`No budget found for ${activityPeriodText}.`}</p>
                 ) : (
                   recentBudgets.map((budget) => (
                     <div className="budget-item" key={budget.id}>
