@@ -86,13 +86,31 @@ public class AIAdvisorService
 
         var response = await _httpClient.SendAsync(httpRequest);
 
-        if(!response.IsSuccessStatusCode)
+        if (!response.IsSuccessStatusCode)
         {
+            var errorContent = await response.Content.ReadAsStringAsync();
+
+            Console.WriteLine(
+                $"OpenAI request failed. Status: {(int)response.StatusCode}. " +
+                $"Error: {errorContent}"
+            );
+
             return new AIAdviceResponse
             {
-                Advice = "AI Advisor could not generate advice right now. Please check your OpenAI API key, billing, or model settings."
+                Advice =
+                    "AI Advisor is temporarily unavailable. Please try again later."
             };
         }
+
+       /* if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadAsStringAsync();
+
+            return new AIAdviceResponse
+            {
+                Advice = $"OpenAI Error:\n\n{error}"
+            };
+        }*/
 
         var responseContent = await response.Content.ReadAsStringAsync();
 

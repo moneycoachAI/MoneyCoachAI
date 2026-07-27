@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   useLocation,
   useNavigate,
@@ -17,13 +17,46 @@ function AppLayout({
   const [sidebarOpen, setSidebarOpen] =
     useState(false);
 
+  const sidebarNavRef =
+  useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    const sidebar = sidebarNavRef.current;
+
+    if (!sidebar) return;
+
+    const savedScroll =
+      sessionStorage.getItem(
+        "sidebar-scroll"
+      );
+
+    if (savedScroll) {
+      requestAnimationFrame(() => {
+        sidebar.scrollTop =
+          Number(savedScroll);
+      });
+    }
+  }, [location.pathname]);
+
+  const saveSidebarScroll = () => {
+    if (!sidebarNavRef.current) return;
+
+    sessionStorage.setItem(
+      "sidebar-scroll",
+      sidebarNavRef.current.scrollTop.toString()
+    );
+  };
+
   const isActive = (path: string) =>
     location.pathname === path;
 
   const handleNavigate = (
     path: string
   ) => {
+    saveSidebarScroll();
+
     navigate(path);
+
     setSidebarOpen(false);
   };
 
@@ -796,7 +829,8 @@ function AppLayout({
           </button>
         </div>
 
-        <nav className="mca-sidebar-nav">
+        <nav ref={sidebarNavRef} onScroll={saveSidebarScroll}
+          className="mca-sidebar-nav">
           {navItems.map((item) => {
             const active =
               isActive(item.path);
