@@ -24,4 +24,16 @@ public class User
     public string GoogleSubject { get; set; } = string.Empty;
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    // ---------------------------------
+    // Refresh-token session information
+    // ---------------------------------
+
+    public string RefreshTokenHash { get; set; } = string.Empty;
+
+    public DateTime? RefreshTokenExpiresAt { get; set; }
+
+    public DateTime? RefreshTokenCreatedAt { get; set; }
+
+    public DateTime? RefreshTokenRevokedAt { get; set; }
 }

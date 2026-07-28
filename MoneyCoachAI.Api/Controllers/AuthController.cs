@@ -15,43 +15,106 @@ public class AuthController : ControllerBase
         _authService = authService;
     }
 
+    // =====================================================
+    // REGISTER
+    // =====================================================
+
     [HttpPost("register")]
-    public async Task<IActionResult> Register(RegisterRequest request)
+    public async Task<IActionResult> Register(
+        RegisterRequest request)
     {
-        var result = await _authService.RegisterAsync(request);
+        var result =
+            await _authService.RegisterAsync(request);
 
         if (result == null)
         {
-            return BadRequest("User already exists");
+            return BadRequest("User already exists.");
         }
 
         return Ok(result);
     }
+
+    // =====================================================
+    // LOGIN
+    // =====================================================
 
     [HttpPost("login")]
-    public async Task<IActionResult> Login(LoginRequest request)
+    public async Task<IActionResult> Login(
+        LoginRequest request)
     {
-        var result = await _authService.LoginAsync(request);
+        var result =
+            await _authService.LoginAsync(request);
 
         if (result == null)
         {
-            return Unauthorized("Invalid email or password");
+            return Unauthorized(
+                "Invalid email or password.");
         }
 
         return Ok(result);
     }
+
+    // =====================================================
+    // GOOGLE LOGIN
+    // =====================================================
 
     [HttpPost("google")]
     public async Task<IActionResult> GoogleLogin(
         GoogleLoginRequest request)
     {
-        var result = await _authService.GoogleLoginAsync(request);
+        var result =
+            await _authService.GoogleLoginAsync(request);
 
         if (result == null)
         {
-            return Unauthorized("Google authentication failed");
+            return Unauthorized(
+                "Google authentication failed.");
         }
 
         return Ok(result);
+    }
+
+    // =====================================================
+    // REFRESH TOKEN
+    // =====================================================
+
+    [HttpPost("refresh")]
+    public async Task<IActionResult> Refresh(
+        RefreshTokenRequest request)
+    {
+        var result =
+            await _authService.RefreshAsync(request);
+
+        if (result == null)
+        {
+            return Unauthorized(
+                "Refresh token is invalid or expired.");
+        }
+
+        return Ok(result);
+    }
+
+    // =====================================================
+    // LOGOUT
+    // =====================================================
+
+    [HttpPost("logout")]
+    public async Task<IActionResult> Logout(
+        LogoutRequest request)
+    {
+        var success =
+            await _authService.LogoutAsync(request);
+
+        if (!success)
+        {
+            return BadRequest(
+                "Logout failed.");
+        }
+
+        return Ok(
+            new
+            {
+                message = "Logged out successfully."
+            });
     }
 }

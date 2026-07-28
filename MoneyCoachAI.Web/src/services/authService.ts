@@ -6,6 +6,10 @@ import type {
   LoginRequest,
   RegisterRequest,
 } from "../types/authTypes";
+import type {
+  RefreshTokenRequest,
+  LogoutRequest,
+} from "../types/authTypes";
 
 export const registerUser = async (
   data: RegisterRequest
@@ -38,4 +42,24 @@ export const loginWithGoogle = async (
   );
 
   return response.data;
+};
+
+export const refreshToken = async (
+  data: RefreshTokenRequest
+): Promise<AuthResponse> => {
+  const response = await axiosClient.post<AuthResponse>(
+    "/Auth/refresh",
+    data
+  );
+
+  return response.data;
+};
+
+export const logoutUser = async (
+  data: LogoutRequest
+): Promise<void> => {
+  await axiosClient.post(
+    "/Auth/logout",
+    data
+  );
 };

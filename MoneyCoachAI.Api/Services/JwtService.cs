@@ -4,6 +4,7 @@ using MoneyCoachAI.Api.Models;
 using MoneyCoachAI.Api.Settings;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace MoneyCoachAI.Api.Services;
@@ -16,6 +17,10 @@ public class JwtService
     {
         _jwtSettings = jwtSettings.Value;
     }
+
+    // =====================================================
+    // ACCESS TOKEN
+    // =====================================================
 
     public string GenerateToken(User user)
     {
@@ -42,5 +47,63 @@ public class JwtService
         );
 
         return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    // =====================================================
+    // ACCESS TOKEN EXPIRY
+    // =====================================================
+
+    public DateTime GetAccessTokenExpiry()
+    {
+        return DateTime.UtcNow.AddMinutes(
+            _jwtSettings.ExpiryMinutes);
+    }
+
+    // =====================================================
+    // REFRESH TOKEN
+    // =====================================================
+
+    public string GenerateRefreshToken()
+    {
+        var bytes = RandomNumberGenerator.GetBytes(64);
+
+        return Convert.ToBase64String(bytes);
+    }
+
+    // =====================================================
+    // REFRESH TOKEN HASH
+    // =====================================================
+
+    public string HashRefreshToken(string refreshToken)
+    {
+        using var sha = SHA256.Create();
+
+        var hash = sha.ComputeHash(
+            Encoding.UTF8.GetBytes(refreshToken));
+
+        return Convert.ToBase64String(hash);
+    }
+
+    // =====================================================
+    // VERIFY HASH
+    // =====================================================
+
+    public bool VerifyRefreshToken(
+        string refreshToken,
+        string storedHash)
+    {
+        var hash = HashRefreshToken(refreshToken);
+
+        return hash == storedHash;
+    }
+
+    // =====================================================
+    // REFRESH TOKEN EXPIRY
+    // =====================================================
+
+    public DateTime GetRefreshTokenExpiry()
+    {
+        return DateTime.UtcNow.AddDays(
+            _jwtSettings.RefreshTokenExpiryDays);
     }
 }

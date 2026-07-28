@@ -3,6 +3,7 @@ import {
   useLocation,
   useNavigate,
 } from "react-router-dom";
+import { logoutUser } from "../services/authService";
 
 type AppLayoutProps = {
   children: React.ReactNode;
@@ -60,13 +61,39 @@ function AppLayout({
     setSidebarOpen(false);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("userId");
-    localStorage.removeItem("userEmail");
+  const handleLogout = async () => {
+    try {
+      const refreshToken =
+        localStorage.getItem("refreshToken");
 
-    setSidebarOpen(false);
-    navigate("/login");
+      if (refreshToken) {
+        await logoutUser({
+          refreshToken,
+        });
+      }
+    } catch (error) {
+      console.error(
+        "Logout request failed:",
+        error
+      );
+    } finally {
+      localStorage.removeItem("token");
+      localStorage.removeItem("refreshToken");
+      localStorage.removeItem(
+        "accessTokenExpiresAt"
+      );
+      localStorage.removeItem(
+        "refreshTokenExpiresAt"
+      );
+      localStorage.removeItem("userId");
+      localStorage.removeItem("userEmail");
+
+      setSidebarOpen(false);
+
+      navigate("/login", {
+        replace: true,
+      });
+    }
   };
 
   const navItems = [

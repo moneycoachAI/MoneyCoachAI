@@ -15,6 +15,22 @@ export interface GoogleLoginRequest {
 
 export interface AuthResponse {
   token: string;
+
+  refreshToken: string;
+
+  accessTokenExpiresAt: string;
+
+  refreshTokenExpiresAt: string;
+
   userId: string;
+
   email: string;
+}
+
+export interface RefreshTokenRequest {
+  refreshToken: string;
+}
+
+export interface LogoutRequest {
+  refreshToken: string;
 }

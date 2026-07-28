@@ -79,14 +79,35 @@ function LoginPage() {
     import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim() ??
     "";
 
+  
   const completeLogin = useCallback(
     (
       token: string,
+      refreshToken: string,
+      accessTokenExpiresAt: string,
+      refreshTokenExpiresAt: string,
       userId: string,
       userEmail: string
     ) => {
       localStorage.setItem("token", token);
+
+      localStorage.setItem(
+        "refreshToken",
+        refreshToken
+      );
+
+      localStorage.setItem(
+        "accessTokenExpiresAt",
+        accessTokenExpiresAt
+      );
+
+      localStorage.setItem(
+        "refreshTokenExpiresAt",
+        refreshTokenExpiresAt
+      );
+
       localStorage.setItem("userId", userId);
+
       localStorage.setItem(
         "userEmail",
         userEmail
@@ -109,6 +130,7 @@ function LoginPage() {
     },
     [navigate, rememberMe]
   );
+  
 
   const handleGoogleCredential = useCallback(
     async (credential: string) => {
@@ -130,6 +152,9 @@ function LoginPage() {
 
         completeLogin(
           response.token,
+          response.refreshToken,
+          response.accessTokenExpiresAt,
+          response.refreshTokenExpiresAt,
           response.userId,
           response.email
         );
@@ -346,9 +371,13 @@ function LoginPage() {
 
       completeLogin(
         response.token,
+        response.refreshToken,
+        response.accessTokenExpiresAt,
+        response.refreshTokenExpiresAt,
         response.userId,
         response.email
       );
+
     } catch (error) {
       console.error("Login failed:", error);
 
