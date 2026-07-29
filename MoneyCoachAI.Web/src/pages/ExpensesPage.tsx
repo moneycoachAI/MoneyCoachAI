@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
+import recurringTransactionService from "../services/recurringTransactionService";
 
 import AppLayout from "../components/AppLayout";
 
@@ -9,7 +11,6 @@ import {
   updateExpense,
 } from "../services/expenseService";
 
-import { categories } from "../constants/categories";
 import type { Expense } from "../types/expenseTypes";
 
 import {
@@ -19,7 +20,66 @@ import {
 
 import "../styles/pageLayout.css";
 
+const EXPENSE_CATEGORY_OPTIONS = [
+  "Food",
+  "Groceries",
+  "Rent",
+  "Home Loan EMI",
+  "Loan EMI",
+  "Bills",
+  "Electricity",
+  "Water",
+  "Gas",
+  "Internet",
+  "Mobile Recharge",
+  "Utilities",
+  "Transport",
+  "Fuel",
+  "Vehicle Maintenance",
+  "Travel",
+  "Shopping",
+  "Clothing",
+  "Healthcare",
+  "Medicine",
+  "Insurance",
+  "Education",
+  "Subscription",
+  "Entertainment",
+  "Dining Out",
+  "Personal Care",
+  "Household",
+  "Maintenance",
+  "Taxes",
+  "Fees & Charges",
+  "Business Expense",
+  "Other",
+];
+
 function ExpensesPage() {
+  const location = useLocation();
+
+  const recurringState = location.state as
+    | {
+        recurringTransactionId?: string;
+        recurringTransaction?: {
+          id: string;
+          title: string;
+          amount: number;
+          category: string;
+          otherDescription?: string;
+          description?: string;
+          type: string;
+          nextOccurrenceDate: string;
+        };
+      }
+    | null;
+
+  const recurringTransactionId =
+    recurringState?.recurringTransactionId ?? null;
+
+  const recurringTransaction =
+    recurringState?.recurringTransaction ?? null;
+
   const today = getTodayDateInputValue();
 
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -42,6 +102,48 @@ function ExpensesPage() {
 
   const [searchText, setSearchText] = useState("");
   const [filterCategory, setFilterCategory] = useState("");
+
+  const [showRecurringBanner, setShowRecurringBanner] =
+  useState(Boolean(recurringTransactionId));
+
+  useEffect(() => {
+    if (!showRecurringBanner || !recurringTransactionId || !recurringTransaction) {
+      return;
+    }
+
+    if (recurringTransaction.type.toLowerCase() !== "expense") {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setAmount(recurringTransaction.amount.toString());
+
+      setCategory(recurringTransaction.category);
+
+      setDescription(
+        recurringTransaction.category === "Other"
+          ? recurringTransaction.otherDescription ||
+              recurringTransaction.description ||
+              recurringTransaction.title
+          : recurringTransaction.description?.trim() ||
+              recurringTransaction.title
+      );
+
+      setDate(today);
+
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [
+    showRecurringBanner,
+    recurringTransactionId,
+    recurringTransaction,
+    today,
+  ]);
 
   const loadExpenses = async () => {
     try {
@@ -119,15 +221,51 @@ function ExpensesPage() {
       setSaving(true);
 
       if (editingExpenseId) {
-        await updateExpense(editingExpenseId, expenseData);
+        await updateExpense(
+          editingExpenseId,
+          expenseData
+        );
+
+        resetForm();
+        await loadExpenses();
+
         alert("Expense updated successfully");
-      } else {
-        await createExpense(expenseData);
-        alert("Expense created successfully");
+        return;
+      }
+
+      await createExpense(expenseData);
+
+      if (recurringTransactionId) {
+        const updatedReminder =
+          await recurringTransactionService
+            .completeRecurringReminder(
+              recurringTransactionId
+            );
+            setShowRecurringBanner(false);
+
+        const nextReminderDate =
+          new Date(
+            updatedReminder.nextOccurrenceDate
+          ).toLocaleDateString("en-IN", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          });
+
+        resetForm();
+        await loadExpenses();
+
+        alert(
+          `Expense created successfully.\nRecurring reminder completed.\nNext reminder: ${nextReminderDate}`
+        );
+
+        return;
       }
 
       resetForm();
       await loadExpenses();
+
+      alert("Expense created successfully");
     } catch (error) {
       console.error("Failed to save expense:", error);
       alert("Failed to save expense");
@@ -320,6 +458,38 @@ function ExpensesPage() {
             background: rgba(124, 92, 252, 0.12);
             font-size: 11px;
             font-weight: 900;
+          }
+
+          .expense-recurring-banner {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 18px;
+            padding: 12px 14px;
+            border: 1px solid rgba(239, 68, 68, 0.22);
+            border-radius: 14px;
+            background: rgba(239, 68, 68, 0.07);
+            color: #b91c1c;
+            font-size: 13px;
+            font-weight: 800;
+            line-height: 1.5;
+          }
+
+          .expense-recurring-banner span {
+            display: grid;
+            flex: 0 0 auto;
+            place-items: center;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #ef4444;
+            color: #ffffff;
+            font-size: 12px;
+            font-weight: 900;
+          }
+
+          .expense-recurring-banner p {
+            margin: 1px 0 0;
           }
 
           /* =========================
@@ -1060,6 +1230,18 @@ function ExpensesPage() {
             )}
           </div>
 
+          {showRecurringBanner && recurringTransactionId && recurringTransaction && (
+            <div className="expense-recurring-banner">
+              <span aria-hidden="true">!</span>
+              <p>
+                This form was opened from the recurring reminder for{" "}
+                <strong>{recurringTransaction.title}</strong>. Review or edit
+                the prefilled details, then save the expense to complete the
+                current occurrence and schedule the next reminder.
+              </p>
+            </div>
+          )}
+
           <form
             className="expense-inline-form"
             onSubmit={handleSubmitExpense}
@@ -1092,7 +1274,7 @@ function ExpensesPage() {
               >
                 <option value="">Select Category</option>
 
-                {categories.map((item) => (
+                {EXPENSE_CATEGORY_OPTIONS.map((item) => (
                   <option key={item} value={item}>
                     {item}
                   </option>
@@ -1182,7 +1364,7 @@ function ExpensesPage() {
             >
               <option value="">All Categories</option>
 
-              {categories.map((item) => (
+              {EXPENSE_CATEGORY_OPTIONS.map((item) => (
                 <option key={item} value={item}>
                   {item}
                 </option>

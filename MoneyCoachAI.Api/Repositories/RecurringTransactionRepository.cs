@@ -17,17 +17,13 @@ public class RecurringTransactionRepository
     {
         return await _recurringTransactions
             .Find(transaction => transaction.UserId == userId)
+            .SortBy(transaction => transaction.NextOccurrenceDate)
             .ToListAsync();
     }
 
-    public async Task CreateAsync(RecurringTransaction transaction)
-    {
-        await _recurringTransactions.InsertOneAsync(transaction);
-    }
-
     public async Task<RecurringTransaction?> GetByIdAsync(
-    string id,
-    string userId)
+        string id,
+        string userId)
     {
         return await _recurringTransactions
             .Find(transaction =>
@@ -36,8 +32,33 @@ public class RecurringTransactionRepository
             .FirstOrDefaultAsync();
     }
 
+    public async Task<List<RecurringTransaction>> GetActiveAsync()
+    {
+        return await _recurringTransactions
+            .Find(transaction => transaction.IsActive)
+            .SortBy(transaction => transaction.NextOccurrenceDate)
+            .ToListAsync();
+    }
+
+    public async Task<List<RecurringTransaction>> GetActiveByUserAsync(
+        string userId)
+    {
+        return await _recurringTransactions
+            .Find(transaction =>
+                transaction.UserId == userId &&
+                transaction.IsActive)
+            .SortBy(transaction => transaction.NextOccurrenceDate)
+            .ToListAsync();
+    }
+
+    public async Task CreateAsync(
+        RecurringTransaction transaction)
+    {
+        await _recurringTransactions.InsertOneAsync(transaction);
+    }
+
     public async Task<bool> UpdateAsync(
-    RecurringTransaction transaction)
+        RecurringTransaction transaction)
     {
         var result =
             await _recurringTransactions.ReplaceOneAsync(
@@ -49,10 +70,16 @@ public class RecurringTransactionRepository
         return result.MatchedCount > 0;
     }
 
-    public async Task DeleteAsync(string id, string userId)
+    public async Task<bool> DeleteAsync(
+        string id,
+        string userId)
     {
-        await _recurringTransactions.DeleteOneAsync(
-            transaction => transaction.Id == id &&
-                           transaction.UserId == userId);
+        var result =
+            await _recurringTransactions.DeleteOneAsync(
+                transaction =>
+                    transaction.Id == id &&
+                    transaction.UserId == userId);
+
+        return result.DeletedCount > 0;
     }
 }

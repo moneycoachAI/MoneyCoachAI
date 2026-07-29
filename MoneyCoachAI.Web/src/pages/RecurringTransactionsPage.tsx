@@ -1,160 +1,116 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import AppLayout from "../components/AppLayout";
-
-import {
-  createRecurringTransaction,
-  deleteRecurringTransaction,
-  generateRecurringTransactions,
-  getRecurringTransactions,
-  updateRecurringTransaction,
-} from "../services/recurringTransactionService";
+import recurringTransactionService from "../services/recurringTransactionService";
 
 import type {
   CreateRecurringTransactionRequest,
   RecurringTransaction,
 } from "../types/recurringTransactionTypes";
 
-import {
-  getTodayDateInputValue,
-  isFutureDate,
-  isFutureMonth,
-} from "../utils/dateUtils";
-
 type Notice = {
   type: "success" | "error";
   message: string;
 };
 
-const MONTH_OPTIONS = [
-  { value: "1", label: "January" },
-  { value: "2", label: "February" },
-  { value: "3", label: "March" },
-  { value: "4", label: "April" },
-  { value: "5", label: "May" },
-  { value: "6", label: "June" },
-  { value: "7", label: "July" },
-  { value: "8", label: "August" },
-  { value: "9", label: "September" },
-  { value: "10", label: "October" },
-  { value: "11", label: "November" },
-  { value: "12", label: "December" },
-];
+type StatusFilter =
+  | "All"
+  | "Scheduled"
+  | "Upcoming"
+  | "Due Today"
+  | "Overdue"
+  | "Paused";
 
 const CATEGORY_OPTIONS = [
   "Salary",
   "Freelance",
+  "Business",
   "Investment",
   "Rent",
   "Bills",
+  "Utilities",
   "Food",
   "Travel",
   "Shopping",
   "Insurance",
   "Subscription",
+  "Education",
+  "Healthcare",
+  "Loan EMI",
+  "Maintenance",
   "Other",
+];
+
+const FREQUENCY_OPTIONS = [
+  "Daily",
+  "Weekly",
+  "Biweekly",
+  "Monthly",
+  "Quarterly",
+  "HalfYearly",
+  "Yearly",
 ];
 
 const EMPTY_EDIT_FORM: CreateRecurringTransactionRequest = {
   title: "",
   amount: 0,
   category: "",
+  otherDescription: "",
+  description: "",
   type: "Income",
   frequency: "Monthly",
   startDate: "",
+  endDate: "",
 };
 
 function RecurringTransactionsPage() {
-  const currentDate = new Date();
-  const currentMonth = String(currentDate.getMonth() + 1);
-  const currentYear = String(currentDate.getFullYear());
-
-  const today = getTodayDateInputValue();
+  const navigate = useNavigate();
 
   const [transactions, setTransactions] = useState<RecurringTransaction[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [actionId, setActionId] = useState<string | null>(null);
 
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("");
-  const [type, setType] = useState("Income");
+  const [otherDescription, setOtherDescription] = useState("");
+  const [description, setDescription] = useState("");
+  const [type, setType] = useState<"Income" | "Expense">("Income");
   const [frequency, setFrequency] = useState("Monthly");
   const [startDate, setStartDate] = useState("");
-
-  const [generateMonth, setGenerateMonth] = useState(currentMonth);
-  const [generateYear, setGenerateYear] = useState(currentYear);
-
-  const [loading, setLoading] = useState(true);
-  const [creating, setCreating] = useState(false);
-  const [generating, setGenerating] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [endDate, setEndDate] = useState("");
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingTransaction, setEditingTransaction] =
     useState<CreateRecurringTransactionRequest>(EMPTY_EDIT_FORM);
   const [savingEdit, setSavingEdit] = useState(false);
 
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("All");
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   const [formNotice, setFormNotice] = useState<Notice | null>(null);
-  const [generateNotice, setGenerateNotice] = useState<Notice | null>(null);
   const [listNotice, setListNotice] = useState<Notice | null>(null);
-
-  const yearOptions = useMemo(() => {
-    const currentYearNumber =
-      currentDate.getFullYear();
-
-    const startYear = currentYearNumber - 5;
-
-    return Array.from(
-      { length: 6 },
-      (_, index) =>
-        String(startYear + index)
-    );
-  }, []);
-
-  const incomeTransactions = useMemo(
-    () =>
-      transactions.filter(
-        (transaction) => transaction.type.toLowerCase() === "income"
-      ),
-    [transactions]
-  );
-
-  const expenseTransactions = useMemo(
-    () =>
-      transactions.filter(
-        (transaction) => transaction.type.toLowerCase() === "expense"
-      ),
-    [transactions]
-  );
-
-  const totalRecurringIncome = useMemo(
-    () =>
-      incomeTransactions.reduce(
-        (total, transaction) => total + transaction.amount,
-        0
-      ),
-    [incomeTransactions]
-  );
-
-  const totalRecurringExpenses = useMemo(
-    () =>
-      expenseTransactions.reduce(
-        (total, transaction) => total + transaction.amount,
-        0
-      ),
-    [expenseTransactions]
-  );
 
   const loadTransactions = async () => {
     try {
-      const data = await getRecurringTransactions();
+      setLoading(true);
+
+      const data =
+        await recurringTransactionService.getRecurringTransactions();
+
       setTransactions(data);
     } catch (error) {
-      console.error("Failed to load recurring transactions:", error);
+      console.error(
+        "Failed to load recurring transactions:",
+        error
+      );
 
       setListNotice({
         type: "error",
-        message: "Failed to load recurring transactions.",
+        message: "Failed to load recurring reminders.",
       });
     } finally {
       setLoading(false);
@@ -169,33 +125,83 @@ function RecurringTransactionsPage() {
     return () => window.clearTimeout(timer);
   }, []);
 
+  const activeCount = useMemo(
+    () => transactions.filter((item) => item.isActive).length,
+    [transactions]
+  );
+
+  const dueTodayCount = useMemo(
+    () =>
+      transactions.filter(
+        (item) => item.isActive && item.reminderStatus === "Due Today"
+      ).length,
+    [transactions]
+  );
+
+  const upcomingCount = useMemo(
+    () =>
+      transactions.filter(
+        (item) => item.isActive && item.reminderStatus === "Upcoming"
+      ).length,
+    [transactions]
+  );
+
+  const overdueCount = useMemo(
+    () =>
+      transactions.filter(
+        (item) => item.isActive && item.reminderStatus === "Overdue"
+      ).length,
+    [transactions]
+  );
+
+  const filteredTransactions = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase();
+
+    return [...transactions]
+      .filter((item) => {
+        const matchesSearch =
+          !normalizedSearch ||
+          item.title.toLowerCase().includes(normalizedSearch) ||
+          item.category.toLowerCase().includes(normalizedSearch) ||
+          (item.otherDescription ?? "")
+            .toLowerCase()
+            .includes(normalizedSearch) ||
+          (item.description ?? "").toLowerCase().includes(normalizedSearch) ||
+          item.reminderMessage.toLowerCase().includes(normalizedSearch);
+
+        const matchesStatus =
+          statusFilter === "All" ||
+          (statusFilter === "Paused"
+            ? !item.isActive
+            : item.isActive && item.reminderStatus === statusFilter);
+
+        return matchesSearch && matchesStatus;
+      })
+      .sort(
+        (a, b) =>
+          new Date(a.nextOccurrenceDate).getTime() -
+          new Date(b.nextOccurrenceDate).getTime()
+      );
+  }, [transactions, search, statusFilter]);
+
   const handleCreate = async (event: React.FormEvent) => {
     event.preventDefault();
 
     const numericAmount = Number(amount);
+    const validationMessage = validateRequest({
+      title,
+      amount: numericAmount,
+      category,
+      otherDescription,
+      description,
+      type,
+      frequency,
+      startDate,
+      endDate,
+    });
 
-    if (!title.trim() || !category.trim() || !startDate) {
-      setFormNotice({
-        type: "error",
-        message: "Please complete all recurring transaction fields.",
-      });
-      return;
-    }
-
-    if (isFutureDate(startDate)) {
-      setFormNotice({
-        type: "error",
-        message:
-          "Recurring transaction start date cannot be in the future.",
-      });
-      return;
-    }
-
-    if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
-      setFormNotice({
-        type: "error",
-        message: "Please enter a valid amount greater than zero.",
-      });
+    if (validationMessage) {
+      setFormNotice({ type: "error", message: validationMessage });
       return;
     }
 
@@ -203,52 +209,64 @@ function RecurringTransactionsPage() {
       setCreating(true);
       setFormNotice(null);
 
-      await createRecurringTransaction({
+      await recurringTransactionService.createRecurringTransaction({
         title: title.trim(),
         amount: numericAmount,
         category: category.trim(),
+        otherDescription:
+          category === "Other" ? otherDescription.trim() : undefined,
+        description: description.trim() || undefined,
         type,
         frequency,
         startDate,
+        endDate: endDate || undefined,
       });
 
-      setTitle("");
-      setAmount("");
-      setCategory("");
-      setType("Income");
-      setFrequency("Monthly");
-      setStartDate("");
-
+      resetCreateForm();
       await loadTransactions();
 
       setFormNotice({
         type: "success",
-        message: "Recurring transaction added successfully.",
+        message: "Recurring reminder added successfully.",
       });
     } catch (error) {
-      console.error("Failed to create recurring transaction:", error);
-
+      console.error("Failed to create recurring reminder:", error);
       setFormNotice({
         type: "error",
-        message: "Failed to add recurring transaction.",
+        message: "Failed to add recurring reminder.",
       });
     } finally {
       setCreating(false);
     }
   };
 
+  const resetCreateForm = () => {
+    setTitle("");
+    setAmount("");
+    setCategory("");
+    setOtherDescription("");
+    setDescription("");
+    setType("Income");
+    setFrequency("Monthly");
+    setStartDate("");
+    setEndDate("");
+  };
+
   const startEditing = (transaction: RecurringTransaction) => {
     setEditingId(transaction.id);
-
     setEditingTransaction({
       title: transaction.title,
       amount: transaction.amount,
       category: transaction.category,
+      otherDescription: transaction.otherDescription ?? "",
+      description: transaction.description ?? "",
       type: transaction.type,
       frequency: transaction.frequency,
       startDate: toDateInputValue(transaction.startDate),
+      endDate: transaction.endDate
+        ? toDateInputValue(transaction.endDate)
+        : "",
     });
-
     setOpenMenuId(null);
     setListNotice(null);
   };
@@ -259,39 +277,11 @@ function RecurringTransactionsPage() {
   };
 
   const handleUpdate = async () => {
-    if (!editingId) {
-      return;
-    }
+    if (!editingId) return;
 
-    if (
-      !editingTransaction.title.trim() ||
-      !editingTransaction.category.trim() ||
-      !editingTransaction.startDate
-    ) {
-      setListNotice({
-        type: "error",
-        message: "Please complete all edit fields.",
-      });
-      return;
-    }
-
-    if (isFutureDate(editingTransaction.startDate)) {
-      setListNotice({
-        type: "error",
-        message:
-          "Recurring transaction start date cannot be in the future.",
-      });
-      return;
-    }
-
-    if (
-      !Number.isFinite(editingTransaction.amount) ||
-      editingTransaction.amount <= 0
-    ) {
-      setListNotice({
-        type: "error",
-        message: "Please enter a valid amount greater than zero.",
-      });
+    const validationMessage = validateRequest(editingTransaction);
+    if (validationMessage) {
+      setListNotice({ type: "error", message: validationMessage });
       return;
     }
 
@@ -299,27 +289,30 @@ function RecurringTransactionsPage() {
       setSavingEdit(true);
       setListNotice(null);
 
-      await updateRecurringTransaction(editingId, {
+      await recurringTransactionService.updateRecurringTransaction(editingId, {
         ...editingTransaction,
         title: editingTransaction.title.trim(),
         category: editingTransaction.category.trim(),
+        otherDescription:
+          editingTransaction.category === "Other"
+            ? editingTransaction.otherDescription?.trim()
+            : undefined,
+        description: editingTransaction.description?.trim() || undefined,
+        endDate: editingTransaction.endDate || undefined,
       });
 
       await loadTransactions();
-
-      setEditingId(null);
-      setEditingTransaction(EMPTY_EDIT_FORM);
+      cancelEditing();
 
       setListNotice({
         type: "success",
-        message: "Recurring transaction updated successfully.",
+        message: "Recurring reminder updated successfully.",
       });
     } catch (error) {
-      console.error("Failed to update recurring transaction:", error);
-
+      console.error("Failed to update recurring reminder:", error);
       setListNotice({
         type: "error",
-        message: "Failed to update recurring transaction.",
+        message: "Failed to update recurring reminder.",
       });
     } finally {
       setSavingEdit(false);
@@ -328,103 +321,88 @@ function RecurringTransactionsPage() {
 
   const handleDelete = async (transaction: RecurringTransaction) => {
     const confirmed = window.confirm(
-      `Delete "${transaction.title}" from recurring transactions?`
+      `Delete "${transaction.title}" from recurring reminders?`
     );
-
-    if (!confirmed) {
-      return;
-    }
+    if (!confirmed) return;
 
     try {
       setDeletingId(transaction.id);
       setOpenMenuId(null);
       setListNotice(null);
 
-      await deleteRecurringTransaction(transaction.id);
+      await recurringTransactionService.deleteRecurringTransaction(
+        transaction.id
+      );
       await loadTransactions();
 
-      if (editingId === transaction.id) {
-        cancelEditing();
-      }
+      if (editingId === transaction.id) cancelEditing();
 
       setListNotice({
         type: "success",
-        message: "Recurring transaction deleted.",
+        message: "Recurring reminder deleted.",
       });
     } catch (error) {
-      console.error("Failed to delete recurring transaction:", error);
-
+      console.error("Failed to delete recurring reminder:", error);
       setListNotice({
         type: "error",
-        message: "Failed to delete recurring transaction.",
+        message: "Failed to delete recurring reminder.",
       });
     } finally {
       setDeletingId(null);
     }
   };
 
-  const handleGenerate = async () => {
-    const selectedMonth = Number(generateMonth);
-    const selectedYear = Number(generateYear);
-
-    if (
-      !Number.isInteger(selectedMonth) ||
-      selectedMonth < 1 ||
-      selectedMonth > 12
-    ) {
-      setGenerateNotice({
-        type: "error",
-        message: "Please select a valid month.",
-      });
-      return;
-    }
-
-    if (!Number.isInteger(selectedYear)) {
-      setGenerateNotice({
-        type: "error",
-        message: "Please select a valid year.",
-      });
-      return;
-    }
-
-    if (
-      isFutureMonth(
-        selectedMonth,
-        selectedYear
-      )
-    ) {
-      setGenerateNotice({
-        type: "error",
-        message:
-          "Recurring entries cannot be generated for a future month.",
-      });
-
-      return;
-    }
-
+  const handlePauseResume = async (transaction: RecurringTransaction) => {
     try {
-      setGenerating(true);
-      setGenerateNotice(null);
+      setActionId(transaction.id);
+      setOpenMenuId(null);
+      setListNotice(null);
 
-      const message = await generateRecurringTransactions(
-        selectedMonth,
-        selectedYear
-      );
+      if (transaction.isActive) {
+        await recurringTransactionService.pauseRecurringReminder(transaction.id);
+      } else {
+        await recurringTransactionService.resumeRecurringReminder(transaction.id);
+      }
 
-      setGenerateNotice({
+      await loadTransactions();
+      setListNotice({
         type: "success",
-        message,
+        message: transaction.isActive
+          ? "Recurring reminder paused."
+          : "Recurring reminder resumed.",
       });
     } catch (error) {
-      console.error("Failed to generate recurring transactions:", error);
-
-      setGenerateNotice({
+      console.error("Failed to change reminder status:", error);
+      setListNotice({
         type: "error",
-        message: "Failed to generate monthly entries.",
+        message: "Failed to change recurring reminder status.",
       });
     } finally {
-      setGenerating(false);
+      setActionId(null);
     }
+  };
+
+  const handleAddTransaction = (transaction: RecurringTransaction) => {
+    setOpenMenuId(null);
+
+    const targetPath =
+      transaction.type.toLowerCase() === "expense" ? "/expenses" : "/incomes";
+
+    navigate(targetPath, {
+      state: {
+        recurringTransactionId: transaction.id,
+        recurringTransaction: {
+          id: transaction.id,
+          title: transaction.title,
+          amount: transaction.amount,
+          category: transaction.category,
+          otherDescription: transaction.otherDescription,
+          description: transaction.description,
+          type: transaction.type,
+          nextOccurrenceDate: transaction.nextOccurrenceDate,
+        },
+      },
+    });
   };
 
   return (
@@ -433,84 +411,66 @@ function RecurringTransactionsPage() {
         <header className="recurring-header">
           <div>
             <span className="recurring-eyebrow">Automated finances</span>
-            <h1>Recurring Transactions</h1>
+            <h1>Recurring Reminders</h1>
             <p>
-              Manage repeating income and expenses, then generate entries for a
-              selected month.
+              Track repeating income and expenses, receive due-date reminders,
+              and record each occurrence without changing its calendar schedule.
             </p>
           </div>
 
           <div className="recurring-header-count">
-            <small>Active schedules</small>
-            <strong>{transactions.length}</strong>
+            <small>Active reminders</small>
+            <strong>{activeCount}</strong>
           </div>
         </header>
 
-        <section className="recurring-summary">
-          <div>
-            <span>Recurring income</span>
-            <strong>{formatCurrency(totalRecurringIncome)}</strong>
-            <small>{incomeTransactions.length} active schedules</small>
-          </div>
-
-          <div>
-            <span>Recurring expenses</span>
-            <strong>{formatCurrency(totalRecurringExpenses)}</strong>
-            <small>{expenseTransactions.length} active schedules</small>
-          </div>
-
-          <div>
-            <span>Monthly difference</span>
-            <strong
-              className={
-                totalRecurringIncome - totalRecurringExpenses < 0
-                  ? "recurring-negative"
-                  : ""
-              }
-            >
-              {formatCurrency(
-                totalRecurringIncome - totalRecurringExpenses
-              )}
-            </strong>
-            <small>Income minus recurring expenses</small>
-          </div>
+        <section className="recurring-summary-grid">
+          <SummaryCard label="Active" value={activeCount} tone="active" />
+          <SummaryCard
+            label="Due today"
+            value={dueTodayCount}
+            tone="today"
+          />
+          <SummaryCard
+            label="Upcoming"
+            value={upcomingCount}
+            tone="upcoming"
+          />
+          <SummaryCard label="Overdue" value={overdueCount} tone="overdue" />
         </section>
 
-        <section className="recurring-section">
+        <section className="recurring-section recurring-form-section">
           <div className="recurring-section-heading">
             <div>
-              <span className="recurring-section-kicker">New schedule</span>
-              <h2>Add recurring transaction</h2>
+              <span className="recurring-section-kicker">New reminder</span>
+              <h2>Add recurring reminder</h2>
               <p>
-                Create a repeating income or expense schedule for future entry
-                generation.
+                Create a calendar-based reminder for recurring income or an
+                expense payment.
               </p>
             </div>
           </div>
 
           <div className="recurring-divider" />
 
-          
           <form className="recurring-form" onSubmit={handleCreate}>
-            <div className="recurring-field recurring-field-wide">
-              <label htmlFor="recurring-title">Title</label>
+            <FormField label="Title" htmlFor="recurring-title" wide>
               <input
                 id="recurring-title"
                 type="text"
-                placeholder="Example: Monthly salary"
+                placeholder="Example: Netflix or Monthly salary"
                 value={title}
                 disabled={creating}
                 onChange={(event) => setTitle(event.target.value)}
                 required
               />
-            </div>
+            </FormField>
 
-            <div className="recurring-field">
-              <label htmlFor="recurring-amount">Amount</label>
+            <FormField label="Amount" htmlFor="recurring-amount">
               <input
                 id="recurring-amount"
                 type="number"
-                min="0"
+                min="0.01"
                 step="0.01"
                 placeholder="0"
                 value={amount}
@@ -518,67 +478,108 @@ function RecurringTransactionsPage() {
                 onChange={(event) => setAmount(event.target.value)}
                 required
               />
-            </div>
+            </FormField>
 
-            <div className="recurring-field">
-              <label htmlFor="recurring-category">Category / source</label>
-
-              <input
-                id="recurring-category"
-                list="recurring-category-options"
-                type="text"
-                placeholder="Select or type a category"
-                value={category}
-                disabled={creating}
-                onChange={(event) => setCategory(event.target.value)}
-                required
-              />
-
-              <datalist id="recurring-category-options">
-                {CATEGORY_OPTIONS.map((option) => (
-                  <option key={option} value={option} />
-                ))}
-              </datalist>
-            </div>
-
-            <div className="recurring-field">
-              <label htmlFor="recurring-type">Transaction type</label>
+            <FormField label="Type" htmlFor="recurring-type">
               <select
                 id="recurring-type"
                 value={type}
                 disabled={creating}
-                onChange={(event) => setType(event.target.value)}
+                onChange={(event) =>
+                  setType(event.target.value as "Income" | "Expense")
+                }
               >
                 <option value="Income">Income</option>
                 <option value="Expense">Expense</option>
               </select>
-            </div>
+            </FormField>
 
-            <div className="recurring-field">
-              <label htmlFor="recurring-frequency">Frequency</label>
+            <FormField label="Category" htmlFor="recurring-category">
+              <select
+                id="recurring-category"
+                value={category}
+                disabled={creating}
+                onChange={(event) => {
+                  setCategory(event.target.value);
+                  if (event.target.value !== "Other") {
+                    setOtherDescription("");
+                  }
+                }}
+                required
+              >
+                <option value="">Select category</option>
+                {CATEGORY_OPTIONS.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </FormField>
+
+            {category === "Other" && (
+              <FormField
+                label="Other description"
+                htmlFor="recurring-other-description"
+              >
+                <input
+                  id="recurring-other-description"
+                  type="text"
+                  placeholder="Example: Society Maintenance"
+                  value={otherDescription}
+                  disabled={creating}
+                  onChange={(event) => setOtherDescription(event.target.value)}
+                  required
+                />
+              </FormField>
+            )}
+
+            <FormField label="Description" htmlFor="recurring-description">
+              <input
+                id="recurring-description"
+                type="text"
+                placeholder="Example: Netflix"
+                value={description}
+                disabled={creating}
+                onChange={(event) => setDescription(event.target.value)}
+              />
+            </FormField>
+
+            <FormField label="Frequency" htmlFor="recurring-frequency">
               <select
                 id="recurring-frequency"
                 value={frequency}
                 disabled={creating}
                 onChange={(event) => setFrequency(event.target.value)}
               >
-                <option value="Monthly">Monthly</option>
-                <option value="Weekly">Weekly</option>
+                {FREQUENCY_OPTIONS.map((option) => (
+                  <option key={option} value={option}>
+                    {formatFrequency(option)}
+                  </option>
+                ))}
               </select>
-            </div>
+            </FormField>
 
-            <div className="recurring-field">
-              <label htmlFor="recurring-start-date">Start date</label>
+            <FormField label="Start date" htmlFor="recurring-start-date">
               <input
                 id="recurring-start-date"
                 type="date"
                 value={startDate}
-                max={today}
                 disabled={creating}
                 onChange={(event) => setStartDate(event.target.value)}
                 required
               />
-            </div>
+            </FormField>
+
+            <FormField label="End date (optional)" htmlFor="recurring-end-date">
+              <input
+                id="recurring-end-date"
+                type="date"
+                value={endDate}
+                min={startDate || undefined}
+                disabled={creating}
+                onChange={(event) => setEndDate(event.target.value)}
+              />
+            </FormField>
 
             <button
               type="submit"
@@ -591,151 +592,61 @@ function RecurringTransactionsPage() {
                   Adding...
                 </>
               ) : (
-                "Add Recurring"
+                "Add Reminder"
               )}
             </button>
-            </form>
+          </form>
 
-            {formNotice && (
-              <InlineNotice
-                notice={formNotice}
-                onClose={() => setFormNotice(null)}
-              />
-            )}
-
-        </section>
-
-        <section className="recurring-section recurring-generate-section">
-          <div className="recurring-section-heading recurring-generate-heading">
-            <div>
-              <span className="recurring-section-kicker">Monthly action</span>
-              <h2>Generate monthly entries</h2>
-              <p>
-                Create income and expense entries from active recurring
-                schedules.
-              </p>
-            </div>
-
-            <div className="recurring-generate-controls">
-              <div className="recurring-field">
-                <label htmlFor="generate-month">Month</label>
-                <select
-                  id="generate-month"
-                  value={generateMonth}
-                  disabled={generating}
-                  onChange={(event) => setGenerateMonth(event.target.value)}
-                >
-                  {MONTH_OPTIONS.map((option) => {
-                    const optionMonth =
-                      Number(option.value);
-
-                    const optionYear =
-                      Number(generateYear);
-
-                    const isFutureOption =
-                      isFutureMonth(
-                        optionMonth,
-                        optionYear
-                      );
-
-                    return (
-                      <option
-                        key={option.value}
-                        value={option.value}
-                        disabled={isFutureOption}
-                      >
-                        {option.label}
-                      </option>
-                    );
-                  })}
-                </select>
-              </div>
-
-              <div className="recurring-field">
-                <label htmlFor="generate-year">Year</label>
-                <select
-                  id="generate-year"
-                  value={generateYear}
-                  disabled={generating}
-                  onChange={(event) => {
-                    const nextYear =
-                      event.target.value;
-
-                    setGenerateYear(nextYear);
-
-                    const selectedMonthNumber =
-                      Number(generateMonth);
-
-                    const selectedYearNumber =
-                      Number(nextYear);
-
-                    if (
-                      isFutureMonth(
-                        selectedMonthNumber,
-                        selectedYearNumber
-                      )
-                    ) {
-                      setGenerateMonth(
-                        String(
-                          currentDate.getMonth() + 1
-                        )
-                      );
-                    }
-
-                    setGenerateNotice(null);
-                  }}
-                >
-                  {yearOptions.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <button
-                type="button"
-                className="recurring-generate-button"
-                disabled={generating}
-                onClick={() => void handleGenerate()}
-              >
-                {generating ? (
-                  <>
-                    <span className="recurring-button-spinner" />
-                    Generating...
-                  </>
-                ) : (
-                  "Generate Entries"
-                )}
-              </button>
-            </div>
-          </div>
-
-          {generateNotice && (
+          {formNotice && (
             <InlineNotice
-              notice={generateNotice}
-              onClose={() => setGenerateNotice(null)}
+              notice={formNotice}
+              onClose={() => setFormNotice(null)}
             />
           )}
         </section>
 
         <section className="recurring-section">
-          <div className="recurring-section-heading">
+          <div className="recurring-list-heading">
             <div>
-              <span className="recurring-section-kicker">Schedules</span>
-              <h2>Recurring transaction list</h2>
+              <span className="recurring-section-kicker">Reminder list</span>
+              <h2>Recurring income and expenses</h2>
               <p>
-                Review and update active recurring income and expense
-                schedules.
+                Search, filter, edit, pause, resume, or record a recurring
+                transaction.
               </p>
             </div>
 
             <span className="recurring-section-count">
-              {transactions.length} total
+              {filteredTransactions.length} shown
             </span>
           </div>
 
-          <div className="recurring-divider" />
+          <div className="recurring-toolbar">
+            <div className="recurring-search-wrap">
+              <span aria-hidden="true">⌕</span>
+              <input
+                type="search"
+                placeholder="Search title, category, description..."
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+              />
+            </div>
+
+            <select
+              aria-label="Filter recurring reminders by status"
+              value={statusFilter}
+              onChange={(event) =>
+                setStatusFilter(event.target.value as StatusFilter)
+              }
+            >
+              <option value="All">All statuses</option>
+              <option value="Scheduled">Scheduled</option>
+              <option value="Upcoming">Upcoming</option>
+              <option value="Due Today">Due Today</option>
+              <option value="Overdue">Overdue</option>
+              <option value="Paused">Paused</option>
+            </select>
+          </div>
 
           {listNotice && (
             <InlineNotice
@@ -747,57 +658,40 @@ function RecurringTransactionsPage() {
           {loading ? (
             <div className="recurring-state">
               <span className="recurring-loader" />
-              <h3>Loading schedules</h3>
-              <p>Please wait while recurring transactions are loaded.</p>
+              <h3>Loading recurring reminders</h3>
+              <p>Please wait while your reminders are loaded.</p>
             </div>
-          ) : transactions.length === 0 ? (
+          ) : filteredTransactions.length === 0 ? (
             <div className="recurring-state">
               <div className="recurring-state-icon">↻</div>
-              <h3>No recurring transactions yet</h3>
+              <h3>No recurring reminders found</h3>
               <p>
-                Add your first recurring income or expense using the form
-                above.
+                Add your first reminder above or change the current search and
+                status filter.
               </p>
             </div>
           ) : (
-            <div className="recurring-columns">
-              <RecurringGroup
-                title="Recurring Income"
-                description="Scheduled income sources"
-                tone="income"
-                today={today}
-                transactions={incomeTransactions}
-                deletingId={deletingId}
-                editingId={editingId}
-                editingTransaction={editingTransaction}
-                savingEdit={savingEdit}
-                openMenuId={openMenuId}
-                setOpenMenuId={setOpenMenuId}
-                setEditingTransaction={setEditingTransaction}
-                onStartEdit={startEditing}
-                onCancelEdit={cancelEditing}
-                onSaveEdit={handleUpdate}
-                onDelete={handleDelete}
-              />
-
-              <RecurringGroup
-                title="Recurring Expenses"
-                description="Scheduled expense payments"
-                tone="expense"
-                today={today}
-                transactions={expenseTransactions}
-                deletingId={deletingId}
-                editingId={editingId}
-                editingTransaction={editingTransaction}
-                savingEdit={savingEdit}
-                openMenuId={openMenuId}
-                setOpenMenuId={setOpenMenuId}
-                setEditingTransaction={setEditingTransaction}
-                onStartEdit={startEditing}
-                onCancelEdit={cancelEditing}
-                onSaveEdit={handleUpdate}
-                onDelete={handleDelete}
-              />
+            <div className="recurring-reminder-list">
+              {filteredTransactions.map((transaction) => (
+                <RecurringReminderCard
+                  key={transaction.id}
+                  transaction={transaction}
+                  deletingId={deletingId}
+                  actionId={actionId}
+                  editingId={editingId}
+                  editingTransaction={editingTransaction}
+                  savingEdit={savingEdit}
+                  openMenuId={openMenuId}
+                  setOpenMenuId={setOpenMenuId}
+                  setEditingTransaction={setEditingTransaction}
+                  onStartEdit={startEditing}
+                  onCancelEdit={cancelEditing}
+                  onSaveEdit={handleUpdate}
+                  onDelete={handleDelete}
+                  onPauseResume={handlePauseResume}
+                  onAddTransaction={handleAddTransaction}
+                />
+              ))}
             </div>
           )}
         </section>
@@ -805,6 +699,38 @@ function RecurringTransactionsPage() {
         <style>{recurringStyles}</style>
       </main>
     </AppLayout>
+  );
+}
+
+type SummaryCardProps = {
+  label: string;
+  value: number;
+  tone: "active" | "today" | "upcoming" | "overdue";
+};
+
+function SummaryCard({ label, value, tone }: SummaryCardProps) {
+  return (
+    <div className={`recurring-summary-card summary-${tone}`}>
+      <span>{label}</span>
+      <strong>{value}</strong>
+      <small>Recurring reminders</small>
+    </div>
+  );
+}
+
+type FormFieldProps = {
+  label: string;
+  htmlFor: string;
+  wide?: boolean;
+  children: React.ReactNode;
+};
+
+function FormField({ label, htmlFor, wide, children }: FormFieldProps) {
+  return (
+    <div className={`recurring-field ${wide ? "recurring-field-wide" : ""}`}>
+      <label htmlFor={htmlFor}>{label}</label>
+      {children}
+    </div>
   );
 }
 
@@ -821,25 +747,17 @@ function InlineNotice({ notice, onClose }: InlineNoticeProps) {
     >
       <span>{notice.type === "success" ? "✓" : "!"}</span>
       <p>{notice.message}</p>
-
-      <button
-        type="button"
-        aria-label="Close message"
-        onClick={onClose}
-      >
+      <button type="button" aria-label="Close message" onClick={onClose}>
         ×
       </button>
     </div>
   );
 }
 
-type RecurringGroupProps = {
-  title: string;
-  description: string;
-  tone: "income" | "expense";
-  today: string;
-  transactions: RecurringTransaction[];
+type RecurringReminderCardProps = {
+  transaction: RecurringTransaction;
   deletingId: string | null;
+  actionId: string | null;
   editingId: string | null;
   editingTransaction: CreateRecurringTransactionRequest;
   savingEdit: boolean;
@@ -852,15 +770,14 @@ type RecurringGroupProps = {
   onCancelEdit: () => void;
   onSaveEdit: () => Promise<void>;
   onDelete: (transaction: RecurringTransaction) => Promise<void>;
+  onPauseResume: (transaction: RecurringTransaction) => Promise<void>;
+  onAddTransaction: (transaction: RecurringTransaction) => void;
 };
 
-function RecurringGroup({
-  title,
-  description,
-  tone,
-  today,
-  transactions,
+function RecurringReminderCard({
+  transaction,
   deletingId,
+  actionId,
   editingId,
   editingTransaction,
   savingEdit,
@@ -871,293 +788,476 @@ function RecurringGroup({
   onCancelEdit,
   onSaveEdit,
   onDelete,
-}: RecurringGroupProps) {
-  return (
-    <div className="recurring-group">
-      <div className="recurring-group-header">
-        <div>
-          <span className={`recurring-group-dot recurring-group-dot-${tone}`} />
+  onPauseResume,
+  onAddTransaction,
+}: RecurringReminderCardProps) {
+  const isEditing = editingId === transaction.id;
+  const isExpense = transaction.type.toLowerCase() === "expense";
+  const isBusy =
+    deletingId === transaction.id || actionId === transaction.id || savingEdit;
 
+  const isFirstOccurrence =
+    !transaction.lastCompletedOccurrenceDate;
+
+  const isActionableReminder =
+    transaction.isActive &&
+    ["Upcoming", "Due Today", "Overdue"].includes(
+      transaction.reminderStatus
+    );
+
+  const canRecordTransaction =
+    transaction.isActive &&
+    (isFirstOccurrence || isActionableReminder);
+
+  if (isEditing) {
+    return (
+      <article className="recurring-reminder-card recurring-item-editing">
+        <div className="recurring-edit-heading">
           <div>
-            <h3>{title}</h3>
-            <p>{description}</p>
+            <span>Edit recurring reminder</span>
+            <h3>{transaction.title}</h3>
           </div>
+          <button
+            type="button"
+            className="recurring-edit-close"
+            aria-label="Cancel editing"
+            disabled={savingEdit}
+            onClick={onCancelEdit}
+          >
+            ×
+          </button>
         </div>
 
-        <strong>{transactions.length}</strong>
+        <div className="recurring-edit-grid">
+          <FormField label="Title" htmlFor={`edit-title-${transaction.id}`} wide>
+            <input
+              id={`edit-title-${transaction.id}`}
+              type="text"
+              value={editingTransaction.title}
+              disabled={savingEdit}
+              onChange={(event) =>
+                setEditingTransaction((current) => ({
+                  ...current,
+                  title: event.target.value,
+                }))
+              }
+            />
+          </FormField>
+
+          <FormField label="Amount" htmlFor={`edit-amount-${transaction.id}`}>
+            <input
+              id={`edit-amount-${transaction.id}`}
+              type="number"
+              min="0.01"
+              step="0.01"
+              value={editingTransaction.amount}
+              disabled={savingEdit}
+              onChange={(event) =>
+                setEditingTransaction((current) => ({
+                  ...current,
+                  amount: Number(event.target.value),
+                }))
+              }
+            />
+          </FormField>
+
+          <FormField label="Type" htmlFor={`edit-type-${transaction.id}`}>
+            <select
+              id={`edit-type-${transaction.id}`}
+              value={editingTransaction.type}
+              disabled={savingEdit}
+              onChange={(event) =>
+                setEditingTransaction((current) => ({
+                  ...current,
+                  type: event.target.value as "Income" | "Expense",
+                }))
+              }
+            >
+              <option value="Income">Income</option>
+              <option value="Expense">Expense</option>
+            </select>
+          </FormField>
+
+          <FormField
+            label="Category"
+            htmlFor={`edit-category-${transaction.id}`}
+          >
+            <select
+              id={`edit-category-${transaction.id}`}
+              value={editingTransaction.category}
+              disabled={savingEdit}
+              onChange={(event) =>
+                setEditingTransaction((current) => ({
+                  ...current,
+                  category: event.target.value,
+                  otherDescription:
+                    event.target.value === "Other"
+                      ? current.otherDescription
+                      : "",
+                }))
+              }
+            >
+              <option value="">Select category</option>
+              {CATEGORY_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </FormField>
+
+          {editingTransaction.category === "Other" && (
+            <FormField
+              label="Other description"
+              htmlFor={`edit-other-description-${transaction.id}`}
+            >
+              <input
+                id={`edit-other-description-${transaction.id}`}
+                type="text"
+                value={editingTransaction.otherDescription ?? ""}
+                disabled={savingEdit}
+                onChange={(event) =>
+                  setEditingTransaction((current) => ({
+                    ...current,
+                    otherDescription: event.target.value,
+                  }))
+                }
+              />
+            </FormField>
+          )}
+
+          <FormField
+            label="Description"
+            htmlFor={`edit-description-${transaction.id}`}
+          >
+            <input
+              id={`edit-description-${transaction.id}`}
+              type="text"
+              value={editingTransaction.description ?? ""}
+              disabled={savingEdit}
+              onChange={(event) =>
+                setEditingTransaction((current) => ({
+                  ...current,
+                  description: event.target.value,
+                }))
+              }
+            />
+          </FormField>
+
+          <FormField
+            label="Frequency"
+            htmlFor={`edit-frequency-${transaction.id}`}
+          >
+            <select
+              id={`edit-frequency-${transaction.id}`}
+              value={editingTransaction.frequency}
+              disabled={savingEdit}
+              onChange={(event) =>
+                setEditingTransaction((current) => ({
+                  ...current,
+                  frequency: event.target.value,
+                }))
+              }
+            >
+              {FREQUENCY_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {formatFrequency(option)}
+                </option>
+              ))}
+            </select>
+          </FormField>
+
+          <FormField
+            label="Start date"
+            htmlFor={`edit-start-date-${transaction.id}`}
+          >
+            <input
+              id={`edit-start-date-${transaction.id}`}
+              type="date"
+              value={editingTransaction.startDate}
+              disabled={savingEdit}
+              onChange={(event) =>
+                setEditingTransaction((current) => ({
+                  ...current,
+                  startDate: event.target.value,
+                }))
+              }
+            />
+          </FormField>
+
+          <FormField
+            label="End date (optional)"
+            htmlFor={`edit-end-date-${transaction.id}`}
+          >
+            <input
+              id={`edit-end-date-${transaction.id}`}
+              type="date"
+              min={editingTransaction.startDate || undefined}
+              value={editingTransaction.endDate ?? ""}
+              disabled={savingEdit}
+              onChange={(event) =>
+                setEditingTransaction((current) => ({
+                  ...current,
+                  endDate: event.target.value,
+                }))
+              }
+            />
+          </FormField>
+        </div>
+
+        <div className="recurring-edit-actions">
+          <button
+            type="button"
+            className="recurring-save-button"
+            disabled={savingEdit}
+            onClick={() => void onSaveEdit()}
+          >
+            {savingEdit ? (
+              <>
+                <span className="recurring-button-spinner" />
+                Saving...
+              </>
+            ) : (
+              "Save Changes"
+            )}
+          </button>
+          <button
+            type="button"
+            className="recurring-cancel-button"
+            disabled={savingEdit}
+            onClick={onCancelEdit}
+          >
+            Cancel
+          </button>
+        </div>
+      </article>
+    );
+  }
+
+  return (
+    <article
+      className={`recurring-reminder-card ${
+        isExpense ? "reminder-expense" : "reminder-income"
+      } ${!transaction.isActive ? "reminder-paused" : ""}`}
+    >
+      <div className="recurring-card-top">
+        <div className="recurring-card-title-wrap">
+          <span className="recurring-card-category">
+            {transaction.category === "Other"
+              ? transaction.otherDescription || "Other"
+              : transaction.category}
+          </span>
+          <h3>{transaction.title}</h3>
+          <p>{transaction.reminderMessage}</p>
+        </div>
+
+        <div className="recurring-card-menu-wrap">
+          <StatusBadge
+            status={transaction.isActive ? transaction.reminderStatus : "Paused"}
+          />
+          <button
+            type="button"
+            className="recurring-menu-trigger"
+            aria-label="Open reminder actions"
+            onClick={() =>
+              setOpenMenuId((current) =>
+                current === transaction.id ? null : transaction.id
+              )
+            }
+          >
+            ⋮
+          </button>
+
+          {openMenuId === transaction.id && (
+            <div className="recurring-menu-popover">
+              <button type="button" onClick={() => onStartEdit(transaction)}>
+                Edit
+              </button>
+              <button
+                type="button"
+                disabled={isBusy}
+                onClick={() => void onPauseResume(transaction)}
+              >
+                {transaction.isActive ? "Pause" : "Resume"}
+              </button>
+              <button
+                type="button"
+                className="recurring-menu-delete"
+                disabled={isBusy}
+                onClick={() => void onDelete(transaction)}
+              >
+                Delete
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
-      {transactions.length === 0 ? (
-        <div className="recurring-group-empty">
-          No {tone === "income" ? "income" : "expense"} schedules added.
-        </div>
-      ) : (
-        <div className="recurring-list">
-          {transactions.map((transaction) => {
-            const isEditing = editingId === transaction.id;
+      <div className="recurring-card-details">
+        <DetailItem label="Amount" value={formatCurrency(transaction.amount)} />
+        <DetailItem label="Type" value={transaction.type} />
+        <DetailItem
+          label="Frequency"
+          value={formatFrequency(transaction.frequency)}
+        />
+        <DetailItem
+          label="Next reminder"
+          value={formatDate(transaction.nextOccurrenceDate)}
+        />
+        <DetailItem
+          label="Start date"
+          value={formatDate(transaction.startDate)}
+        />
+        <DetailItem
+          label="Reminder time"
+          value={`${formatHour(transaction.reminderHour)}, ${transaction.reminderDaysBefore} days before`}
+        />
+      </div>
 
-            return (
-              <article
-                key={transaction.id}
-                className={`recurring-item recurring-item-${tone} ${
-                  isEditing ? "recurring-item-editing" : ""
-                }`}
-              >
-                {isEditing ? (
-                  <div className="recurring-edit-form">
-                    <div className="recurring-edit-heading">
-                      <div>
-                        <span>Edit schedule</span>
-                        <h4>{transaction.title}</h4>
-                      </div>
-
-                      <button
-                        type="button"
-                        aria-label="Cancel editing"
-                        className="recurring-edit-close"
-                        disabled={savingEdit}
-                        onClick={onCancelEdit}
-                      >
-                        ×
-                      </button>
-                    </div>
-
-                    <div className="recurring-edit-grid">
-                      <div className="recurring-field recurring-edit-wide">
-                        <label htmlFor={`edit-title-${transaction.id}`}>
-                          Title
-                        </label>
-                        <input
-                          id={`edit-title-${transaction.id}`}
-                          type="text"
-                          value={editingTransaction.title}
-                          disabled={savingEdit}
-                          onChange={(event) =>
-                            setEditingTransaction((current) => ({
-                              ...current,
-                              title: event.target.value,
-                            }))
-                          }
-                        />
-                      </div>
-
-                      <div className="recurring-field">
-                        <label htmlFor={`edit-amount-${transaction.id}`}>
-                          Amount
-                        </label>
-                        <input
-                          id={`edit-amount-${transaction.id}`}
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={editingTransaction.amount}
-                          disabled={savingEdit}
-                          onChange={(event) =>
-                            setEditingTransaction((current) => ({
-                              ...current,
-                              amount: Number(event.target.value),
-                            }))
-                          }
-                        />
-                      </div>
-
-                      <div className="recurring-field">
-                        <label htmlFor={`edit-category-${transaction.id}`}>
-                          Category / source
-                        </label>
-                        <input
-                          id={`edit-category-${transaction.id}`}
-                          list="recurring-category-options"
-                          type="text"
-                          value={editingTransaction.category}
-                          disabled={savingEdit}
-                          onChange={(event) =>
-                            setEditingTransaction((current) => ({
-                              ...current,
-                              category: event.target.value,
-                            }))
-                          }
-                        />
-                      </div>
-
-                      <div className="recurring-field">
-                        <label htmlFor={`edit-type-${transaction.id}`}>
-                          Type
-                        </label>
-                        <select
-                          id={`edit-type-${transaction.id}`}
-                          value={editingTransaction.type}
-                          disabled={savingEdit}
-                          onChange={(event) =>
-                            setEditingTransaction((current) => ({
-                              ...current,
-                              type: event.target.value,
-                            }))
-                          }
-                        >
-                          <option value="Income">Income</option>
-                          <option value="Expense">Expense</option>
-                        </select>
-                      </div>
-
-                      <div className="recurring-field">
-                        <label htmlFor={`edit-frequency-${transaction.id}`}>
-                          Frequency
-                        </label>
-                        <select
-                          id={`edit-frequency-${transaction.id}`}
-                          value={editingTransaction.frequency}
-                          disabled={savingEdit}
-                          onChange={(event) =>
-                            setEditingTransaction((current) => ({
-                              ...current,
-                              frequency: event.target.value,
-                            }))
-                          }
-                        >
-                          <option value="Monthly">Monthly</option>
-                          <option value="Weekly">Weekly</option>
-                        </select>
-                      </div>
-
-                      <div className="recurring-field">
-                        <label htmlFor={`edit-date-${transaction.id}`}>
-                          Start date
-                        </label>
-                        <input
-                          id={`edit-date-${transaction.id}`}
-                          type="date"
-                          value={editingTransaction.startDate}
-                          max={today}
-                          disabled={savingEdit}
-                          onChange={(event) =>
-                            setEditingTransaction((current) => ({
-                              ...current,
-                              startDate: event.target.value,
-                            }))
-                          }
-                        />
-                      </div>
-                    </div>
-
-                    <div className="recurring-edit-actions">
-                      <button
-                        type="button"
-                        className="recurring-save-button"
-                        disabled={savingEdit}
-                        onClick={() => void onSaveEdit()}
-                      >
-                        {savingEdit ? (
-                          <>
-                            <span className="recurring-button-spinner" />
-                            Saving...
-                          </>
-                        ) : (
-                          "Save Changes"
-                        )}
-                      </button>
-
-                      <button
-                        type="button"
-                        className="recurring-cancel-button"
-                        disabled={savingEdit}
-                        onClick={onCancelEdit}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="recurring-item-main">
-                    <div className="recurring-item-title-row">
-                      <div>
-                        <span className="recurring-item-category">
-                          {transaction.category}
-                        </span>
-                        <h4>{transaction.title}</h4>
-                      </div>
-
-                      <div className="recurring-item-actions">
-                        <button
-                          type="button"
-                          className="recurring-edit-button"
-                          disabled={Boolean(editingId)}
-                          onClick={() => onStartEdit(transaction)}
-                        >
-                          Edit
-                        </button>
-
-                        <button
-                          type="button"
-                          className="recurring-delete-button"
-                          disabled={
-                            deletingId === transaction.id || Boolean(editingId)
-                          }
-                          onClick={() => void onDelete(transaction)}
-                        >
-                          {deletingId === transaction.id
-                            ? "Deleting..."
-                            : "Delete"}
-                        </button>
-
-                        <div className="recurring-mobile-menu">
-                          <button
-                            type="button"
-                            className="recurring-menu-trigger"
-                            aria-label="Open transaction menu"
-                            onClick={() =>
-                              setOpenMenuId((currentId) =>
-                                currentId === transaction.id
-                                  ? null
-                                  : transaction.id
-                              )
-                            }
-                          >
-                            ⋮
-                          </button>
-
-                          {openMenuId === transaction.id && (
-                            <div className="recurring-menu-popover">
-                              <button
-                                type="button"
-                                onClick={() => onStartEdit(transaction)}
-                              >
-                                Edit
-                              </button>
-
-                              <button
-                                type="button"
-                                className="recurring-menu-delete"
-                                disabled={deletingId === transaction.id}
-                                onClick={() => void onDelete(transaction)}
-                              >
-                                Delete
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    <strong
-                      className={`recurring-item-amount amount-${tone}`}
-                    >
-                      {formatCurrency(transaction.amount)}
-                    </strong>
-
-                    <div className="recurring-item-meta">
-                      <span>{transaction.frequency}</span>
-                      <span>Starts {formatDate(transaction.startDate)}</span>
-                    </div>
-                  </div>
-                )}
-              </article>
-            );
-          })}
+      {transaction.isActive && isFirstOccurrence && (
+        <div
+          className={`recurring-action-hint ${
+            isExpense
+              ? "recurring-action-hint-expense"
+              : "recurring-action-hint-income"
+          }`}
+        >
+          <span aria-hidden="true">{isExpense ? "!" : "✓"}</span>
+          <p>
+            {isExpense
+              ? "New reminder — click Add Expense after this payment is made."
+              : "New reminder — click Add Income after this money is received."}
+          </p>
         </div>
       )}
+
+      {transaction.isActive &&
+        !isFirstOccurrence &&
+        isActionableReminder && (
+          <div
+            className={`recurring-action-hint ${
+              isExpense
+                ? "recurring-action-hint-expense"
+                : "recurring-action-hint-income"
+            }`}
+          >
+            <span aria-hidden="true">
+              {transaction.reminderStatus === "Overdue" ? "!" : "→"}
+            </span>
+            <p>
+              {isExpense
+                ? "Reminder is active — record this expense after the payment is made."
+                : "Reminder is active — record this income after the money is received."}
+            </p>
+          </div>
+        )}
+
+      {transaction.isActive &&
+        !isFirstOccurrence &&
+        transaction.reminderStatus === "Scheduled" && (
+          <div className="recurring-scheduled-hint">
+            This reminder will become actionable{" "}
+            {transaction.reminderDaysBefore} days before the due date.
+          </div>
+        )}
+
+      {!transaction.isActive && (
+        <div className="recurring-scheduled-hint">
+          This reminder is paused. Resume it to receive reminders and record the
+          next occurrence.
+        </div>
+      )}
+
+      <div className="recurring-card-actions">
+        <button
+          type="button"
+          className={`recurring-record-button ${
+            isExpense ? "record-expense" : "record-income"
+          }`}
+          disabled={!canRecordTransaction || isBusy}
+          onClick={() => onAddTransaction(transaction)}
+        >
+          {isExpense ? "Add Expense" : "Add Income"}
+        </button>
+
+        <button
+          type="button"
+          className="recurring-secondary-button"
+          disabled={isBusy}
+          onClick={() => void onPauseResume(transaction)}
+        >
+          {actionId === transaction.id
+            ? "Please wait..."
+            : transaction.isActive
+              ? "Pause"
+              : "Resume"}
+        </button>
+
+        <button
+          type="button"
+          className="recurring-edit-button"
+          disabled={Boolean(editingId) || isBusy}
+          onClick={() => onStartEdit(transaction)}
+        >
+          Edit
+        </button>
+
+        <button
+          type="button"
+          className="recurring-delete-button"
+          disabled={Boolean(editingId) || isBusy}
+          onClick={() => void onDelete(transaction)}
+        >
+          {deletingId === transaction.id ? "Deleting..." : "Delete"}
+        </button>
+      </div>
+    </article>
+  );
+}
+
+function DetailItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="recurring-detail-item">
+      <span>{label}</span>
+      <strong>{value}</strong>
     </div>
   );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const className = status.toLowerCase().replaceAll(" ", "-");
+  return (
+    <span className={`recurring-status-badge status-${className}`}>
+      <i />
+      {status}
+    </span>
+  );
+}
+
+function validateRequest(request: CreateRecurringTransactionRequest) {
+  if (!request.title.trim() || !request.category.trim() || !request.startDate) {
+    return "Please complete the title, category, and start date.";
+  }
+
+  if (!Number.isFinite(request.amount) || request.amount <= 0) {
+    return "Please enter a valid amount greater than zero.";
+  }
+
+  if (
+    request.category === "Other" &&
+    !request.otherDescription?.trim()
+  ) {
+    return "Please describe the Other category.";
+  }
+
+  if (
+    request.endDate &&
+    new Date(request.endDate).getTime() < new Date(request.startDate).getTime()
+  ) {
+    return "End date cannot be earlier than the start date.";
+  }
+
+  return null;
 }
 
 function formatCurrency(value: number) {
@@ -1170,10 +1270,7 @@ function formatCurrency(value: number) {
 
 function formatDate(value: string) {
   const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
+  if (Number.isNaN(date.getTime())) return value;
 
   return date.toLocaleDateString("en-IN", {
     day: "2-digit",
@@ -1182,29 +1279,31 @@ function formatDate(value: string) {
   });
 }
 
+function formatFrequency(value: string) {
+  return value === "HalfYearly" ? "Half Yearly" : value;
+}
+
+function formatHour(hour: number) {
+  const normalizedHour = hour % 24;
+  const suffix = normalizedHour >= 12 ? "PM" : "AM";
+  const displayHour = normalizedHour % 12 || 12;
+  return `${displayHour}:00 ${suffix}`;
+}
+
 function toDateInputValue(value: string) {
-  if (!value) {
-    return "";
-  }
-
+  if (!value) return "";
   const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return value.slice(0, 10);
-  }
+  if (Number.isNaN(date.getTime())) return value.slice(0, 10);
 
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
-
   return `${year}-${month}-${day}`;
 }
 
 const recurringStyles = `
   .recurring-page,
-  .recurring-page * {
-    box-sizing: border-box;
-  }
+  .recurring-page * { box-sizing: border-box; }
 
   .recurring-page {
     width: 100%;
@@ -1240,7 +1339,7 @@ const recurringStyles = `
   }
 
   .recurring-header p {
-    max-width: 720px;
+    max-width: 760px;
     margin: 10px 0 0;
     color: #64748b;
     font-size: 0.96rem;
@@ -1254,9 +1353,7 @@ const recurringStyles = `
   }
 
   .recurring-header-count small,
-  .recurring-header-count strong {
-    display: block;
-  }
+  .recurring-header-count strong { display: block; }
 
   .recurring-header-count small {
     color: #94a3b8;
@@ -1266,8 +1363,191 @@ const recurringStyles = `
   .recurring-header-count strong {
     margin-top: 3px;
     color: #334155;
-    font-size: 1.1rem;
+    font-size: 1.35rem;
   }
+
+  .recurring-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    padding-top: 22px;
+  }
+
+  .recurring-summary-card {
+    position: relative;
+    min-height: 112px;
+    padding: 17px 18px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.74);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.66);
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(15px);
+  }
+
+  .recurring-summary-card::after {
+    content: "";
+    position: absolute;
+    right: -30px;
+    bottom: -38px;
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: var(--summary-glow);
+    filter: blur(2px);
+  }
+
+  .summary-active { --summary-glow: rgba(109, 93, 252, 0.16); }
+  .summary-today { --summary-glow: rgba(33, 199, 122, 0.17); }
+  .summary-upcoming { --summary-glow: rgba(245, 158, 11, 0.17); }
+  .summary-overdue { --summary-glow: rgba(239, 68, 68, 0.16); }
+
+  .recurring-summary-card span,
+  .recurring-summary-card strong,
+  .recurring-summary-card small { display: block; position: relative; z-index: 1; }
+
+  .recurring-summary-card span {
+    color: #64748b;
+    font-size: 0.7rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .recurring-summary-card strong {
+    margin-top: 6px;
+    color: #172033;
+    font-size: 1.65rem;
+  }
+
+  .recurring-summary-card small {
+    margin-top: 4px;
+    color: #94a3b8;
+    font-size: 0.68rem;
+  }
+
+  .recurring-section { padding-top: 30px; }
+
+  .recurring-form-section {
+    margin-top: 26px;
+    padding: 22px;
+    border: 1px solid rgba(255, 255, 255, 0.72);
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.54);
+    box-shadow: 0 10px 35px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.8);
+    backdrop-filter: blur(14px);
+  }
+
+  .recurring-section-heading,
+  .recurring-list-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+  }
+
+  .recurring-section-heading h2,
+  .recurring-list-heading h2 {
+    margin: 5px 0 0;
+    color: #172033;
+    font-size: 1.18rem;
+  }
+
+  .recurring-section-heading p,
+  .recurring-list-heading p {
+    margin: 6px 0 0;
+    color: #64748b;
+    font-size: 0.82rem;
+    line-height: 1.55;
+  }
+
+  .recurring-section-count {
+    color: #7c5cfc;
+    font-size: 0.72rem;
+    font-weight: 900;
+  }
+
+  .recurring-divider {
+    height: 1px;
+    margin-top: 18px;
+    background: rgba(148, 163, 184, 0.2);
+  }
+
+  .recurring-form {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(145px, 1fr));
+    align-items: end;
+    gap: 13px;
+    padding-top: 20px;
+  }
+
+  .recurring-field { min-width: 0; }
+  .recurring-field-wide { grid-column: span 2; }
+
+  .recurring-field label {
+    display: block;
+    margin: 0 0 7px 2px;
+    color: #475569;
+    font-size: 0.73rem;
+    font-weight: 900;
+  }
+
+  .recurring-field input,
+  .recurring-field select,
+  .recurring-toolbar input,
+  .recurring-toolbar select {
+    width: 100%;
+    min-height: 45px;
+    padding: 0 12px;
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    border-radius: 12px;
+    outline: none;
+    background: rgba(255, 255, 255, 0.78);
+    color: #1e293b;
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 700;
+  }
+
+  .recurring-field input:focus,
+  .recurring-field select:focus,
+  .recurring-toolbar input:focus,
+  .recurring-toolbar select:focus {
+    border-color: #6d5dfc;
+    box-shadow: 0 0 0 4px rgba(109, 93, 252, 0.1);
+  }
+
+  .recurring-primary-button,
+  .recurring-save-button,
+  .recurring-record-button,
+  .recurring-secondary-button,
+  .recurring-edit-button,
+  .recurring-delete-button,
+  .recurring-cancel-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 42px;
+    padding: 0 15px;
+    border-radius: 11px;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.74rem;
+    font-weight: 900;
+    white-space: nowrap;
+  }
+
+  .recurring-primary-button,
+  .recurring-save-button {
+    min-height: 45px;
+    border: 0;
+    background: linear-gradient(135deg, #5b8cff, #7b61ff);
+    box-shadow: 0 10px 23px rgba(91, 140, 255, 0.22);
+    color: white;
+  }
+
+  button:disabled { cursor: not-allowed !important; opacity: 0.55; }
 
   .recurring-inline-notice {
     display: flex;
@@ -1303,330 +1583,70 @@ const recurringStyles = `
     border-radius: 50%;
     background: currentColor;
     color: white;
-    font-weight: 900;
   }
 
-  .recurring-inline-notice p {
-    flex: 1;
-    margin: 0;
-  }
+  .recurring-inline-notice p { flex: 1; margin: 0; }
+  .recurring-inline-notice button { border: 0; background: transparent; color: inherit; font-size: 1.1rem; cursor: pointer; }
 
-  .recurring-inline-notice button {
-    border: 0;
-    background: transparent;
-    color: inherit;
-    cursor: pointer;
-    font-size: 1.15rem;
-    line-height: 1;
-  }
-
-  .recurring-summary {
+  .recurring-toolbar {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    padding: 22px 0 2px;
-    border-bottom: 1px solid rgba(148, 163, 184, 0.18);
-  }
-
-  .recurring-summary > div {
-    padding: 4px 22px;
-    border-right: 1px solid rgba(148, 163, 184, 0.18);
-  }
-
-  .recurring-summary > div:first-child {
-    padding-left: 0;
-  }
-
-  .recurring-summary > div:last-child {
-    border-right: 0;
-  }
-
-  .recurring-summary span,
-  .recurring-summary strong,
-  .recurring-summary small {
-    display: block;
-  }
-
-  .recurring-summary span {
-    color: #7c5cfc;
-    font-size: 0.68rem;
-    font-weight: 900;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-
-  .recurring-summary strong {
-    margin-top: 7px;
-    color: #172033;
-    font-size: 1.25rem;
-  }
-
-  .recurring-summary small {
-    margin-top: 5px;
-    color: #94a3b8;
-    font-size: 0.69rem;
-  }
-
-  .recurring-negative {
-    color: #dc2626 !important;
-  }
-
-  .recurring-section {
-    padding-top: 30px;
-  }
-
-  .recurring-section-heading {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 18px;
-  }
-
-  .recurring-section-heading h2 {
-    margin: 5px 0 0;
-    color: #172033;
-    font-size: 1.18rem;
-  }
-
-  .recurring-section-heading p {
-    margin: 6px 0 0;
-    color: #64748b;
-    font-size: 0.82rem;
-    line-height: 1.55;
-  }
-
-  .recurring-section-count {
-    color: #7c5cfc;
-    font-size: 0.72rem;
-    font-weight: 900;
-  }
-
-  .recurring-divider {
-    height: 1px;
-    margin-top: 18px;
-    background: rgba(148, 163, 184, 0.2);
-  }
-
-  .recurring-form {
-    display: grid;
-    grid-template-columns: 1.3fr repeat(5, minmax(135px, 1fr)) auto;
-    align-items: end;
+    grid-template-columns: minmax(0, 1fr) 210px;
     gap: 12px;
-    padding-top: 20px;
+    margin-top: 18px;
   }
 
-  .recurring-field {
+  .recurring-search-wrap { position: relative; }
+  .recurring-search-wrap > span {
+    position: absolute;
+    left: 13px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+    font-size: 1.1rem;
+  }
+  .recurring-search-wrap input { padding-left: 38px; }
+
+  .recurring-reminder-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    padding-top: 18px;
+  }
+
+  .recurring-reminder-card {
+    position: relative;
     min-width: 0;
-  }
-
-  .recurring-field label {
-    display: block;
-    margin: 0 0 7px 2px;
-    color: #475569;
-    font-size: 0.73rem;
-    font-weight: 900;
-  }
-
-  .recurring-field input,
-  .recurring-field select {
-    width: 100%;
-    min-height: 45px;
-    padding: 0 12px;
-    border: 1px solid rgba(148, 163, 184, 0.3);
-    border-radius: 12px;
-    outline: none;
-    background: rgba(255, 255, 255, 0.76);
-    color: #1e293b;
-    font: inherit;
-    font-size: 0.82rem;
-    font-weight: 700;
-  }
-
-  .recurring-field input:focus,
-  .recurring-field select:focus {
-    border-color: #6d5dfc;
-    box-shadow: 0 0 0 4px rgba(109, 93, 252, 0.1);
-  }
-
-  .recurring-primary-button,
-  .recurring-generate-button,
-  .recurring-save-button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    min-height: 45px;
-    padding: 0 17px;
-    border: 0;
-    border-radius: 12px;
-    background: linear-gradient(135deg, #5b8cff, #7b61ff);
-    box-shadow: 0 10px 23px rgba(91, 140, 255, 0.22);
-    color: white;
-    cursor: pointer;
-    font: inherit;
-    font-size: 0.78rem;
-    font-weight: 900;
-    white-space: nowrap;
-  }
-
-  .recurring-primary-button:disabled,
-  .recurring-generate-button:disabled,
-  .recurring-save-button:disabled {
-    cursor: not-allowed;
-    opacity: 0.62;
-    box-shadow: none;
-  }
-
-  .recurring-generate-section {
-    padding: 22px 20px;
-    margin-top: 30px;
-    border: 1px solid rgba(255, 255, 255, 0.72);
+    padding: 18px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.75);
     border-radius: 18px;
-    background: rgba(255, 255, 255, 0.58);
+    background: rgba(255, 255, 255, 0.66);
     box-shadow:
-      0 8px 26px rgba(15, 23, 42, 0.05),
-      inset 0 1px 0 rgba(255, 255, 255, 0.85);
+      0 9px 28px rgba(15, 23, 42, 0.055),
+      inset 0 1px 0 rgba(255, 255, 255, 0.9);
     backdrop-filter: blur(14px);
   }
 
-  .recurring-generate-heading {
-    align-items: end;
+  .reminder-income {
+    border-left: 5px solid #21c77a;
   }
 
-  .recurring-generate-controls {
-    display: grid;
-    grid-template-columns: 170px 130px auto;
-    align-items: end;
-    gap: 10px;
+  .reminder-expense {
+    border-left: 5px solid #ff6467;
   }
 
-  .recurring-columns {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 18px;
-    padding-top: 20px;
-  }
+  
+  .reminder-paused { opacity: 0.78; filter: saturate(0.75); }
 
-  .recurring-group {
-    min-width: 0;
-  }
-
-  .recurring-group-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding-bottom: 13px;
-    border-bottom: 1px solid rgba(148, 163, 184, 0.16);
-  }
-
-  .recurring-group-header > div {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .recurring-group-header h3 {
-    margin: 0;
-    color: #172033;
-    font-size: 0.96rem;
-  }
-
-  .recurring-group-header p {
-    margin: 3px 0 0;
-    color: #94a3b8;
-    font-size: 0.69rem;
-  }
-
-  .recurring-group-header > strong {
-    color: #64748b;
-    font-size: 0.82rem;
-  }
-
-  .recurring-group-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-  }
-
-  .recurring-group-dot-income {
-    background: #21c77a;
-    box-shadow: 0 0 0 5px rgba(33, 199, 122, 0.1);
-  }
-
-  .recurring-group-dot-expense {
-    background: #ff6467;
-    box-shadow: 0 0 0 5px rgba(255, 100, 103, 0.1);
-  }
-
-  .recurring-list {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    max-height: 500px;
-    padding: 13px 3px 3px 0;
-    overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: #6c4dff rgba(148, 163, 184, 0.1);
-  }
-
-  .recurring-list::-webkit-scrollbar {
-    width: 7px;
-  }
-
-  .recurring-list::-webkit-scrollbar-track {
-    border-radius: 999px;
-    background: rgba(148, 163, 184, 0.1);
-  }
-
-  .recurring-list::-webkit-scrollbar-thumb {
-    border-radius: 999px;
-    background: linear-gradient(180deg, #5b8cff, #7b61ff);
-  }
-
-  .recurring-item {
-    position: relative;
-    padding: 16px;
-    overflow: visible;
-    border: 1px solid rgba(255, 255, 255, 0.72);
-    border-radius: 16px;
-    background: rgba(255, 255, 255, 0.62);
-    box-shadow:
-      0 7px 22px rgba(15, 23, 42, 0.045),
-      inset 0 1px 0 rgba(255, 255, 255, 0.85);
-  }
-
-  .recurring-item::before {
-    content: "";
-    position: absolute;
-    inset: 0 auto 0 0;
-    width: 4px;
-    border-radius: 16px 0 0 16px;
-  }
-
-  .recurring-item-income::before {
-    background: #21c77a;
-  }
-
-  .recurring-item-expense::before {
-    background: #ff6467;
-  }
-
-  .recurring-item-editing {
-    border-color: rgba(109, 93, 252, 0.25);
-    background: rgba(255, 255, 255, 0.78);
-    box-shadow:
-      0 14px 34px rgba(91, 92, 180, 0.1),
-      inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  }
-
-  .recurring-item-title-row {
+  .recurring-card-top {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 12px;
+    gap: 15px;
   }
 
-  .recurring-item-category {
+  .recurring-card-title-wrap { min-width: 0; }
+  .recurring-card-category {
     display: block;
     margin-bottom: 4px;
     color: #7c5cfc;
@@ -1636,171 +1656,54 @@ const recurringStyles = `
     text-transform: uppercase;
   }
 
-  .recurring-item h4 {
+  .recurring-card-title-wrap h3 {
     margin: 0;
     color: #172033;
-    font-size: 0.94rem;
+    font-size: 1rem;
   }
 
-  .recurring-item-amount {
-    display: block;
-    margin-top: 12px;
-    font-size: 1.05rem;
+  .recurring-card-title-wrap p {
+    margin: 7px 0 0;
+    color: #64748b;
+    font-size: 0.76rem;
+    line-height: 1.5;
   }
 
-  .amount-income {
-    color: #087f5b;
-  }
-
-  .amount-expense {
-    color: #dc2626;
-  }
-
-  .recurring-item-meta {
+  .recurring-card-menu-wrap {
+    position: relative;
     display: flex;
-    flex-wrap: wrap;
+    align-items: center;
     gap: 7px;
-    margin-top: 11px;
   }
 
-  .recurring-item-meta span {
+  .recurring-status-badge {
     display: inline-flex;
     align-items: center;
-    min-height: 25px;
-    padding: 0 8px;
+    gap: 6px;
+    min-height: 28px;
+    padding: 0 9px;
     border-radius: 999px;
-    background: rgba(148, 163, 184, 0.1);
-    color: #64748b;
     font-size: 0.65rem;
-    font-weight: 750;
-  }
-
-  .recurring-item-actions {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-  }
-
-  .recurring-edit-button,
-  .recurring-delete-button {
-    min-height: 31px;
-    padding: 0 10px;
-    border-radius: 9px;
-    cursor: pointer;
-    font-size: 0.68rem;
     font-weight: 900;
+    white-space: nowrap;
   }
 
-  .recurring-edit-button {
-    border: 1px solid rgba(79, 124, 255, 0.18);
-    background: rgba(79, 124, 255, 0.07);
-    color: #315fda;
-  }
+  .recurring-status-badge i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .status-due-today { background: rgba(33, 199, 122, 0.11); color: #087f5b; }
+  .status-upcoming { background: rgba(245, 158, 11, 0.13); color: #b45309; }
+  .status-overdue { background: rgba(239, 68, 68, 0.11); color: #b91c1c; }
+  .status-scheduled { background: rgba(100, 116, 139, 0.11); color: #475569; }
+  .status-inactive,
+  .status-paused { background: rgba(100, 116, 139, 0.12); color: #64748b; }
 
-  .recurring-delete-button {
-    border: 1px solid rgba(239, 68, 68, 0.18);
-    background: rgba(239, 68, 68, 0.07);
-    color: #dc2626;
-  }
-
-  .recurring-edit-button:disabled,
-  .recurring-delete-button:disabled {
-    cursor: not-allowed;
-    opacity: 0.55;
-  }
-
-  .recurring-edit-form {
-    position: relative;
-  }
-
-  .recurring-edit-heading {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 12px;
-    padding-bottom: 14px;
-    border-bottom: 1px solid rgba(148, 163, 184, 0.16);
-  }
-
-  .recurring-edit-heading span {
-    color: #7c5cfc;
-    font-size: 0.64rem;
-    font-weight: 900;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-
-  .recurring-edit-heading h4 {
-    margin-top: 4px;
-  }
-
-  .recurring-edit-close {
-    display: grid;
+  .recurring-menu-trigger {
+    display: none;
     place-items: center;
     width: 31px;
     height: 31px;
-    border: 1px solid rgba(148, 163, 184, 0.18);
-    border-radius: 9px;
-    background: rgba(255, 255, 255, 0.7);
-    color: #64748b;
-    cursor: pointer;
-    font-size: 1.05rem;
-  }
-
-  .recurring-edit-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 11px;
-    padding-top: 15px;
-  }
-
-  .recurring-edit-wide {
-    grid-column: 1 / -1;
-  }
-
-  .recurring-edit-actions {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 9px;
-    margin-top: 15px;
-  }
-
-  .recurring-save-button {
-    min-height: 39px;
-  }
-
-  .recurring-cancel-button {
-    min-height: 39px;
-    padding: 0 14px;
-    border: 1px solid rgba(148, 163, 184, 0.24);
-    border-radius: 11px;
-    background: rgba(255, 255, 255, 0.62);
-    color: #64748b;
-    cursor: pointer;
-    font: inherit;
-    font-size: 0.75rem;
-    font-weight: 850;
-  }
-
-  .recurring-cancel-button:disabled {
-    cursor: not-allowed;
-    opacity: 0.55;
-  }
-
-  .recurring-mobile-menu {
-    display: none;
-    position: relative;
-  }
-
-  .recurring-menu-trigger {
-    display: grid;
-    place-items: center;
-    width: 32px;
-    height: 32px;
     border: 1px solid rgba(148, 163, 184, 0.2);
     border-radius: 9px;
-    background: rgba(255, 255, 255, 0.7);
+    background: rgba(255, 255, 255, 0.72);
     color: #475569;
     cursor: pointer;
     font-size: 1.05rem;
@@ -1808,10 +1711,10 @@ const recurringStyles = `
 
   .recurring-menu-popover {
     position: absolute;
-    top: 36px;
+    top: 37px;
     right: 0;
-    z-index: 20;
-    min-width: 112px;
+    z-index: 30;
+    min-width: 122px;
     padding: 5px;
     border: 1px solid rgba(148, 163, 184, 0.18);
     border-radius: 10px;
@@ -1821,8 +1724,8 @@ const recurringStyles = `
 
   .recurring-menu-popover button {
     width: 100%;
-    min-height: 31px;
-    padding: 0 8px;
+    min-height: 32px;
+    padding: 0 9px;
     border: 0;
     border-radius: 7px;
     background: transparent;
@@ -1833,228 +1736,170 @@ const recurringStyles = `
     text-align: left;
   }
 
-  .recurring-menu-popover button:hover {
-    background: rgba(79, 124, 255, 0.07);
-  }
+  .recurring-menu-popover button:hover { background: rgba(79, 124, 255, 0.07); }
+  .recurring-menu-popover .recurring-menu-delete { color: #dc2626; }
 
-  .recurring-menu-popover .recurring-menu-delete {
-    color: #dc2626;
-  }
-
-  .recurring-menu-popover .recurring-menu-delete:hover {
-    background: rgba(239, 68, 68, 0.07);
-  }
-
-  .recurring-group-empty {
-    padding: 30px 10px;
-    color: #94a3b8;
-    font-size: 0.78rem;
-    text-align: center;
-  }
-
-  .recurring-state {
+  .recurring-card-details {
     display: grid;
-    place-items: center;
-    min-height: 270px;
-    padding: 30px;
-    text-align: center;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 17px;
+    padding: 14px 0;
+    border-top: 1px solid rgba(148, 163, 184, 0.15);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.15);
   }
 
-  .recurring-state h3 {
-    margin: 14px 0 0;
-    color: #172033;
-    font-size: 1.02rem;
+  .recurring-detail-item span,
+  .recurring-detail-item strong { display: block; }
+  .recurring-detail-item span { color: #94a3b8; font-size: 0.62rem; font-weight: 800; }
+  .recurring-detail-item strong { margin-top: 4px; color: #334155; font-size: 0.72rem; line-height: 1.35; }
+
+  .recurring-card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 15px;
   }
 
-  .recurring-state p {
-    max-width: 420px;
-    margin: 7px 0 0;
-    color: #64748b;
-    font-size: 0.8rem;
-    line-height: 1.6;
-  }
+  .recurring-action-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin-top: 14px;
+  padding: 10px 12px;
+  border: 1px solid;
+  border-radius: 12px;
+}
 
-  .recurring-state-icon {
-    display: grid;
-    place-items: center;
-    width: 52px;
-    height: 52px;
-    border-radius: 16px;
-    background: rgba(109, 93, 252, 0.1);
-    color: #6d5dfc;
-    font-size: 1.3rem;
-    font-weight: 900;
-  }
+.recurring-action-hint span {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 21px;
+  height: 21px;
+  border-radius: 50%;
+  color: #ffffff;
+  font-size: 0.7rem;
+  font-weight: 900;
+}
+
+.recurring-action-hint p {
+  margin: 1px 0 0;
+  font-size: 0.7rem;
+  font-weight: 750;
+  line-height: 1.45;
+}
+
+.recurring-action-hint-expense {
+  border-color: rgba(239, 68, 68, 0.18);
+  background: rgba(239, 68, 68, 0.06);
+  color: #b91c1c;
+}
+
+.recurring-action-hint-expense span {
+  background: #ef4444;
+}
+
+.recurring-action-hint-income {
+  border-color: rgba(33, 199, 122, 0.2);
+  background: rgba(33, 199, 122, 0.07);
+  color: #087f5b;
+}
+
+.recurring-action-hint-income span {
+  background: #21c77a;
+}
+
+.recurring-scheduled-hint {
+  margin-top: 14px;
+  padding: 10px 12px;
+  border: 1px solid rgba(100, 116, 139, 0.16);
+  border-radius: 12px;
+  background: rgba(100, 116, 139, 0.07);
+  color: #64748b;
+  font-size: 0.7rem;
+  font-weight: 750;
+  line-height: 1.45;
+}
+
+  .recurring-record-button { border: 0; color: white; }
+  .record-income { background: linear-gradient(135deg, #20b875, #36cf91); }
+  .record-expense { background: linear-gradient(135deg, #ef5b61, #ff777b); }
+  .recurring-secondary-button { border: 1px solid rgba(124, 92, 252, 0.2); background: rgba(124, 92, 252, 0.08); color: #6547d8; }
+  .recurring-edit-button { border: 1px solid rgba(79, 124, 255, 0.18); background: rgba(79, 124, 255, 0.07); color: #315fda; }
+  .recurring-delete-button { border: 1px solid rgba(239, 68, 68, 0.18); background: rgba(239, 68, 68, 0.07); color: #dc2626; }
+
+  .recurring-item-editing { grid-column: 1 / -1; border-color: rgba(109, 93, 252, 0.25); }
+  .recurring-edit-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding-bottom: 14px; border-bottom: 1px solid rgba(148, 163, 184, 0.16); }
+  .recurring-edit-heading span { color: #7c5cfc; font-size: 0.64rem; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; }
+  .recurring-edit-heading h3 { margin: 4px 0 0; color: #172033; font-size: 1rem; }
+  .recurring-edit-close { display: grid; place-items: center; width: 31px; height: 31px; border: 1px solid rgba(148, 163, 184, 0.18); border-radius: 9px; background: rgba(255, 255, 255, 0.7); color: #64748b; cursor: pointer; font-size: 1.05rem; }
+
+  .recurring-edit-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; padding-top: 16px; }
+  .recurring-edit-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 15px; }
+  .recurring-cancel-button { border: 1px solid rgba(148, 163, 184, 0.24); background: rgba(255, 255, 255, 0.62); color: #64748b; }
+
+  .recurring-state { display: grid; place-items: center; min-height: 270px; padding: 30px; text-align: center; }
+  .recurring-state h3 { margin: 14px 0 0; color: #172033; font-size: 1.02rem; }
+  .recurring-state p { max-width: 420px; margin: 7px 0 0; color: #64748b; font-size: 0.8rem; line-height: 1.6; }
+  .recurring-state-icon { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 16px; background: rgba(109, 93, 252, 0.1); color: #6d5dfc; font-size: 1.3rem; font-weight: 900; }
 
   .recurring-loader,
-  .recurring-button-spinner {
-    display: inline-block;
-    border-radius: 50%;
-    border-style: solid;
-    animation: recurring-spin 0.75s linear infinite;
-  }
+  .recurring-button-spinner { display: inline-block; border-radius: 50%; border-style: solid; animation: recurring-spin 0.75s linear infinite; }
+  .recurring-loader { width: 36px; height: 36px; border-width: 3px; border-color: rgba(109, 93, 252, 0.18); border-top-color: #6d5dfc; }
+  .recurring-button-spinner { width: 14px; height: 14px; border-width: 2px; border-color: rgba(255, 255, 255, 0.38); border-top-color: white; }
 
-  .recurring-loader {
-    width: 36px;
-    height: 36px;
-    border-width: 3px;
-    border-color: rgba(109, 93, 252, 0.18);
-    border-top-color: #6d5dfc;
-  }
-
-  .recurring-button-spinner {
-    width: 14px;
-    height: 14px;
-    border-width: 2px;
-    border-color: rgba(255, 255, 255, 0.38);
-    border-top-color: white;
-  }
-
-  @keyframes recurring-spin {
-    to {
-      transform: rotate(360deg);
-    }
-  }
+  @keyframes recurring-spin { to { transform: rotate(360deg); } }
 
   @media (max-width: 1180px) {
-    .recurring-form {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-
-    .recurring-primary-button {
-      width: 100%;
-    }
+    .recurring-form,
+    .recurring-edit-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .recurring-reminder-list { grid-template-columns: 1fr; }
   }
 
   @media (max-width: 850px) {
-    .recurring-summary {
-      grid-template-columns: 1fr;
-      gap: 14px;
-      padding-bottom: 18px;
-    }
-
-    .recurring-summary > div {
-      padding: 0 0 14px;
-      border-right: 0;
-      border-bottom: 1px solid rgba(148, 163, 184, 0.15);
-    }
-
-    .recurring-summary > div:last-child {
-      padding-bottom: 0;
-      border-bottom: 0;
-    }
-
-    .recurring-generate-heading {
-      align-items: flex-start;
-      flex-direction: column;
-    }
-
-    .recurring-generate-controls {
-      width: 100%;
-      grid-template-columns: 1fr 1fr auto;
-    }
-
-    .recurring-columns {
-      grid-template-columns: 1fr;
-    }
+    .recurring-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .recurring-form,
+    .recurring-edit-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .recurring-field-wide { grid-column: 1 / -1; }
+    .recurring-card-details { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
 
   @media (max-width: 760px) {
-    .recurring-page {
-      padding: 18px 6px 28px;
+    .recurring-page { padding: 18px 6px 28px; }
+    .recurring-header { flex-direction: column; gap: 14px; }
+    .recurring-header-count { padding-left: 14px; }
+    .recurring-form-section { padding: 18px 12px; }
+    .recurring-toolbar { grid-template-columns: 1fr; }
+
+    .recurring-menu-trigger {
+      display: grid;
     }
 
-    .recurring-header {
-      flex-direction: column;
-      gap: 14px;
-    }
-
-    .recurring-header-count {
-      padding-left: 14px;
-    }
-
-    .recurring-form {
-      grid-template-columns: 1fr 1fr;
-    }
-
-    .recurring-field-wide {
-      grid-column: 1 / -1;
-    }
-
-    .recurring-primary-button {
-      grid-column: 1 / -1;
-    }
-
-    .recurring-generate-section {
-      padding: 18px 14px;
-    }
-
-    .recurring-generate-controls {
-      grid-template-columns: 1fr 1fr;
-    }
-
-    .recurring-generate-button {
-      grid-column: 1 / -1;
-      width: 100%;
-    }
-
-    .recurring-edit-button,
-    .recurring-delete-button {
+    .recurring-card-actions .recurring-secondary-button,
+    .recurring-card-actions .recurring-edit-button,
+    .recurring-card-actions .recurring-delete-button {
       display: none;
-    }
-
-    .recurring-mobile-menu {
-      display: block;
-    }
-
-    .recurring-list {
-      max-height: 470px;
     }
   }
 
-  @media (max-width: 480px) {
-    .recurring-header h1 {
-      font-size: 2rem;
-    }
-
-    .recurring-form {
-      grid-template-columns: 1fr;
-    }
-
-    .recurring-field-wide,
-    .recurring-primary-button {
-      grid-column: auto;
-    }
-
-    .recurring-generate-controls {
-      grid-template-columns: 1fr;
-    }
-
-    .recurring-generate-button {
-      grid-column: auto;
-    }
-
-    .recurring-item {
-      padding: 14px 12px;
-    }
-
-    .recurring-edit-grid {
-      grid-template-columns: 1fr;
-    }
-
-    .recurring-edit-wide {
-      grid-column: auto;
-    }
-
-    .recurring-edit-actions {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-    }
-
+  @media (max-width: 520px) {
+    .recurring-header h1 { font-size: 2rem; }
+    .recurring-summary-grid { gap: 9px; }
+    .recurring-summary-card { min-height: 98px; padding: 14px; }
+    .recurring-form,
+    .recurring-edit-grid { grid-template-columns: 1fr; }
+    .recurring-field-wide { grid-column: auto; }
+    .recurring-primary-button { width: 100%; }
+    .recurring-card-top { gap: 8px; }
+    .recurring-status-badge { padding: 0 7px; }
+    .recurring-card-details { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .recurring-card-actions { display: grid; grid-template-columns: 1fr 1fr; }
+    .recurring-record-button,
+    .recurring-secondary-button { width: 100%; }
+    .recurring-edit-actions { display: grid; grid-template-columns: 1fr 1fr; }
     .recurring-save-button,
-    .recurring-cancel-button {
-      width: 100%;
-    }
+    .recurring-cancel-button { width: 100%; }
   }
 `;
 

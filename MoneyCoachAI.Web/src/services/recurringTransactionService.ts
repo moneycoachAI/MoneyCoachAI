@@ -4,43 +4,73 @@ import type {
   RecurringTransaction,
 } from "../types/recurringTransactionTypes";
 
-export const getRecurringTransactions = async (): Promise<
-  RecurringTransaction[]
-> => {
-  const response = await axiosClient.get<RecurringTransaction[]>(
-    "/RecurringTransactions"
-  );
+const RECURRING_TRANSACTIONS_URL = "/RecurringTransactions";
 
-  return response.data;
+export const recurringTransactionService = {
+  async getRecurringTransactions(): Promise<RecurringTransaction[]> {
+    const response = await axiosClient.get<RecurringTransaction[]>(
+      RECURRING_TRANSACTIONS_URL
+    );
+
+    return response.data;
+  },
+
+  async getDashboardReminders(): Promise<RecurringTransaction[]> {
+    const response = await axiosClient.get<RecurringTransaction[]>(
+      `${RECURRING_TRANSACTIONS_URL}/dashboard`
+    );
+
+    return response.data;
+  },
+
+  async createRecurringTransaction(
+    request: CreateRecurringTransactionRequest
+  ): Promise<RecurringTransaction> {
+    const response = await axiosClient.post<RecurringTransaction>(
+      RECURRING_TRANSACTIONS_URL,
+      request
+    );
+
+    return response.data;
+  },
+
+  async updateRecurringTransaction(
+    id: string,
+    request: CreateRecurringTransactionRequest
+  ): Promise<void> {
+    await axiosClient.put(
+      `${RECURRING_TRANSACTIONS_URL}/${id}`,
+      request
+    );
+  },
+
+  async completeRecurringReminder(
+    id: string
+  ): Promise<RecurringTransaction> {
+    const response = await axiosClient.post<RecurringTransaction>(
+      `${RECURRING_TRANSACTIONS_URL}/${id}/complete`
+    );
+
+    return response.data;
+  },
+
+  async pauseRecurringReminder(id: string): Promise<void> {
+    await axiosClient.post(
+      `${RECURRING_TRANSACTIONS_URL}/${id}/pause`
+    );
+  },
+
+  async resumeRecurringReminder(id: string): Promise<void> {
+    await axiosClient.post(
+      `${RECURRING_TRANSACTIONS_URL}/${id}/resume`
+    );
+  },
+
+  async deleteRecurringTransaction(id: string): Promise<void> {
+    await axiosClient.delete(
+      `${RECURRING_TRANSACTIONS_URL}/${id}`
+    );
+  },
 };
 
-export const createRecurringTransaction = async (
-  request: CreateRecurringTransactionRequest
-) => {
-  await axiosClient.post("/RecurringTransactions", request);
-};
-
-export const deleteRecurringTransaction = async (id: string) => {
-  await axiosClient.delete(`/RecurringTransactions/${id}`);
-};
-
-export const generateRecurringTransactions = async (
-  month: number,
-  year: number
-): Promise<string> => {
-  const response = await axiosClient.post<string>(
-    `/RecurringTransactions/generate?month=${month}&year=${year}`
-  );
-
-  return response.data;
-};
-
-export const updateRecurringTransaction = async (
-  id: string,
-  request: CreateRecurringTransactionRequest
-) => {
-  await axiosClient.put(
-    `/RecurringTransactions/${id}`,
-    request
-  );
-};
+export default recurringTransactionService;

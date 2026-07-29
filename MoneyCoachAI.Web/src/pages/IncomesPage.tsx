@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
 
 import AppLayout from "../components/AppLayout";
 
-import { incomeSources } from "../constants/incomeSources";
 
 import {
   createIncome,
@@ -11,6 +11,8 @@ import {
   updateIncome,
 } from "../services/incomeService";
 
+import recurringTransactionService from "../services/recurringTransactionService";
+
 import {
   getTodayDateInputValue,
   isFutureDate,
@@ -18,7 +20,49 @@ import {
 
 import type { Income } from "../types/incomeTypes";
 
+const INCOME_SOURCE_OPTIONS = [
+  "Salary",
+  "Freelance",
+  "Business",
+  "Investment",
+  "Interest",
+  "Dividend",
+  "Rental Income",
+  "Commission",
+  "Bonus",
+  "Pension",
+  "Government Benefit",
+  "Refund",
+  "Sale of Asset",
+  "Other",
+];
+
+type RecurringIncomeNavigationState = {
+  recurringTransactionId?: string;
+  recurringTransaction?: {
+    id: string;
+    title: string;
+    amount: number;
+    category: string;
+    otherDescription?: string;
+    description?: string;
+    type: string;
+    nextOccurrenceDate: string;
+  };
+};
+
 function IncomesPage() {
+  const location = useLocation();
+
+  const recurringState =
+    location.state as RecurringIncomeNavigationState | null;
+
+  const recurringTransactionId =
+    recurringState?.recurringTransactionId ?? null;
+
+  const recurringTransaction =
+    recurringState?.recurringTransaction ?? null;
+
   const [incomes, setIncomes] = useState<Income[]>([]);
 
   const [amount, setAmount] = useState("");
@@ -37,6 +81,9 @@ function IncomesPage() {
 
   const [openActionMenuId, setOpenActionMenuId] =
     useState<string | null>(null);
+
+  const [showRecurringBanner, setShowRecurringBanner] =
+  useState(Boolean(recurringTransactionId));
 
   const [searchText, setSearchText] = useState("");
   const [filterSource, setFilterSource] = useState("");
@@ -72,6 +119,54 @@ function IncomesPage() {
 
     return () => window.clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    if (!showRecurringBanner || !recurringTransactionId || !recurringTransaction) {
+      return;
+    }
+
+    if (recurringTransaction.type.toLowerCase() !== "income") {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setAmount(recurringTransaction.amount.toString());
+
+      const recurringSource =
+        recurringTransaction.category === "Other"
+          ? "Other"
+          : recurringTransaction.category;
+
+      setSource(
+        INCOME_SOURCE_OPTIONS.includes(recurringSource)
+          ? recurringSource
+          : "Other"
+      );
+
+      setDescription(
+        recurringTransaction.category === "Other"
+          ? recurringTransaction.otherDescription ||
+              recurringTransaction.description ||
+              recurringTransaction.title
+          : recurringTransaction.description?.trim() ||
+              recurringTransaction.title
+      );
+
+      setDate(today);
+
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [
+    showRecurringBanner,
+    recurringTransactionId,
+    recurringTransaction,
+    today,
+  ]);
 
   const resetForm = () => {
     setAmount("");
@@ -118,14 +213,46 @@ function IncomesPage() {
 
       if (editingIncomeId) {
         await updateIncome(editingIncomeId, incomeData);
+
+        resetForm();
+        await loadIncomes();
+
         alert("Income updated successfully");
-      } else {
-        await createIncome(incomeData);
-        alert("Income created successfully");
+        return;
+      }
+
+      await createIncome(incomeData);
+
+      if (recurringTransactionId) {
+        const updatedReminder =
+          await recurringTransactionService.completeRecurringReminder(
+            recurringTransactionId
+          );
+          setShowRecurringBanner(false);
+
+        const nextReminderDate =
+          new Date(
+            updatedReminder.nextOccurrenceDate
+          ).toLocaleDateString("en-IN", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          });
+
+        resetForm();
+        await loadIncomes();
+
+        alert(
+          `Income created successfully.\nRecurring reminder completed.\nNext reminder: ${nextReminderDate}`
+        );
+
+        return;
       }
 
       resetForm();
       await loadIncomes();
+
+      alert("Income created successfully");
     } catch (error) {
       console.error("Failed to save income:", error);
       alert("Failed to save income");
@@ -343,6 +470,38 @@ function IncomesPage() {
 
             font-size: 11px;
             font-weight: 900;
+          }
+
+          .income-recurring-banner {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 18px;
+            padding: 12px 14px;
+            border: 1px solid rgba(33, 199, 122, 0.22);
+            border-radius: 14px;
+            background: rgba(33, 199, 122, 0.08);
+            color: #087f5b;
+            font-size: 13px;
+            font-weight: 800;
+            line-height: 1.5;
+          }
+
+          .income-recurring-banner span {
+            display: grid;
+            flex: 0 0 auto;
+            place-items: center;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #21c77a;
+            color: #ffffff;
+            font-size: 12px;
+            font-weight: 900;
+          }
+
+          .income-recurring-banner p {
+            margin: 1px 0 0;
           }
 
           /* =========================
@@ -1215,6 +1374,17 @@ function IncomesPage() {
             )}
           </div>
 
+          {showRecurringBanner && recurringTransactionId && recurringTransaction && (
+            <div className="income-recurring-banner">
+              <span aria-hidden="true">✓</span>
+              <p>
+                This form was opened from the recurring reminder for{" "}
+                <strong>{recurringTransaction.title}</strong>. Save the income
+                to complete the current occurrence and schedule the next reminder.
+              </p>
+            </div>
+          )}
+
           <form
             className="income-inline-form"
             onSubmit={handleSubmitIncome}
@@ -1257,7 +1427,7 @@ function IncomesPage() {
                   Select Income Source
                 </option>
 
-                {incomeSources.map((item) => (
+                {INCOME_SOURCE_OPTIONS.map((item) => (
                   <option key={item} value={item}>
                     {item}
                   </option>
@@ -1359,7 +1529,7 @@ function IncomesPage() {
             >
               <option value="">All Income Sources</option>
 
-              {incomeSources.map((item) => (
+              {INCOME_SOURCE_OPTIONS.map((item) => (
                 <option key={item} value={item}>
                   {item}
                 </option>

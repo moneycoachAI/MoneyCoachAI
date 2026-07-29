@@ -48,6 +48,8 @@ builder.Services.AddScoped<NetWorthService>();
 
 builder.Services.AddScoped<RecurringTransactionRepository>();
 builder.Services.AddScoped<RecurringTransactionService>();
+builder.Services.AddScoped<RecurringReminderService>();
+
 
 builder.Services.AddScoped<NetWorthSnapshotRepository>();
 
