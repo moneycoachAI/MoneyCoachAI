@@ -58,21 +58,22 @@ public class NotificationService
         await _notificationRepository.DeleteAsync(id, userId);
     }
 
-    public async Task CreateSystemNotificationAsync(
-    string userId,
-    string title,
-    string message,
-    string type,
-    string referenceKey)
+    public async Task<bool> CreateSystemNotificationAsync(
+        string userId,
+        string title,
+        string message,
+        string type,
+        string referenceKey)
     {
-        var alreadyExists = await _notificationRepository.ExistsByReferenceKeyAsync(
-            userId,
-            referenceKey
-        );
+        var alreadyExists =
+            await _notificationRepository.ExistsByReferenceKeyAsync(
+                userId,
+                referenceKey
+            );
 
         if (alreadyExists)
         {
-            return;
+            return false;
         }
 
         var notification = new Notification
@@ -87,5 +88,7 @@ public class NotificationService
         };
 
         await _notificationRepository.CreateAsync(notification);
+
+        return true;
     }
 }

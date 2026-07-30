@@ -38,14 +38,28 @@ import type { InvestmentSummary } from "../types/investmentTypes";
 import { getProfile } from "../services/profileService";
 import type { UserProfile } from "../types/profileTypes";
 
+import {
+  getUnreadNotifications,
+} from "../services/notificationService";
+
+import type {
+  Notification,
+} from "../types/notificationTypes";
+
+import { Bell } from "lucide-react";
+
 import { isFutureMonth } from "../utils/dateUtils";
 
 function DashboardPage() {
   const navigate = useNavigate();
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
-
   
+  const [unreadNotifications, setUnreadNotifications] =
+  useState<Notification[]>([]);
+
+  const [showNotificationMenu, setShowNotificationMenu] =
+  useState(false);
 
   const [year, setYear] = useState("2026");
   const [cards, setCards] = useState<MonthlyDashboardCard[]>([]);
@@ -358,6 +372,19 @@ const [motivationIndex, setMotivationIndex] = useState(0);
     setAiInsights(insightData);
   };
 
+  const loadUnreadNotifications = async () => {
+    try {
+      const notifications = await getUnreadNotifications();
+
+      setUnreadNotifications(notifications);
+    } catch (error) {
+      console.error(
+        "Failed to load notifications",
+        error
+      );
+    }
+  };
+
   const loadDashboardCards = async () => {
     const selectedYear = Number(year);
 
@@ -587,6 +614,7 @@ const [motivationIndex, setMotivationIndex] = useState(0);
         setProfile(profileData);
 
         await loadDashboardCards();
+        await loadUnreadNotifications();
       } catch (error) {
         console.error("Failed to load dashboard:", error);
       }
@@ -733,6 +761,272 @@ const [motivationIndex, setMotivationIndex] = useState(0);
             align-items: center;
           }
 
+          .notification-button {
+            position: relative;
+            width: 46px;
+            height: 46px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            border: 1px solid rgba(255,255,255,.6);
+            border-radius: 14px;
+
+            background: rgba(255,255,255,.75);
+            cursor: pointer;
+
+            transition: .2s;
+          }
+          
+          .notification-wrapper {
+            position: relative;
+            flex-shrink: 0;
+          }
+
+          .notification-menu {
+            position: absolute;
+            top: calc(100% + 12px);
+            right: 0;
+            z-index: 1000;
+
+            width: min(380px, calc(100vw - 24px));
+            max-height: 420px;
+            overflow: hidden;
+
+            border: 1px solid rgba(255, 255, 255, 0.75);
+            border-radius: 20px;
+
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+
+            box-shadow: 0 22px 55px rgba(31, 41, 55, 0.2);
+          }
+
+          .notification-menu-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+
+            padding: 18px 18px 14px;
+            border-bottom: 1px solid rgba(107, 114, 128, 0.12);
+          }
+
+          .notification-menu-header h3 {
+            margin: 0;
+            color: var(--mca-text);
+            font-size: 17px;
+          }
+
+          .notification-menu-header p {
+            margin: 4px 0 0;
+            color: var(--mca-muted);
+            font-size: 12px;
+          }
+
+          .notification-close-button {
+            width: 30px;
+            height: 30px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            border: 0;
+            border-radius: 9px;
+            background: rgba(107, 114, 128, 0.09);
+
+            color: var(--mca-muted);
+            cursor: pointer;
+            font-size: 22px;
+            line-height: 1;
+          }
+
+          .notification-close-button:hover {
+            background: rgba(255, 100, 103, 0.12);
+            color: var(--mca-danger);
+          }
+
+          .notification-menu-list {
+            max-height: 335px;
+            overflow-y: auto;
+            padding: 6px;
+          }
+
+          .notification-menu-item {
+            width: 100%;
+
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+
+            padding: 11px 10px;
+
+            border: 0;
+            border-radius: 12px;
+
+            background: transparent;
+            color: inherit;
+
+            cursor: pointer;
+            font: inherit;
+            text-align: left;
+          }
+
+          .notification-menu-content strong,
+          .notification-menu-content p {
+            overflow-wrap: anywhere;
+          }
+
+          .notification-menu-content p {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+          }
+
+          .notification-menu-list::-webkit-scrollbar {
+            width: 6px;
+          }
+
+          .notification-menu-list::-webkit-scrollbar-track {
+            background: transparent;
+          }
+
+          .notification-menu-list::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, #7c5cfc, #4f7cff);
+            border-radius: 999px;
+          }
+
+          .notification-menu-footer {
+            padding: 10px 12px 12px;
+            border-top: 1px solid rgba(107, 114, 128, 0.12);
+          }
+
+          .notification-menu-footer button {
+            width: 100%;
+            min-height: 40px;
+
+            border: 0;
+            border-radius: 12px;
+
+            background: rgba(124, 92, 252, 0.1);
+            color: #6c4dff;
+
+            cursor: pointer;
+            font: inherit;
+            font-size: 13px;
+            font-weight: 800;
+          }
+
+          .notification-menu-footer button:hover {
+            background: rgba(124, 92, 252, 0.17);
+          }
+
+          .notification-menu-item:hover {
+            background: rgba(79, 124, 255, 0.08);
+          }
+
+          .notification-unread-dot {
+            width: 8px;
+            height: 8px;
+            margin-top: 7px;
+            flex-shrink: 0;
+
+            border-radius: 50%;
+            background: var(--mca-primary);
+
+            box-shadow: 0 0 0 4px rgba(79, 124, 255, 0.12);
+          }
+
+          .notification-menu-content {
+            min-width: 0;
+          }
+
+          .notification-menu-content strong {
+            display: block;
+            margin-bottom: 4px;
+
+            color: var(--mca-text);
+            font-size: 14px;
+          }
+
+          .notification-menu-content p {
+            margin: 0 0 7px;
+
+            color: #4b5563;
+            font-size: 13px;
+            line-height: 1.45;
+          }
+
+          .notification-menu-content small {
+            color: var(--mca-muted);
+            font-size: 11px;
+          }
+
+          .notification-empty {
+            min-height: 150px;
+
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+
+            color: var(--mca-muted);
+            text-align: center;
+          }
+
+          .notification-empty p {
+            margin: 0;
+            font-size: 13px;
+          }
+
+          @media (max-width: 700px) {
+            .notification-menu {
+              position: fixed;
+              top: 82px;
+              right: 12px;
+              left: 12px;
+              width: auto;
+            }
+          }
+
+          .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+
+            min-width: 20px;
+            height: 20px;
+
+            border-radius: 50%;
+
+            background: #ff4d4f;
+            color: white;
+
+            font-size: 11px;
+            font-weight: 700;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            padding: 0 5px;
+          }
+
+
+
+          .notification-button:hover {
+            transform: translateY(-2px);
+
+            background: white;
+
+            box-shadow: 0 10px 24px rgba(91,97,255,.18);
+          }
+
           .top-card-grid {
             display: grid;
             grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -861,11 +1155,7 @@ const [motivationIndex, setMotivationIndex] = useState(0);
             margin-bottom: 18px;
           }
 
-          .soft-row {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-          }
+
 
           .insight-list,
           .activity-list {
@@ -1122,63 +1412,6 @@ const [motivationIndex, setMotivationIndex] = useState(0);
             margin-top: 0 !important;
           }
 
-          .table-card {
-            max-height: 260px;
-            overflow-y: auto;
-            overflow-x: auto;
-          }
-
-          .budget-scroll::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-          }
-
-          .budget-scroll::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.35);
-            border-radius: 999px;
-          }
-
-          .budget-scroll::-webkit-scrollbar-thumb {
-            background: linear-gradient(
-              180deg,
-              #8B5CF6,
-              #6D28D9
-            );
-            border-radius: 999px;
-          }
-
-          .budget-scroll::-webkit-scrollbar-thumb:hover {
-            background: linear-gradient(
-              180deg,
-              #7C3AED,
-              #5B21B6
-            );
-          }
-
-          .budget-scroll {
-            scrollbar-width: thin;
-            scrollbar-color: #cbaddc rgba(255, 255, 255, 0.35);
-          }
-
-          .mca-table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 520px;
-          }
-
-          .mca-table th {
-            text-align: left;
-            color: #6b7280;
-            font-size: 13px;
-            padding: 12px;
-          }
-
-          .mca-table td {
-            padding: 13px 12px;
-            border-top: 1px solid rgba(17,24,39,.06);
-            font-weight: 600;
-          }
-
           .monthly-overview-section {
             background:
               linear-gradient(
@@ -1237,7 +1470,7 @@ const [motivationIndex, setMotivationIndex] = useState(0);
 
                 );
 
-                border-radius: 2px solid rgba(255,255,255,.25);
+                border-radius: 2px solid rgba(255,255,255, 0.25);
             }
 
             .monthly-scroll::-webkit-scrollbar-thumb:hover {
@@ -1278,9 +1511,26 @@ const [motivationIndex, setMotivationIndex] = useState(0);
           .monthly-card {
             position: relative;
 
+            flex: 0 0 320px;
+            min-width: 320px;
             min-height: 420px;
 
+            padding: 20px;
             overflow: visible;
+
+            border: 1px solid rgba(255, 255, 255, 0.6);
+
+            background: linear-gradient(
+              135deg,
+              #f3f5f7 0%,
+              #eceff3 35%,
+              #e7ebf0 70%,
+              #f8f9fb 100%
+            );
+
+            box-shadow:
+              0 12px 30px rgba(0, 0, 0, 0.06),
+              inset 0 1px 0 rgba(255, 255, 255, 0.8);
 
             transition:
               transform 0.22s ease,
@@ -1718,90 +1968,67 @@ const [motivationIndex, setMotivationIndex] = useState(0);
           }
 
           .compact-section-head {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 6px;
-
-  min-width: 0;
-}
-
-.compact-section-head h2 {
-  margin: 0;
-}
-
-.compact-section-head p {
-  margin: 0;
-}
-
-.compact-month-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-
-  flex: 0 0 auto;
-}
-
-.compact-month-input {
-  width: 180px;
-  min-width: 0;
-  height: 46px;
-
-  padding: 0 14px;
-
-  border: 1px solid rgba(124, 92, 252, 0.16);
-  border-radius: 15px;
-
-  background: rgba(255, 255, 255, 0.76);
-  color: #1f2937;
-
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.9);
-
-  font: inherit;
-  font-size: 13px;
-  font-weight: 700;
-
-  outline: none;
-}
-
-.compact-month-input:focus {
-  border-color: rgba(124, 92, 252, 0.45);
-
-  box-shadow:
-    0 0 0 4px rgba(124, 92, 252, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.95);
-}
-
-.compact-view-button {
-  min-width: 88px;
-  height: 46px;
-  padding: 0 20px;
-
-  white-space: nowrap;
-}
-
-          .section-filter-row {
             display: flex;
-            align-items: end;
-            justify-content: flex-end;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 6px;
+
+            min-width: 0;
+          }
+
+          .compact-section-head h2 {
+            margin: 0;
+          }
+
+          .compact-section-head p {
+            margin: 0;
+          }
+
+          .compact-month-actions {
+            display: flex;
+            align-items: center;
             gap: 10px;
-            flex-wrap: wrap;
+
+            flex: 0 0 auto;
           }
 
-          .section-filter-group {
-            display: grid;
-            gap: 5px;
+          .compact-month-input {
+            width: 180px;
+            min-width: 0;
+            height: 46px;
+
+            padding: 0 14px;
+
+            border: 1px solid rgba(124, 92, 252, 0.16);
+            border-radius: 15px;
+
+            background: rgba(255, 255, 255, 0.76);
+            color: #1f2937;
+
+            box-shadow:
+              inset 0 1px 0 rgba(255, 255, 255, 0.9);
+
+            font: inherit;
+            font-size: 13px;
+            font-weight: 700;
+
+            outline: none;
           }
 
-          .section-filter-group label {
-            color: #6b7280;
-            font-size: 10px;
-            font-weight: 800;
+          .compact-month-input:focus {
+            border-color: rgba(124, 92, 252, 0.45);
+
+            box-shadow:
+              0 0 0 4px rgba(124, 92, 252, 0.08),
+              inset 0 1px 0 rgba(255, 255, 255, 0.95);
           }
 
-          .section-filter-group .mca-soft-input {
-            min-width: 104px;
+          .compact-view-button {
+            min-width: 88px;
+            height: 46px;
+            padding: 0 20px;
+
+            white-space: nowrap;
           }
 
           .comparison-period-row {
@@ -2035,39 +2262,39 @@ const [motivationIndex, setMotivationIndex] = useState(0);
             }
 
             .dash-card-head.compact-responsive-head {
-  display: block;
-}
+              display: block;
+            }
 
-.compact-section-head {
-  width: 100%;
-}
+            .compact-section-head {
+              width: 100%;
+            }
 
-.compact-section-head .mca-section-title {
-  font-size: 20px;
-  line-height: 1.2;
-}
+            .compact-section-head .mca-section-title {
+              font-size: 20px;
+              line-height: 1.2;
+            }
 
-.compact-section-head .mca-muted {
-  margin-top: 7px;
-  font-size: 13px;
-  line-height: 1.45;
-}
+            .compact-section-head .mca-muted {
+              margin-top: 7px;
+              font-size: 13px;
+              line-height: 1.45;
+            }
 
-.compact-month-actions {
-  width: 100%;
-  margin-top: 14px;
-}
+            .compact-month-actions {
+              width: 100%;
+              margin-top: 14px;
+            }
 
-.compact-month-input {
-  flex: 1;
-  width: auto;
-}
+            .compact-month-input {
+              flex: 1;
+              width: auto;
+            }
 
-.compact-view-button {
-  flex: 0 0 86px;
-  min-width: 86px;
-  padding: 0 12px;
-}
+            .compact-view-button {
+              flex: 0 0 86px;
+              min-width: 86px;
+              padding: 0 12px;
+            }
           }
 
 
@@ -2114,20 +2341,6 @@ const [motivationIndex, setMotivationIndex] = useState(0);
             .dash-actions,
             .dash-actions input {
               width: 100%;
-            }
-
-            .section-filter-row {
-              width: 100%;
-              justify-content: flex-start;
-            }
-
-            .section-filter-group {
-              flex: 1 1 120px;
-            }
-
-            .section-filter-group .mca-soft-input {
-              width: 100%;
-              min-width: 0;
             }
 
             .comparison-period-row {
@@ -2237,11 +2450,11 @@ const [motivationIndex, setMotivationIndex] = useState(0);
             }
 
             .monthly-card {
-  flex: 0 0 calc(100vw - 36px);
-  min-width: calc(100vw - 36px);
-  max-width: calc(100vw - 36px);
-  padding: 18px;
-}
+              flex: 0 0 calc(100vw - 36px);
+              min-width: calc(100vw - 36px);
+              max-width: calc(100vw - 36px);
+              padding: 18px;
+            }
           }
 
             .chart-card {
@@ -2269,6 +2482,90 @@ const [motivationIndex, setMotivationIndex] = useState(0);
           </div>
 
           <div className="dash-actions">
+
+            <div className="notification-wrapper">
+              <button
+                type="button"
+                className="notification-button"
+                title="Notifications"
+                aria-label="Open notifications"
+                onClick={() => setShowNotificationMenu((current) => !current)}
+              >
+                <Bell size={22} />
+
+                {unreadNotifications.length > 0 && (
+                  <span className="notification-badge">
+                    {unreadNotifications.length > 9
+                      ? "9+"
+                      : unreadNotifications.length}
+                  </span>
+                )}
+              </button>
+
+              {showNotificationMenu && (
+                <div className="notification-menu">
+                  <div className="notification-menu-header">
+                    <div>
+                      <h3>Notifications</h3>
+                      <p>{unreadNotifications.length} unread</p>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="notification-close-button"
+                      onClick={() => setShowNotificationMenu(false)}
+                      aria-label="Close notifications"
+                    >
+                      ×
+                    </button>
+                  </div>
+
+                  <div className="notification-menu-list">
+                    {unreadNotifications.length === 0 ? (
+                      <div className="notification-empty">
+                        <Bell size={24} />
+                        <p>You have no unread notifications.</p>
+                      </div>
+                    ) : (
+                      unreadNotifications.slice(0, 5).map((notification) => (
+                        <button
+                          key={notification.id}
+                          type="button"
+                          className="notification-menu-item"
+                          onClick={() => {
+                            setShowNotificationMenu(false);
+                            navigate("/notifications");
+                          }}
+                        >
+                          <span className="notification-unread-dot" />
+
+                          <div className="notification-menu-content">
+                            <strong>{notification.title}</strong>
+                            <p>{notification.message}</p>
+
+                            <small>
+                              {new Date(notification.createdAt).toLocaleString()}
+                            </small>
+                          </div>
+                        </button>
+                      ))
+                    )}
+                    <div className="notification-menu-footer">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowNotificationMenu(false);
+                          navigate("/notifications");
+                        }}
+                      >
+                        View All Notifications
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <input
               className="mca-soft-input"
               type="number"
@@ -2279,9 +2576,13 @@ const [motivationIndex, setMotivationIndex] = useState(0);
               placeholder="Year"
             />
 
-            <button className="mca-gradient-button" onClick={loadDashboardCards}>
+            <button
+              className="mca-gradient-button"
+              onClick={loadDashboardCards}
+            >
               {loading ? "Loading..." : "Load Year"}
             </button>
+
           </div>
         </div>
 

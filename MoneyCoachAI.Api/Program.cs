@@ -49,7 +49,7 @@ builder.Services.AddScoped<NetWorthService>();
 builder.Services.AddScoped<RecurringTransactionRepository>();
 builder.Services.AddScoped<RecurringTransactionService>();
 builder.Services.AddScoped<RecurringReminderService>();
-
+builder.Services.AddScoped<RecurringNotificationService>();
 
 builder.Services.AddScoped<NetWorthSnapshotRepository>();
 
@@ -137,6 +137,7 @@ builder.Services.AddScoped<IncomeService>();
 
 builder.Services.AddScoped<PdfReportService>();
 
+builder.Services.AddHostedService<RecurringReminderBackgroundService>();
 
 builder.Services.AddCors(options =>
 {

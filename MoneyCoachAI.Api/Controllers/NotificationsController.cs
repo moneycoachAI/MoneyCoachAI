@@ -68,4 +68,5 @@ public class NotificationsController : ControllerBase
         await _notificationService.DeleteNotificationAsync(id, GetUserId());
         return NoContent();
     }
+
 }

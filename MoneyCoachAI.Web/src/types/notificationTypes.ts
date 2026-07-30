@@ -4,6 +4,7 @@ export interface Notification {
   title: string;
   message: string;
   type: string;
+  referenceKey?: string;
   isRead: boolean;
   createdAt: string;
 }
