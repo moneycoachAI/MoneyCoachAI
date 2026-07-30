@@ -1560,7 +1560,7 @@ const [motivationIndex, setMotivationIndex] = useState(0);
             align-items: center;
             justify-content: center;
 
-            height: 288px;
+            height: 271px;
             margin-top: 14px;
             padding: 14px 26px 20px;
 

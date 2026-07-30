@@ -61,15 +61,13 @@ function ExpensesPage() {
   const recurringState = location.state as
     | {
         recurringTransactionId?: string;
-        recurringTransaction?: {
-          id: string;
+        recurringTransaction?: { 
           title: string;
           amount: number;
           category: string;
           otherDescription?: string;
           description?: string;
           type: string;
-          nextOccurrenceDate: string;
         };
       }
     | null;
@@ -158,24 +156,12 @@ function ExpensesPage() {
   };
 
   useEffect(() => {
-  const loadInitialExpenses = async () => {
-    try {
-      const data = await getExpenses();
-      setExpenses(data);
-    } catch (error) {
-      console.error("Failed to load expenses:", error);
-      alert("Failed to load expenses");
-    } finally {
-      setLoading(false);
-    }
-  };
+    const timer = window.setTimeout(() => {
+      void loadExpenses();
+    }, 0);
 
-  const timer = window.setTimeout(() => {
-    void loadInitialExpenses();
-  }, 0);
-
-  return () => window.clearTimeout(timer);
-}, []);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   const resetForm = () => {
     setAmount("");
@@ -237,8 +223,7 @@ function ExpensesPage() {
 
       if (recurringTransactionId) {
         const updatedReminder =
-          await recurringTransactionService
-            .completeRecurringReminder(
+          await recurringTransactionService.completeRecurringReminder(
               recurringTransactionId
             );
             setShowRecurringBanner(false);
@@ -511,13 +496,41 @@ function ExpensesPage() {
               minmax(180px, 1fr)
               minmax(220px, 1.4fr)
               minmax(160px, 0.9fr)
-              auto;
+              minmax(250px, auto);
             gap: 14px;
             align-items: end;
             width: 100%;
             min-width: 0;
           }
+            
+          .expense-inline-actions {
+            display: flex;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+            gap: 8px;
+            min-width: 0;
+            width:50%;
+          }
 
+          .expense-inline-actions-edit {
+            grid-column: 1 / -1;
+            justify-content: flex-start;
+            gap: 12px;
+            margin-top: 12px;
+            width: 50%;
+          }
+
+          .expense-inline-actions .mca-gradient-button,
+          .expense-inline-actions .expense-cancel-button {
+            flex: 1 1 115px;
+            min-height: 46px;
+            white-space: nowrap;
+          }
+
+          .expense-inline-actions-edit .mca-gradient-button,
+          .expense-inline-actions-edit .expense-cancel-button {
+            min-width: 170px;
+          }
           .expense-field {
             display: flex;
             flex-direction: column;
@@ -551,15 +564,9 @@ function ExpensesPage() {
             box-shadow: 0 0 0 4px rgba(79, 124, 255, 0.11);
           }
 
-          .expense-inline-actions {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            min-width: 0;
-          }
-
           .expense-inline-actions .mca-gradient-button,
           .expense-inline-actions .expense-cancel-button {
+            flex: 1 1 115px;
             min-height: 46px;
             white-space: nowrap;
           }
@@ -841,6 +848,7 @@ function ExpensesPage() {
             }
 
             .expense-inline-actions {
+              grid-column: 1 / -1;
               align-self: end;
             }
           }
@@ -1310,7 +1318,11 @@ function ExpensesPage() {
               />
             </div>
 
-            <div className="expense-inline-actions">
+            <div
+              className={`expense-inline-actions ${
+                editingExpenseId ? "expense-inline-actions-edit" : ""
+              }`}
+            >
               <button
                 className="mca-gradient-button"
                 type="submit"

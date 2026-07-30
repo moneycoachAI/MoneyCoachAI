@@ -3,7 +3,6 @@ import { useLocation } from "react-router-dom";
 
 import AppLayout from "../components/AppLayout";
 
-
 import {
   createIncome,
   deleteIncome,
@@ -40,14 +39,12 @@ const INCOME_SOURCE_OPTIONS = [
 type RecurringIncomeNavigationState = {
   recurringTransactionId?: string;
   recurringTransaction?: {
-    id: string;
     title: string;
     amount: number;
     category: string;
     otherDescription?: string;
     description?: string;
     type: string;
-    nextOccurrenceDate: string;
   };
 };
 
@@ -97,24 +94,14 @@ function IncomesPage() {
     } catch (error) {
       console.error("Failed to load incomes:", error);
       alert("Failed to load incomes");
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    const loadInitialIncomes = async () => {
-      try {
-        const data = await getIncomes();
-        setIncomes(data);
-      } catch (error) {
-        console.error("Failed to load incomes:", error);
-        alert("Failed to load incomes");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     const timer = window.setTimeout(() => {
-      void loadInitialIncomes();
+      void loadIncomes();
     }, 0);
 
     return () => window.clearTimeout(timer);
@@ -228,7 +215,8 @@ function IncomesPage() {
           await recurringTransactionService.completeRecurringReminder(
             recurringTransactionId
           );
-          setShowRecurringBanner(false);
+
+        setShowRecurringBanner(false);
 
         const nextReminderDate =
           new Date(
@@ -528,10 +516,39 @@ function IncomesPage() {
               minmax(180px, 1fr)
               minmax(220px, 1.4fr)
               minmax(160px, 0.9fr)
-              auto;
+              minmax(250px, auto);
 
             gap: 14px;
             align-items: end;
+          }
+
+          .income-inline-actions {
+            display: flex;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+            gap: 8px;
+            min-width: 0;
+            width:50%;
+          }
+
+          .income-inline-actions-edit {
+            grid-column: 1 / -1;
+            justify-content: flex-start;
+            gap: 12px;
+            margin-top: 12px;
+            width: 50%;
+          }
+
+          .income-inline-actions .mca-gradient-button,
+          .income-inline-actions .income-cancel-button {
+            flex: 1 1 115px;
+            min-height: 46px;
+            white-space: nowrap;
+          }
+
+          .income-inline-actions-edit .mca-gradient-button,
+          .income-inline-actions-edit .income-cancel-button {
+            min-width: 170px;
           }
 
           .income-field {
@@ -573,20 +590,6 @@ function IncomesPage() {
           .income-input:focus {
             border-color: rgba(33, 199, 122, 0.58);
             box-shadow: 0 0 0 4px rgba(33, 199, 122, 0.11);
-          }
-
-          .income-inline-actions {
-            min-width: 0;
-
-            display: flex;
-            align-items: center;
-            gap: 8px;
-          }
-
-          .income-inline-actions .mca-gradient-button,
-          .income-inline-actions .income-cancel-button {
-            min-height: 46px;
-            white-space: nowrap;
           }
 
           .income-cancel-button {
@@ -924,6 +927,7 @@ function IncomesPage() {
             }
 
             .income-inline-actions {
+              grid-column: 1 / -1;
               align-self: end;
             }
           }
@@ -1471,7 +1475,11 @@ function IncomesPage() {
               />
             </div>
 
-            <div className="income-inline-actions">
+            <div
+              className={`income-inline-actions ${
+                editingIncomeId ? "income-inline-actions-edit" : ""
+              }`}
+            >
               <button
                 className="mca-gradient-button"
                 type="submit"

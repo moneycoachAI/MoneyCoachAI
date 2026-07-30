@@ -256,6 +256,40 @@ public class RecurringTransactionService
             return null;
         }
 
+        var today = DateTime.UtcNow.Date;
+
+        var nextOccurrence =
+            ResolveNextOccurrenceDate(
+                transaction,
+                today);
+
+        var isInitialTransaction =
+            !transaction.LastCompletedOccurrenceDate.HasValue &&
+            today < nextOccurrence.Date;
+
+        if (isInitialTransaction)
+        {
+            // The first income/expense is being recorded now.
+            // Keep the already-calculated next recurring due date unchanged.
+            transaction.LastCompletedOccurrenceDate =
+                today;
+
+            transaction.UpdatedAt =
+                DateTime.UtcNow;
+
+            var initialRecordUpdated =
+                await _repository.UpdateAsync(transaction);
+
+            if (!initialRecordUpdated)
+            {
+                return null;
+            }
+
+            return MapToResponse(
+                transaction,
+                today);
+        }
+
         var completedOccurrence =
             ResolveNextOccurrenceDate(
                 transaction,
