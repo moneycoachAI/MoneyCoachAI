@@ -111,6 +111,9 @@ function DashboardPage() {
   const [recurringReminders, setRecurringReminders] =
     useState<RecurringTransaction[]>([]);
 
+  const [hasRecurringTransactions, setHasRecurringTransactions] =
+  useState(false);
+
   const financialMotivations = [
   {
     icon: "💰📈",
@@ -680,8 +683,14 @@ const [motivationIndex, setMotivationIndex] = useState(0);
 
   const loadRecurringDashboard = async () => {
     try {
+      const allRecurring =
+        await recurringTransactionService.getRecurringTransactions();
+
+      setHasRecurringTransactions(allRecurring.length > 0);
+
       const data = 
         await recurringTransactionService.getDashboardReminders();
+        
       setRecurringReminders(data);
     } catch (error) {
       console.error("Failed to load recurring dashboard.", error);
@@ -2613,6 +2622,9 @@ const [motivationIndex, setMotivationIndex] = useState(0);
               font-size: 26px;
             }
           }
+            .recurring-view-button {
+    margin-top: 18px;
+}
 
             .chart-card {
               width: 100%;
@@ -2681,7 +2693,7 @@ const [motivationIndex, setMotivationIndex] = useState(0);
               height: 9px;
             }
 
-                        .floating-ai-button {
+            .floating-ai-button {
               position: fixed;
               left: 50%;
               bottom: 22px;
@@ -2766,6 +2778,71 @@ const [motivationIndex, setMotivationIndex] = useState(0);
               color: #6b7280;
               font-size: 10px;
               font-weight: 700;
+            }
+
+            .recurring-empty-state {
+              min-height: 170px;
+
+              display: flex;
+              flex-direction: column;
+              align-items: flex-start;
+              justify-content: center;
+              gap: 8px;
+
+              padding: 18px;
+
+              border: 1px dashed rgba(124, 92, 252, 0.25);
+              border-radius: 18px;
+
+              background: rgba(255, 255, 255, 0.42);
+            }
+              
+            .recurring-success-state {
+                border-color: rgba(33, 199, 122, 0.25);
+            }
+
+            .recurring-success-state .recurring-empty-icon {
+                background: rgba(33, 199, 122, 0.12);
+            }
+
+            .recurring-success-state small {
+                color: #21c77a;
+            }
+
+            .recurring-empty-icon {
+              display: grid;
+              place-items: center;
+
+              width: 42px;
+              height: 42px;
+
+              margin-bottom: 4px;
+
+              border-radius: 14px;
+
+              background: rgba(124, 92, 252, 0.12);
+
+              font-size: 21px;
+            }
+
+            .recurring-empty-state strong {
+              color: var(--mca-text);
+              font-size: 16px;
+            }
+
+            .recurring-empty-state p {
+              margin: 0;
+
+              max-width: 430px;
+
+              font-size: 13px;
+              line-height: 1.55;
+            }
+
+            .recurring-empty-state small {
+              color: #6c4dff;
+              font-size: 12px;
+              font-weight: 800;
             }
 
             @media (max-width: 650px) {
@@ -3030,10 +3107,40 @@ const [motivationIndex, setMotivationIndex] = useState(0);
             </div>
 
             <div className="insight-list recurring-reminder-list scroll-box">
-              {recurringReminders.length === 0 ? (
-                <p className="mca-muted">
-                  No recurring reminders are currently due.
-                </p>
+              {!hasRecurringTransactions ?  (
+                <div className="recurring-empty-state">
+                  <div className="recurring-empty-icon">📅</div>
+
+                  <strong>No recurring reminders yet</strong>
+
+                  <p className="mca-muted">
+                    Add repeating payments or income such as rent, EMIs, subscriptions,
+                    salary, bills, or other regular transactions.
+                  </p>
+
+                  <small>
+                    MoneyCoachAI will remind you before the next due date.
+                  </small>
+                </div>
+              ) : recurringReminders.length === 0 ? (
+                <div className="recurring-empty-state recurring-success-state">
+                  <div className="recurring-empty-icon">✅</div>
+
+                  <strong>Everything is on schedule</strong>
+
+                  <p className="mca-muted">
+                      Your recurring payments and income have been scheduled successfully.
+                  </p>
+
+                  <p className="mca-muted">
+                      MoneyCoachAI is monitoring your recurring transactions and will notify
+                      you automatically before each due date.
+                  </p>
+
+                  <small>
+                      ✔ No reminders require your attention today.
+                  </small>
+                </div>
               ) : (
                 recurringReminders.slice(0, 5).map((reminder) => (
                   <div
@@ -3084,7 +3191,9 @@ const [motivationIndex, setMotivationIndex] = useState(0);
               className="mca-gradient-button recurring-view-button"
               onClick={() => navigate("/recurring")}
             >
-              View Recurring Transactions
+              {!hasRecurringTransactions
+                ? "Add Recurring Transaction"
+                : "View Recurring Transactions"}
             </button>
           </div>
         </div>
