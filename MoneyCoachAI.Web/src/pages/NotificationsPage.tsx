@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { useNavigate, useSearchParams, } from "react-router-dom";
 
 import AppLayout from "../components/AppLayout";
 
@@ -80,10 +80,18 @@ const getNotificationIcon = (type: string) => {
 function NotificationsPage() {
   const navigate = useNavigate();
 
+  const [searchParams] = useSearchParams();
+
+  const selectedNotificationId =
+    searchParams.get("notificationId");
+
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [markingAllRead, setMarkingAllRead] = useState(false);
+
+  const notificationRefs =
+  useRef<Record<string, HTMLElement  | null>>({});
 
   const loadNotifications = async () => {
     try {
@@ -103,13 +111,37 @@ function NotificationsPage() {
     }
   };
 
-   useEffect(() => {
+  useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       void loadNotifications();
     }, 0);
 
     return () => window.clearTimeout(timeoutId);
   }, []);
+
+  useEffect(() => {
+    if (!selectedNotificationId) {
+      return;
+    }
+
+    if (notifications.length === 0) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      const element =
+        notificationRefs.current[selectedNotificationId];
+
+      if (element) {
+        element.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }
+    }, 250);
+
+    return () => window.clearTimeout(timer);
+  }, [selectedNotificationId, notifications]);
 
 
   const handleMarkAllRead = async () => {
@@ -273,6 +305,24 @@ function NotificationsPage() {
                 rgba(255, 255, 255, 0.9),
                 rgba(245, 243, 255, 0.74)
               );
+          }
+
+          .notification-card-selected {
+            border-color: rgba(124, 92, 252, 0.7);
+
+            background: 
+              linear-gradient(
+                135deg,
+                rgba(124, 92, 252, 0.16),
+                rgba(79, 124, 255, 0.1),
+                rgba(255, 255, 255, 0.88)
+              );
+
+            box-shadow:
+              0 0 0 4px rgba(124, 92, 252, 0.12),
+              0 20px 48px rgba(76, 29, 149, 0.16);
+
+            animation: selectedNotificationPulse 1.2s ease;
           }
 
           .notification-card-header {
@@ -465,6 +515,20 @@ function NotificationsPage() {
             }
           }
 
+          @keyframes selectedNotificationPulse {
+            0% {
+              transform: scale(0.98);
+            }
+
+            45% {
+              transform: scale(1.01);
+            }
+
+            100% {
+              transform: scale(1);
+            }
+          }
+
           @media (max-width: 760px) {
             .notification-card {
               padding: 16px;
@@ -633,8 +697,15 @@ function NotificationsPage() {
               return (
                 <article
                   key={notification.id}
+                  ref={(element) => {
+                    notificationRefs.current[notification.id] = element;
+                  }}
                   className={`notification-card ${
                     notification.isRead ? "" : "unread"
+                  } ${
+                    selectedNotificationId === notification.id
+                      ? "notification-card-selected"
+                      : ""
                   }`}
                   style={{
                     borderLeft: `5px solid ${notificationColor}`,

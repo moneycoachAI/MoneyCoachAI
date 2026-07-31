@@ -1,12 +1,11 @@
 ﻿
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, } from "react";
 import { useNavigate } from "react-router-dom";
 import AppLayout from "../components/AppLayout";
 
 import {
   getMonthlyDashboardCards,
   getTopCategory,
-  getAiAdvisorInsights,
   getMonthlyComparison,
 } from "../services/dashboardService";
 
@@ -22,7 +21,6 @@ import type { Budget } from "../types/budgetTypes";
 
 import type { TopCategory } from "../types/topCategoryTypes";
 import type { MonthlyComparison } from "../types/monthlyComparisonTypes";
-import type { AiAdvisorInsight } from "../types/aiInsightTypes";
 
 import { exportMonthlyPdf } from "../services/reportService";
 
@@ -40,11 +38,17 @@ import type { UserProfile } from "../types/profileTypes";
 
 import {
   getUnreadNotifications,
+  markNotificationAsRead,
 } from "../services/notificationService";
 
 import type {
   Notification,
 } from "../types/notificationTypes";
+
+import recurringTransactionService from "../services/recurringTransactionService";
+
+import type { RecurringTransaction }
+from "../types/recurringTransactionTypes";
 
 import { Bell } from "lucide-react";
 
@@ -60,6 +64,9 @@ function DashboardPage() {
 
   const [showNotificationMenu, setShowNotificationMenu] =
   useState(false);
+
+  const notificationMenuRef =
+  useRef<HTMLDivElement | null>(null);
 
   const [year, setYear] = useState("2026");
   const [cards, setCards] = useState<MonthlyDashboardCard[]>([]);
@@ -95,12 +102,14 @@ function DashboardPage() {
   const [monthlyComparison, setMonthlyComparison] =
     useState<MonthlyComparison | null>(null);
 
-  const [aiInsights, setAiInsights] = useState<AiAdvisorInsight[]>([]);
   const [financialGoals, setFinancialGoals] = useState<FinancialGoal[]>([]);
   const [netWorthSummary, setNetWorthSummary] =
     useState<NetWorthSummary | null>(null);
   const [investmentSummary, setInvestmentSummary] =
     useState<InvestmentSummary | null>(null);
+
+  const [recurringReminders, setRecurringReminders] =
+    useState<RecurringTransaction[]>([]);
 
   const financialMotivations = [
   {
@@ -183,6 +192,44 @@ const [motivationIndex, setMotivationIndex] = useState(0);
 
   const formatMoney = (amount: number) =>
     `₹${Number(amount || 0).toLocaleString("en-IN")}`;
+
+  const getTimeAgo = (date: string) => {
+    const now = new Date();
+    const created = new Date(date);
+
+    const differenceInSeconds = Math.max(
+      0,
+      Math.floor((now.getTime() - created.getTime()) / 1000)
+    );
+
+    if (differenceInSeconds < 60) {
+      return "Just now";
+    }
+
+    if (differenceInSeconds < 3600) {
+      const minutes = Math.floor(differenceInSeconds / 60);
+
+      return `${minutes} minute${minutes === 1 ? "" : "s"} ago`;
+    }
+
+    if (differenceInSeconds < 86400) {
+      const hours = Math.floor(differenceInSeconds / 3600);
+
+      return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+    }
+
+    if (differenceInSeconds < 172800) {
+      return "Yesterday";
+    }
+
+    const days = Math.floor(differenceInSeconds / 86400);
+
+    if (days < 7) {
+      return `${days} days ago`;
+    }
+
+    return created.toLocaleDateString("en-IN");
+  };
 
   const getCardColor = (severity: string) => {
     switch (severity) {
@@ -332,7 +379,7 @@ const [motivationIndex, setMotivationIndex] = useState(0);
       setRecentBudgets([]);
       setTopCategory(null);
       setMonthlyComparison(null);
-      setAiInsights([]);
+     
       return;
     }
 
@@ -368,8 +415,6 @@ const [motivationIndex, setMotivationIndex] = useState(0);
     setComparisonCurrentMonth(comparisonData.currentMonth.toString());
     setComparisonCurrentYear(comparisonData.currentYear.toString());
 
-    const insightData = await getAiAdvisorInsights(latestMonth, latestYear);
-    setAiInsights(insightData);
   };
 
   const loadUnreadNotifications = async () => {
@@ -381,6 +426,32 @@ const [motivationIndex, setMotivationIndex] = useState(0);
       console.error(
         "Failed to load notifications",
         error
+      );
+    }
+  };
+
+  const handleNotificationClick = async (
+    notification: Notification
+  ) => {
+    setShowNotificationMenu(false);
+
+    try {
+      await markNotificationAsRead(notification.id);
+
+      setUnreadNotifications((currentNotifications) =>
+        currentNotifications.filter(
+          (currentNotification) =>
+            currentNotification.id !== notification.id
+        )
+      );
+    } catch (error) {
+      console.error(
+        "Failed to mark notification as read:",
+        error
+      );
+    } finally {
+      navigate(
+        `/notifications?notificationId=${notification.id}`
       );
     }
   };
@@ -607,14 +678,29 @@ const [motivationIndex, setMotivationIndex] = useState(0);
     }
   };
 
+  const loadRecurringDashboard = async () => {
+    try {
+      const data = 
+        await recurringTransactionService.getDashboardReminders();
+      setRecurringReminders(data);
+    } catch (error) {
+      console.error("Failed to load recurring dashboard.", error);
+      setRecurringReminders([]);
+    }
+  };
+
   useEffect(() => {
     const loadInitialDashboard = async () => {
       try {
         const profileData = await getProfile();
         setProfile(profileData);
 
-        await loadDashboardCards();
-        await loadUnreadNotifications();
+        await Promise.all([
+          loadDashboardCards(),
+          loadUnreadNotifications(),
+           loadRecurringDashboard(),
+        ]);
+         
       } catch (error) {
         console.error("Failed to load dashboard:", error);
       }
@@ -638,6 +724,35 @@ const [motivationIndex, setMotivationIndex] = useState(0);
 
     return () => window.clearInterval(motivationTimer);
   }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (!showNotificationMenu) {
+        return;
+      }
+
+      const target = event.target as Node;
+
+      if (
+        notificationMenuRef.current &&
+        !notificationMenuRef.current.contains(target)
+      ) {
+        setShowNotificationMenu(false);
+      }
+    };
+
+    document.addEventListener(
+      "mousedown",
+      handleClickOutside
+    );
+
+    return () => {
+      document.removeEventListener(
+        "mousedown",
+        handleClickOutside
+      );
+    };
+  }, [showNotificationMenu]);
 
   const currentMotivation = financialMotivations[motivationIndex];
 
@@ -1483,7 +1598,6 @@ const [motivationIndex, setMotivationIndex] = useState(0);
             }
 
           .monthly-card {
-            flex: 0 0 320px;
             min-width: 320px;
 
             padding: 20px;
@@ -1810,7 +1924,7 @@ const [motivationIndex, setMotivationIndex] = useState(0);
             align-items: center;
             justify-content: center;
 
-            height: 271px;
+            height: 282px;
             margin-top: 14px;
             padding: 14px 26px 20px;
 
@@ -2457,6 +2571,49 @@ const [motivationIndex, setMotivationIndex] = useState(0);
             }
           }
 
+          @media (max-width: 650px) {
+            .top-spending-card {
+              padding: 20px;
+            }
+
+            .top-spending-title-area {
+              margin-bottom: 12px;
+            }
+
+            .top-spending-title-area .mca-section-title {
+              white-space: normal;
+              font-size: 18px;
+            }
+
+            .top-spending-actions {
+              display: grid;
+              grid-template-columns: minmax(0, 1fr) 72px;
+              gap: 8px;
+            }
+
+            .top-spending-actions .compact-month-input {
+              width: 100%;
+              height: 42px;
+              padding: 0 11px;
+              font-size: 11px;
+            }
+
+            .top-spending-actions .compact-view-button {
+              width: 72px;
+              min-width: 72px;
+              height: 42px;
+              padding: 0 10px;
+            }
+
+            .top-spending-card > h2 {
+              font-size: 27px !important;
+            }
+
+            .top-spending-card > h1 {
+              font-size: 26px;
+            }
+          }
+
             .chart-card {
               width: 100%;
               min-width: 0;
@@ -2468,6 +2625,175 @@ const [motivationIndex, setMotivationIndex] = useState(0);
               width: 100%;
               min-width: 0;
             }
+
+            .top-spending-head {
+              display: block;
+              margin-bottom: 18px;
+            }
+
+            .top-spending-header-content {
+              width: 100%;
+            }
+
+            .top-spending-title-area {
+              width: 100%;
+              margin-bottom: 14px;
+            }
+
+            .top-spending-title-area .mca-section-title {
+              white-space: nowrap;
+              font-size: 22px;
+              line-height: 1.25;
+            }
+
+            .top-spending-title-area .mca-muted {
+              margin-top: 7px;
+              font-size: 13px;
+            }
+
+            .top-spending-actions {
+              width: 100%;
+              margin: 0;
+            }
+
+            .top-spending-actions .compact-month-input {
+              flex: 1;
+              width: auto;
+            }
+
+            .top-spending-actions .compact-view-button {
+              flex: 0 0 98px;
+            }
+
+            .top-spending-card > h2 {
+              margin: 14px 0 8px !important;
+              font-size: 34px !important;
+              line-height: 1.2;
+            }
+
+            .top-spending-card > h1 {
+              margin: 8px 0 14px !important;
+              font-size: 34px;
+              line-height: 1.2;
+            }
+
+            .top-spending-card .progress-track {
+              height: 9px;
+            }
+
+                        .floating-ai-button {
+              position: fixed;
+              left: 50%;
+              bottom: 22px;
+              z-index: 1200;
+
+              display: flex;
+              align-items: center;
+              gap: 10px;
+
+              min-width: 145px;
+              min-height: 58px;
+              padding: 8px 18px 8px 10px;
+
+              border: 1px solid rgba(255, 255, 255, 0.85);
+              border-radius: 20px;
+
+              background:
+                linear-gradient(
+                  135deg,
+                  rgba(255, 255, 255, 0.96),
+                  rgba(241, 238, 255, 0.94)
+                );
+
+              box-shadow:
+                0 18px 45px rgba(76, 29, 149, 0.24),
+                inset 0 1px 0 rgba(255, 255, 255, 1);
+
+              transform: translateX(-50%);
+              cursor: pointer;
+
+              transition:
+                transform 0.2s ease,
+                box-shadow 0.2s ease;
+            }
+
+            .floating-ai-button:hover {
+              transform: translateX(-50%) translateY(-4px);
+
+              box-shadow:
+                0 24px 55px rgba(76, 29, 149, 0.32),
+                inset 0 1px 0 rgba(255, 255, 255, 1);
+            }
+
+            .floating-ai-icon {
+              display: grid;
+              place-items: center;
+
+              width: 42px;
+              height: 42px;
+              flex-shrink: 0;
+
+              border-radius: 15px;
+
+              background:
+                linear-gradient(
+                  135deg,
+                  #5b8cff,
+                  #7b61ff
+                );
+
+              box-shadow:
+                0 10px 22px rgba(91, 97, 255, 0.28);
+
+              font-size: 22px;
+            }
+
+            .floating-ai-text {
+              display: flex;
+              flex-direction: column;
+              align-items: flex-start;
+            }
+
+            .floating-ai-text strong {
+              color: #111827;
+              font-size: 14px;
+              font-weight: 900;
+            }
+
+            .floating-ai-text small {
+              margin-top: 2px;
+
+              color: #6b7280;
+              font-size: 10px;
+              font-weight: 700;
+            }
+
+            @media (max-width: 650px) {
+              .floating-ai-button {
+                bottom: 14px;
+                min-width: 132px;
+                min-height: 54px;
+                padding: 7px 15px 7px 8px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+              }
+
+              .floating-ai-icon {
+                width: 40px;
+                height: 40px;
+              }
+
+              .floating-ai-text strong {
+                width: 100%;
+                text-align: center;
+              }
+
+              .floating-ai-text small {
+                width: 100%;
+                text-align: center;
+              }
+}
         `}
       </style>
       <div className="dashboard-page">
@@ -2483,7 +2809,10 @@ const [motivationIndex, setMotivationIndex] = useState(0);
 
           <div className="dash-actions">
 
-            <div className="notification-wrapper">
+            <div
+              className="notification-wrapper"
+              ref={notificationMenuRef}
+            >
               <button
                 type="button"
                 className="notification-button"
@@ -2533,8 +2862,7 @@ const [motivationIndex, setMotivationIndex] = useState(0);
                           type="button"
                           className="notification-menu-item"
                           onClick={() => {
-                            setShowNotificationMenu(false);
-                            navigate("/notifications");
+                            void handleNotificationClick(notification);
                           }}
                         >
                           <span className="notification-unread-dot" />
@@ -2544,7 +2872,7 @@ const [motivationIndex, setMotivationIndex] = useState(0);
                             <p>{notification.message}</p>
 
                             <small>
-                              {new Date(notification.createdAt).toLocaleString()}
+                              {getTimeAgo(notification.createdAt)}
                             </small>
                           </div>
                         </button>
@@ -2577,8 +2905,11 @@ const [motivationIndex, setMotivationIndex] = useState(0);
             />
 
             <button
-              className="mca-gradient-button"
-              onClick={loadDashboardCards}
+                className="mca-gradient-button"
+                onClick={async () => {
+                    await loadDashboardCards();
+                    await loadRecurringDashboard();
+                }}
             >
               {loading ? "Loading..." : "Load Year"}
             </button>
@@ -2689,72 +3020,118 @@ const [motivationIndex, setMotivationIndex] = useState(0);
           <div className="mca-glass-card dash-card mca-glow-purple">
             <div className="dash-card-head">
               <div>
-                <h2 className="mca-section-title">AI Coach</h2>
-                <p className="mca-muted">Latest smart insights.</p>
+                <h2 className="mca-section-title">Recurring Reminders</h2>
+                <p className="mca-muted">
+                  Upcoming recurring payments and income reminders.
+                </p>
               </div>
-              <span>🤖</span>
+
+              <span>🔁</span>
             </div>
 
-            <div className="insight-list">
-              {aiInsights.length === 0 ? (
-                <p className="mca-muted">No AI insights available.</p>
+            <div className="insight-list recurring-reminder-list scroll-box">
+              {recurringReminders.length === 0 ? (
+                <p className="mca-muted">
+                  No recurring reminders are currently due.
+                </p>
               ) : (
-                aiInsights.slice(0, 3).map((insight, index) => (
-                  <div className="soft-item" key={index}>
-                    <strong style={{ color: getCardColor(insight.severity) }}>
-                      {getSeverityIcon(insight.severity)} {insight.title}
-                    </strong>
-                    <p style={{ marginTop: 8 }}>{insight.message}</p>
-                    <strong style={{ display: "block", marginTop: 8 }}>
-                      {insight.severity}
-                    </strong>
+                recurringReminders.slice(0, 5).map((reminder) => (
+                  <div
+                    className="soft-item recurring-reminder-item"
+                    key={reminder.id}
+                  >
+                    <div className="recurring-reminder-head">
+                      <strong>
+                        {reminder.type === "Income" ? "💰" : "💸"}{" "}
+                        {reminder.title}
+                      </strong>
+
+                      <span
+                        className={`recurring-status ${
+                          reminder.daysUntilDue < 0
+                            ? "overdue"
+                            : reminder.daysUntilDue === 0
+                              ? "today"
+                              : "upcoming"
+                        }`}
+                      >
+                        {reminder.daysUntilDue < 0
+                          ? "Overdue"
+                          : reminder.daysUntilDue === 0
+                            ? "Due today"
+                            : `${reminder.daysUntilDue} day${
+                                reminder.daysUntilDue === 1 ? "" : "s"
+                              } left`}
+                      </span>
+                    </div>
+
+                    <p className="mca-muted recurring-reminder-message">
+                      {reminder.reminderMessage}
+                    </p>
+
+                    <div className="recurring-reminder-footer">
+                      <span>{reminder.frequency}</span>
+
+                      <strong>{formatMoney(reminder.amount)}</strong>
+                    </div>
                   </div>
                 ))
               )}
             </div>
+
+            <button
+              type="button"
+              className="mca-gradient-button recurring-view-button"
+              onClick={() => navigate("/recurring")}
+            >
+              View Recurring Transactions
+            </button>
           </div>
         </div>
 
         <div className="dash-grid">
           <div>
-            <div className="mca-glass-card dash-card mca-glow-orange" style={{ minHeight: 0 }}>
-              <div className="dash-card-head compact-responsive-head">
-                <div className="compact-section-head">
-                  <h2 className="mca-section-title">Top Spending Category</h2>
+            <div className="mca-glass-card dash-card mca-glow-orange top-spending-card"
+                        style={{ minHeight: 0 }}>
+                        <div className="top-spending-header-content">
+              <div className="compact-section-head top-spending-title-area">
+                <h2 className="mca-section-title">
+                  Top Spending Category
+                </h2>
 
-                  <p className="mca-muted">
-                    {loadedTopCategoryMonth
-                      ? `${monthNames[Number(loadedTopCategoryMonth)]} ${loadedTopCategoryYear}`
-                      : "Select a month to view your highest spending category."}
-                  </p>
-                </div>
-
-                <div className="compact-month-actions">
-                  <input
-                    type="month"
-                    className="compact-month-input"
-                    value={toMonthInputValue(
-                      topCategoryMonth,
-                      topCategoryYear
-                    )}
-                    max={currentMonthValue}
-                    onChange={(event) =>
-                      updateMonthAndYear(
-                        event.target.value,
-                        setTopCategoryMonth,
-                        setTopCategoryYear
-                      )
-                    }
-                  />
-
-                  <button
-                    className="mca-gradient-button compact-view-button"
-                    onClick={handleLoadTopCategory}
-                  >
-                    View
-                  </button>
-                </div>
+                <p className="mca-muted">
+                  {loadedTopCategoryMonth
+                    ? `${monthNames[Number(loadedTopCategoryMonth)]} ${loadedTopCategoryYear}`
+                    : "Select a month to view your highest spending category."}
+                </p>
               </div>
+
+              <div className="compact-month-actions top-spending-actions">
+                <input
+                  type="month"
+                  className="compact-month-input"
+                  value={toMonthInputValue(
+                    topCategoryMonth,
+                    topCategoryYear
+                  )}
+                  max={currentMonthValue}
+                  onChange={(event) =>
+                    updateMonthAndYear(
+                      event.target.value,
+                      setTopCategoryMonth,
+                      setTopCategoryYear
+                    )
+                  }
+                />
+
+                <button
+                  className="mca-gradient-button compact-view-button"
+                  onClick={handleLoadTopCategory}
+                >
+                  View
+                </button>
+              </div>
+            </div>
 
               {topCategory ? (
                 <>
@@ -3353,6 +3730,22 @@ const [motivationIndex, setMotivationIndex] = useState(0);
         )}
       </div>
       </div>
+
+      <button
+        type="button"
+        className="floating-ai-button"
+        onClick={() => navigate("/ai-advisor")}
+        aria-label="Open MoneyCoachAI advisor"
+      >
+        <span className="floating-ai-icon">🤖</span>
+
+        <span className="floating-ai-text">
+          <strong>Ask AI</strong>
+          <small>MoneyCoachAI Advisor</small>
+        </span>
+      </button>
+    
+
     </AppLayout>
   );
 }
