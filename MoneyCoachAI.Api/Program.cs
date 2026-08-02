@@ -70,6 +70,10 @@ builder.Services.AddScoped<EmailService>();
 
 builder.Services.AddScoped<PasswordResetService>();
 
+builder.Services.AddScoped<MoneyDueRepository>();
+builder.Services.AddScoped<MoneyDueService>();
+builder.Services.AddScoped<MoneyDueNotificationService>();
+
 builder.Services.AddSwaggerGen(options =>
 {
     options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme

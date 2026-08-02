@@ -12,10 +12,14 @@ namespace MoneyCoachAI.Api.Controllers;
 public class NotificationsController : ControllerBase
 {
     private readonly NotificationService _notificationService;
+    private readonly MoneyDueNotificationService _moneyDueNotificationService;
 
-    public NotificationsController(NotificationService notificationService)
+    public NotificationsController(
+    NotificationService notificationService,
+    MoneyDueNotificationService moneyDueNotificationService)
     {
         _notificationService = notificationService;
+        _moneyDueNotificationService = moneyDueNotificationService;
     }
 
     private string GetUserId()
@@ -69,4 +73,17 @@ public class NotificationsController : ControllerBase
         return NoContent();
     }
 
+
+    [HttpPost("generate-money-due")]
+    public async Task<IActionResult> GenerateMoneyDueNotifications()
+    {
+        var notificationsCreated =
+            await _moneyDueNotificationService
+                .GenerateNotificationsAsync(DateTime.Now);
+
+        return Ok(new
+        {
+            notificationsCreated
+        });
+    }
 }

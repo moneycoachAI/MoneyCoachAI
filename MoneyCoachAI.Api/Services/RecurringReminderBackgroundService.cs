@@ -13,7 +13,7 @@ public class RecurringReminderBackgroundService : BackgroundService
     }
 
     protected override async Task ExecuteAsync(
-        CancellationToken stoppingToken)
+     CancellationToken stoppingToken)
     {
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -26,14 +26,22 @@ public class RecurringReminderBackgroundService : BackgroundService
                     scope.ServiceProvider.GetRequiredService<
                         RecurringNotificationService>();
 
+                var moneyDueNotificationService =
+                    scope.ServiceProvider.GetRequiredService<
+                        MoneyDueNotificationService>();
+
+                var currentDateTime = DateTime.Now;
+
                 await recurringNotificationService
-                    .GenerateNotificationsAsync(
-                        DateTime.Now);
+                    .GenerateNotificationsAsync(currentDateTime);
+
+                await moneyDueNotificationService
+                    .GenerateNotificationsAsync(currentDateTime);
             }
             catch (Exception ex)
             {
                 Console.WriteLine(
-                    $"Recurring reminder error: {ex.Message}");
+                    $"Reminder generation error: {ex.Message}");
             }
 
             await Task.Delay(
