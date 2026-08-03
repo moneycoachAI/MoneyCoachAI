@@ -12,6 +12,18 @@ public class CreateMoneyDueRequest
 
     public string? OtherDescription { get; set; }
 
+    public bool HasInterest { get; set; }
+
+    public decimal PrincipalAmount { get; set; }
+
+    public decimal InterestRate { get; set; }
+
+    public string? InterestPeriod { get; set; }
+
+    public int InterestPeriods { get; set; }
+
+    public string InterestMethod { get; set; } = "Simple";
+
     public decimal TotalAmount { get; set; }
 
     public DateTime DueDate { get; set; }

@@ -19,11 +19,43 @@ public class MoneyDueService
         "Cancelled"
     };
 
+    private static readonly string[] AllowedInterestPeriods =
+    {
+        "Day",
+        "Week",
+        "Month"
+    };
+
     private readonly MoneyDueRepository _moneyDueRepository;
 
     public MoneyDueService(MoneyDueRepository moneyDueRepository)
     {
         _moneyDueRepository = moneyDueRepository;
+    }
+
+    private static bool EnsureSettlementIds(
+    MoneyDue moneyDue)
+    {
+        moneyDue.Settlements ??= [];
+
+        var changed = false;
+
+        foreach (var settlement in moneyDue.Settlements)
+        {
+            if (!string.IsNullOrWhiteSpace(settlement.Id))
+            {
+                continue;
+            }
+
+            settlement.Id =
+                MongoDB.Bson.ObjectId
+                    .GenerateNewId()
+                    .ToString();
+
+            changed = true;
+        }
+
+        return changed;
     }
 
     public async Task<List<MoneyDue>> GetByUserIdAsync(string userId)
@@ -32,7 +64,16 @@ public class MoneyDueService
 
         foreach (var item in items)
         {
+            var settlementIdsAdded =
+                EnsureSettlementIds(item);
+
             RefreshStatus(item);
+
+            if (settlementIdsAdded)
+            {
+                await _moneyDueRepository
+                    .UpdateAsync(item);
+            }
         }
 
         return items;
@@ -49,7 +90,16 @@ public class MoneyDueService
             return null;
         }
 
+        var settlementIdsAdded =
+            EnsureSettlementIds(item);
+
         RefreshStatus(item);
+
+        if (settlementIdsAdded)
+        {
+            await _moneyDueRepository
+                .UpdateAsync(item);
+        }
 
         return item;
     }
@@ -59,6 +109,8 @@ public class MoneyDueService
         string userId)
     {
         Validate(moneyDue);
+
+        ApplyInterestCalculation(moneyDue);
 
         moneyDue.UserId = userId;
         moneyDue.Id = string.Empty;
@@ -94,7 +146,25 @@ public class MoneyDueService
             updatedMoneyDue.Category == "Other"
                 ? updatedMoneyDue.OtherDescription?.Trim()
                 : null;
+
+        existing.HasInterest =
+            updatedMoneyDue.HasInterest;
+
+        existing.PrincipalAmount =
+            updatedMoneyDue.PrincipalAmount;
+
+        existing.InterestRate =
+            updatedMoneyDue.InterestRate;
+
+        existing.InterestPeriod =
+            updatedMoneyDue.InterestPeriod?.Trim();
+
+        existing.InterestPeriods =
+            updatedMoneyDue.InterestPeriods;
+
+        existing.InterestMethod = "Simple";
         existing.TotalAmount = updatedMoneyDue.TotalAmount;
+        ApplyInterestCalculation(existing);
         existing.DueDate = updatedMoneyDue.DueDate;
         existing.ReminderDaysBefore =
             updatedMoneyDue.ReminderDaysBefore;
@@ -161,6 +231,10 @@ public class MoneyDueService
         existing.Settlements.Add(
             new MoneyDueSettlement
             {
+                 Id = MongoDB.Bson.ObjectId
+                    .GenerateNewId()
+                    .ToString(), 
+
                 Amount = amount,
                 SettlementDate = settlementDate,
                 Description = description?.Trim(),
@@ -174,6 +248,111 @@ public class MoneyDueService
         await _moneyDueRepository.UpdateAsync(existing);
 
         return true;
+    }
+
+    public async Task<MoneyDue> UpdateSettlementAsync(
+    string userId,
+    string moneyDueId,
+    string settlementId,
+    decimal amount,
+    DateTime settlementDate,
+    string? description)
+    {
+        if (amount <= 0)
+        {
+            throw new ArgumentException(
+                "Settlement amount must be greater than zero.");
+        }
+
+        if (settlementDate == default)
+        {
+            throw new ArgumentException(
+                "Settlement date is required.");
+        }
+
+        var item =
+            await _moneyDueRepository.GetByIdAsync(
+                moneyDueId);
+
+        if (item is null || item.UserId != userId)
+        {
+            throw new KeyNotFoundException(
+                "Money Due record not found.");
+        }
+
+        EnsureSettlementIds(item);
+
+        var settlement =
+            item.Settlements.FirstOrDefault(
+                x => x.Id == settlementId);
+
+        if (settlement is null)
+        {
+            throw new KeyNotFoundException(
+                "Settlement not found.");
+        }
+
+        var otherSettlementsTotal =
+            item.Settlements
+                .Where(x => x.Id != settlementId)
+                .Sum(x => x.Amount);
+
+        if (otherSettlementsTotal + amount > item.TotalAmount)
+        {
+            throw new ArgumentException(
+                "Total settled amount cannot exceed the Money Due total amount.");
+        }
+
+        settlement.Amount = amount;
+        settlement.SettlementDate = settlementDate;
+        settlement.Description =
+            description?.Trim();
+
+        item.SettledAmount =
+            item.Settlements.Sum(x => x.Amount);
+
+        RefreshStatus(item);
+
+        await _moneyDueRepository.UpdateAsync(item);
+
+        return item;
+    }
+
+    public async Task DeleteSettlementAsync(
+    string userId,
+    string moneyDueId,
+    string settlementId)
+    {
+        var item =
+            await _moneyDueRepository.GetByIdAsync(
+                moneyDueId);
+
+        if (item is null || item.UserId != userId)
+        {
+            throw new KeyNotFoundException(
+                "Money Due record not found.");
+        }
+
+        EnsureSettlementIds(item);
+
+        var settlement =
+            item.Settlements.FirstOrDefault(
+                x => x.Id == settlementId);
+
+        if (settlement is null)
+        {
+            throw new KeyNotFoundException(
+                "Settlement not found.");
+        }
+
+        item.Settlements.Remove(settlement);
+
+        item.SettledAmount =
+            item.Settlements.Sum(x => x.Amount);
+
+        RefreshStatus(item);
+
+        await _moneyDueRepository.UpdateAsync(item);
     }
 
     public async Task<bool> CancelAsync(
@@ -276,12 +455,6 @@ public class MoneyDueService
                 "Other category description is required.");
         }
 
-        if (moneyDue.TotalAmount <= 0)
-        {
-            throw new ArgumentException(
-                "Total amount must be greater than zero.");
-        }
-
         if (moneyDue.SettledAmount < 0)
         {
             throw new ArgumentException(
@@ -302,5 +475,85 @@ public class MoneyDueService
         {
             throw new ArgumentException("Invalid status.");
         }
+
+        if (moneyDue.HasInterest)
+        {
+            if (moneyDue.PrincipalAmount <= 0)
+            {
+                throw new ArgumentException(
+                    "Principal amount must be greater than zero.");
+            }
+
+            if (
+                moneyDue.InterestRate <= 0 ||
+                moneyDue.InterestRate > 100)
+            {
+                throw new ArgumentException(
+                    "Interest rate must be greater than zero and not exceed 100 percent.");
+            }
+
+            if (
+                string.IsNullOrWhiteSpace(
+                    moneyDue.InterestPeriod) ||
+                !AllowedInterestPeriods.Contains(
+                    moneyDue.InterestPeriod,
+                    StringComparer.OrdinalIgnoreCase))
+            {
+                throw new ArgumentException(
+                    "Interest period must be Day, Week, or Month.");
+            }
+
+            if (moneyDue.InterestPeriods <= 0)
+            {
+                throw new ArgumentException(
+                    "Number of interest periods must be at least one.");
+            }
+
+            if (moneyDue.PrincipalAmount < moneyDue.SettledAmount)
+            {
+                throw new ArgumentException(
+                    "Principal amount cannot be less than the amount already settled.");
+            }
+        }
+        else
+        {
+            if (moneyDue.TotalAmount <= 0)
+            {
+                throw new ArgumentException(
+                    "Total amount must be greater than zero.");
+            }
+        }
+    }
+
+    private static void ApplyInterestCalculation(
+    MoneyDue moneyDue)
+    {
+        if (!moneyDue.HasInterest)
+        {
+            moneyDue.PrincipalAmount =
+                moneyDue.TotalAmount;
+
+            moneyDue.InterestRate = 0;
+            moneyDue.InterestPeriod = null;
+            moneyDue.InterestPeriods = 0;
+            moneyDue.InterestMethod = "Simple";
+            moneyDue.InterestAmount = 0;
+
+            return;
+        }
+
+        moneyDue.InterestMethod = "Simple";
+
+        moneyDue.InterestAmount =
+            Math.Round(
+                moneyDue.PrincipalAmount *
+                (moneyDue.InterestRate / 100m) *
+                moneyDue.InterestPeriods,
+                2,
+                MidpointRounding.AwayFromZero);
+
+        moneyDue.TotalAmount =
+            moneyDue.PrincipalAmount +
+            moneyDue.InterestAmount;
     }
 }

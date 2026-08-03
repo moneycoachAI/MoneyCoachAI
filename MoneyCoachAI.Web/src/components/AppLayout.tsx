@@ -128,6 +128,11 @@ function AppLayout({
       path: "/recurring",
     },
     {
+      label: "Money Due",
+      path: "/money-due",
+      icon: "💸",
+    },
+    {
       label: "Investments",
       icon: "📈",
       path: "/investments",

@@ -58,10 +58,17 @@ public class MoneyDueController : ControllerBase
                 PartyName = request.PartyName,
                 Category = request.Category,
                 OtherDescription = request.OtherDescription,
+                HasInterest = request.HasInterest,
+                PrincipalAmount = request.PrincipalAmount,
+                InterestRate = request.InterestRate,
+                InterestPeriod = request.InterestPeriod,
+                InterestPeriods = request.InterestPeriods,
+                InterestMethod = request.InterestMethod,
                 TotalAmount = request.TotalAmount,
                 DueDate = request.DueDate,
                 ReminderDaysBefore = request.ReminderDaysBefore,
-                Description = request.Description
+                Description = request.Description,
+                
             };
 
             var created = await _moneyDueService.CreateAsync(
@@ -93,10 +100,17 @@ public class MoneyDueController : ControllerBase
                 PartyName = request.PartyName,
                 Category = request.Category,
                 OtherDescription = request.OtherDescription,
+                HasInterest = request.HasInterest,
+                PrincipalAmount = request.PrincipalAmount,
+                InterestRate = request.InterestRate,
+                InterestPeriod = request.InterestPeriod,
+                InterestPeriods = request.InterestPeriods,
+                InterestMethod = request.InterestMethod,
                 TotalAmount = request.TotalAmount,
                 DueDate = request.DueDate,
                 ReminderDaysBefore = request.ReminderDaysBefore,
-                Description = request.Description
+                Description = request.Description,
+                
             };
 
             var updated = await _moneyDueService.UpdateAsync(
@@ -116,6 +130,8 @@ public class MoneyDueController : ControllerBase
             return BadRequest(new { message = error.Message });
         }
     }
+
+
 
     [HttpPost("{id}/settlements")]
     public async Task<IActionResult> RecordSettlement(
@@ -146,6 +162,54 @@ public class MoneyDueController : ControllerBase
         catch (InvalidOperationException error)
         {
             return Conflict(new { message = error.Message });
+        }
+    }
+
+    [HttpPut("{moneyDueId}/settlements/{settlementId}")]
+    public async Task<ActionResult<MoneyDueResponse>> UpdateSettlement(
+        string moneyDueId,
+        string settlementId,
+        UpdateMoneyDueSettlementRequest request)
+    {
+        try
+        {
+            var updated = await _moneyDueService.UpdateSettlementAsync(
+                UserId,
+                moneyDueId,
+                settlementId,
+                request.Amount,
+                request.SettlementDate,
+                request.Description);
+
+            return Ok(MapToResponse(updated));
+        }
+        catch (ArgumentException error)
+        {
+            return BadRequest(new { message = error.Message });
+        }
+        catch (KeyNotFoundException error)
+        {
+            return NotFound(new { message = error.Message });
+        }
+    }
+
+    [HttpDelete("{moneyDueId}/settlements/{settlementId}")]
+    public async Task<IActionResult> DeleteSettlement(
+        string moneyDueId,
+        string settlementId)
+    {
+        try
+        {
+            await _moneyDueService.DeleteSettlementAsync(
+                UserId,
+                moneyDueId,
+                settlementId);
+
+            return NoContent();
+        }
+        catch (KeyNotFoundException error)
+        {
+            return NotFound(new { message = error.Message });
         }
     }
 
@@ -184,6 +248,8 @@ public class MoneyDueController : ControllerBase
         return NoContent();
     }
 
+    
+
     private static MoneyDueResponse MapToResponse(MoneyDue item)
     {
         return new MoneyDueResponse
@@ -194,6 +260,13 @@ public class MoneyDueController : ControllerBase
             PartyName = item.PartyName,
             Category = item.Category,
             OtherDescription = item.OtherDescription,
+            HasInterest = item.HasInterest,
+            PrincipalAmount = item.PrincipalAmount,
+            InterestRate = item.InterestRate,
+            InterestPeriod = item.InterestPeriod,
+            InterestPeriods = item.InterestPeriods,
+            InterestMethod = item.InterestMethod,
+            InterestAmount = item.InterestAmount,
             TotalAmount = item.TotalAmount,
             SettledAmount = item.SettledAmount,
 
@@ -201,6 +274,7 @@ public class MoneyDueController : ControllerBase
                 .OrderByDescending(x => x.SettlementDate)
                 .Select(x => new MoneyDueSettlementResponse
                 {
+                    Id = x.Id,
                     Amount = x.Amount,
                     SettlementDate = x.SettlementDate,
                     Description = x.Description,

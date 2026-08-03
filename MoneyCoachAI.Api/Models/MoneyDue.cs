@@ -22,6 +22,20 @@ public class MoneyDue
 
     public string? OtherDescription { get; set; }
 
+    public bool HasInterest { get; set; }
+
+    public decimal PrincipalAmount { get; set; }
+
+    public decimal InterestRate { get; set; }
+
+    public string? InterestPeriod { get; set; }
+
+    public int InterestPeriods { get; set; }
+
+    public string InterestMethod { get; set; } = "Simple";
+
+    public decimal InterestAmount { get; set; }
+
     public decimal TotalAmount { get; set; }
 
     public decimal SettledAmount { get; set; }

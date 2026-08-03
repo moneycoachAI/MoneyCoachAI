@@ -19,6 +19,7 @@ import SettingsPage from "../pages/SettingsPage";
 import ProfilePage from "../pages/ProfilePage";
 import ForgotPasswordPage from "../pages/ForgotPasswordPage";
 import ResetPasswordPage from "../pages/ResetPasswordPage";
+import MoneyDuePage from "../pages/MoneyDuePage";
 
 function AppRoutes() {
     return(
@@ -116,6 +117,12 @@ function AppRoutes() {
                 path="/reset-password"
                 element={<ResetPasswordPage />}
                 />
+
+                <Route path="/money-due" element={
+                    <ProtectRoute>
+                        <MoneyDuePage></MoneyDuePage>
+                    </ProtectRoute>
+                }/>
                                 
             </Routes>
         </BrowserRouter>
