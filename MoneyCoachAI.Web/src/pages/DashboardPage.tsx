@@ -36,6 +36,10 @@ import type { InvestmentSummary } from "../types/investmentTypes";
 import { getProfile } from "../services/profileService";
 import type { UserProfile } from "../types/profileTypes";
 
+import moneyDueService from "../services/moneyDueService";
+
+import type { MoneyDue } from "../types/moneyDueTypes";
+
 import {
   getUnreadNotifications,
   markNotificationAsRead,
@@ -112,7 +116,13 @@ function DashboardPage() {
     useState<RecurringTransaction[]>([]);
 
   const [hasRecurringTransactions, setHasRecurringTransactions] =
-  useState(false);
+   useState(false);
+
+  const [moneyDueItems, setMoneyDueItems] =
+   useState<MoneyDue[]>([]);
+
+  const [moneyDueLoading, setMoneyDueLoading] =
+   useState(false);
 
   const financialMotivations = [
   {
@@ -233,6 +243,8 @@ const [motivationIndex, setMotivationIndex] = useState(0);
 
     return created.toLocaleDateString("en-IN");
   };
+
+  
 
   const getCardColor = (severity: string) => {
     switch (severity) {
@@ -681,6 +693,25 @@ const [motivationIndex, setMotivationIndex] = useState(0);
     }
   };
 
+  const loadMoneyDueDashboard = async () => {
+    try {
+      setMoneyDueLoading(true);
+
+      const data = await moneyDueService.getAll();
+
+      setMoneyDueItems(data);
+    } catch (error) {
+      console.error(
+        "Failed to load Money Due dashboard data.",
+        error
+      );
+
+      setMoneyDueItems([]);
+    } finally {
+      setMoneyDueLoading(false);
+    }
+  };
+
   const loadRecurringDashboard = async () => {
     try {
       const allRecurring =
@@ -708,6 +739,7 @@ const [motivationIndex, setMotivationIndex] = useState(0);
           loadDashboardCards(),
           loadUnreadNotifications(),
            loadRecurringDashboard(),
+           loadMoneyDueDashboard(),
         ]);
          
       } catch (error) {
@@ -844,6 +876,94 @@ const [motivationIndex, setMotivationIndex] = useState(0);
     activityMonth && activityYear
       ? `${monthNames[Number(activityMonth)]} ${activityYear}`
       : "latest month";
+
+
+  const activeMoneyDueItems = moneyDueItems.filter(
+    (item) =>
+      item.status !== "Completed" &&
+      item.status !== "Cancelled"
+  );
+
+  const receivableActiveCount = activeMoneyDueItems.filter(
+    (item) => item.dueType === "Receivable"
+  ).length;
+
+  const payableActiveCount = activeMoneyDueItems.filter(
+    (item) => item.dueType === "Payable"
+  ).length;
+
+  const moneyDueLastUpdatedText =
+    moneyDueItems.length > 0
+      ? "Updated just now"
+      : "Waiting for records";
+
+  const moneyDueReceivable = activeMoneyDueItems
+    .filter(
+      (item) => item.dueType === "Receivable"
+    )
+    .reduce(
+      (total, item) =>
+        total + Number(item.remainingAmount || 0),
+      0
+    );
+
+  const moneyDuePayable = activeMoneyDueItems
+    .filter(
+      (item) => item.dueType === "Payable"
+    )
+    .reduce(
+      (total, item) =>
+        total + Number(item.remainingAmount || 0),
+      0
+    );
+
+  const moneyDueOverdueCount =
+    activeMoneyDueItems.filter(
+      (item) => item.isOverdue
+    ).length;
+
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+
+  const sevenDaysLater = new Date(todayStart);
+  sevenDaysLater.setDate(
+    sevenDaysLater.getDate() + 7
+  );
+
+  const moneyDueSoonItems =
+    activeMoneyDueItems
+      .filter((item) => {
+        const dueDate = new Date(item.dueDate);
+        dueDate.setHours(0, 0, 0, 0);
+
+        return (
+          dueDate >= todayStart &&
+          dueDate <= sevenDaysLater
+        );
+      })
+      .sort(
+        (first, second) =>
+          new Date(first.dueDate).getTime() -
+          new Date(second.dueDate).getTime()
+      );
+
+  const upcomingMoneyDueItems = [
+    ...activeMoneyDueItems
+      .filter((item) => item.isOverdue)
+      .sort(
+        (first, second) =>
+          new Date(first.dueDate).getTime() -
+          new Date(second.dueDate).getTime()
+      ),
+    ...moneyDueSoonItems,
+  ]
+    .filter(
+      (item, index, list) =>
+        list.findIndex(
+          (current) => current.id === item.id
+        ) === index
+    )
+    .slice(0, 4);
 
   return (
     <AppLayout>
@@ -2622,9 +2742,292 @@ const [motivationIndex, setMotivationIndex] = useState(0);
               font-size: 26px;
             }
           }
-            .recurring-view-button {
-    margin-top: 18px;
-}
+          .recurring-view-button {
+            margin-top: 18px;
+          }
+
+          .money-due-dashboard-head {
+            align-items: flex-start;
+          }
+
+          .money-due-updated-text {
+            display: block;
+            margin-top: 7px;
+
+            color: #94a3b8;
+            font-size: 10px;
+            font-weight: 700;
+          }
+
+          .money-due-header-icon {
+            display: grid;
+            place-items: center;
+
+            width: 42px;
+            height: 42px;
+
+            flex: 0 0 auto;
+
+            border: 1px solid rgba(255, 255, 255, 0.78);
+            border-radius: 14px;
+
+            background:
+              linear-gradient(
+                145deg,
+                rgba(255, 255, 255, 0.84),
+                rgba(239, 236, 255, 0.72)
+              );
+
+            box-shadow:
+              0 9px 20px rgba(76, 29, 149, 0.09);
+
+            font-size: 20px;
+          }
+
+          .money-due-dashboard-summary {
+            display: grid;
+            grid-template-columns:
+              repeat(4, minmax(0, 1fr));
+            gap: 10px;
+          }
+
+          .money-due-dashboard-stat {
+            min-width: 0;
+
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+
+            padding: 13px;
+
+            border: 1px solid rgba(255, 255, 255, 0.72);
+            border-radius: 16px;
+
+            font: inherit;
+            text-align: left;
+
+            transition:
+              transform 0.18s ease,
+              box-shadow 0.18s ease,
+              background 0.18s ease;
+          }
+
+          .money-due-dashboard-stat:hover {
+            transform: translateY(-3px);
+
+            box-shadow:
+              0 13px 28px rgba(15, 23, 42, 0.09);
+          }
+
+          .money-due-dashboard-stat > div {
+            min-width: 0;
+            flex: 1;
+          }
+
+          .money-due-dashboard-stat span,
+          .money-due-dashboard-stat strong,
+          .money-due-dashboard-stat small {
+            display: block;
+          }
+
+          .money-due-dashboard-stat > div > span {
+            color: var(--mca-muted);
+            font-size: 10px;
+            font-weight: 900;
+            text-transform: uppercase;
+          }
+
+          .money-due-dashboard-stat strong {
+            margin-top: 6px;
+
+            color: var(--mca-text);
+            font-size: 18px;
+
+            overflow-wrap: anywhere;
+          }
+
+          .money-due-dashboard-stat small {
+            margin-top: 5px;
+
+            color: #94a3b8;
+            font-size: 9px;
+            font-weight: 700;
+          }
+
+          .money-due-stat-icon {
+            display: grid !important;
+            place-items: center;
+
+            width: 31px;
+            height: 31px;
+
+            flex: 0 0 auto;
+
+            border-radius: 10px;
+
+            font-size: 13px;
+            font-weight: 900;
+          }
+
+          .money-due-dashboard-stat.receive {
+            border-bottom: 3px solid #21c77a;
+            background: rgba(33, 199, 122, 0.055);
+          }
+
+          .money-due-dashboard-stat.receive
+          .money-due-stat-icon {
+            background: rgba(33, 199, 122, 0.13);
+            color: #0f9f63;
+          }
+
+          .money-due-dashboard-stat.pay {
+            border-bottom: 3px solid #ff6467;
+            background: rgba(255, 100, 103, 0.055);
+          }
+
+          .money-due-dashboard-stat.pay
+          .money-due-stat-icon {
+            background: rgba(255, 100, 103, 0.13);
+            color: #e5484d;
+          }
+
+          .money-due-dashboard-stat.overdue {
+            border-bottom: 3px solid #ef4444;
+            background: rgba(239, 68, 68, 0.05);
+          }
+
+          .money-due-dashboard-stat.overdue
+          .money-due-stat-icon {
+            background: rgba(239, 68, 68, 0.12);
+            color: #dc2626;
+          }
+
+          .money-due-dashboard-stat.soon {
+            border-bottom: 3px solid #ffb547;
+            background: rgba(255, 181, 71, 0.065);
+          }
+
+          .money-due-dashboard-stat.soon
+          .money-due-stat-icon {
+            background: rgba(255, 181, 71, 0.14);
+            color: #c87000;
+          }
+
+          .money-due-dashboard-actions {
+            display:flex;
+            justify-content:flex-start;
+            margin-top:22px;
+          }
+
+          .money-due-dashboard-button {
+            margin-top: 0;
+          }
+
+          .money-due-dashboard-secondary-button {
+            min-height: 42px;
+            padding: 0 16px;
+
+            border: 1px solid rgba(124, 92, 252, 0.22);
+            border-radius: 12px;
+
+            background: rgba(124, 92, 252, 0.08);
+            color: #6547d8;
+
+            cursor: pointer;
+            font: inherit;
+            font-size: 12px;
+            font-weight: 900;
+          }
+
+          .money-due-dashboard-secondary-button:hover {
+            background: rgba(124, 92, 252, 0.14);
+          }
+
+          .money-due-success-icon {
+            font-size: 23px;
+          }
+
+          .money-due-dashboard-card{
+              margin-bottom:22px;
+          }
+
+          @media (max-width: 700px) {
+            .money-due-dashboard-summary {
+              grid-template-columns:
+                repeat(2, minmax(0, 1fr));
+            }
+
+            .money-due-dashboard-stat {
+              padding: 11px 9px;
+              gap: 7px;
+            }
+
+            .money-due-dashboard-stat strong {
+              font-size: 15px;
+            }
+
+            .money-due-stat-icon {
+              width: 28px;
+              height: 28px;
+            }
+
+            .money-due-dashboard-actions {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+            }
+
+            .money-due-dashboard-actions button {
+              width: 100%;
+              padding-left: 8px;
+              padding-right: 8px;
+            }
+
+            .money-due-dashboard-item {
+              align-items: flex-start;
+            }
+
+            .money-due-dashboard-due {
+              max-width: 96px;
+              white-space: normal;
+              text-align: center;
+            }
+
+            .money-due-dashboard-button {
+              width: 100%;
+            }
+          }
+
+          @media (max-width: 390px) {
+            .money-due-dashboard-stat {
+              padding: 11px 9px;
+            }
+
+            .money-due-stat-icon {
+              margin-bottom: 7px;
+            }
+
+            .money-due-dashboard-stat small {
+              font-size: 8px;
+            }
+
+            .money-due-dashboard-actions {
+              grid-template-columns: 1fr;
+            }
+
+            .money-due-dashboard-stat strong {
+              font-size: 15px;
+            }
+
+            .money-due-dashboard-item {
+              gap: 8px;
+              padding: 10px 8px;
+            }
+
+            .money-due-dashboard-item-icon {
+              width: 34px;
+              height: 34px;
+            }
+          }
 
             .chart-card {
               width: 100%;
@@ -2984,8 +3387,11 @@ const [motivationIndex, setMotivationIndex] = useState(0);
             <button
                 className="mca-gradient-button"
                 onClick={async () => {
-                    await loadDashboardCards();
-                    await loadRecurringDashboard();
+                  await Promise.all([
+                    loadDashboardCards(),
+                    loadRecurringDashboard(),
+                    loadMoneyDueDashboard(),
+                  ]);
                 }}
             >
               {loading ? "Loading..." : "Load Year"}
@@ -3198,7 +3604,215 @@ const [motivationIndex, setMotivationIndex] = useState(0);
           </div>
         </div>
 
-        <div className="dash-grid">
+        <div className="mca-glass-card dash-card money-due-dashboard-card">
+          <div className="dash-card-head money-due-dashboard-head">
+            <div>
+              <h2 className="mca-section-title">
+                Money Due
+              </h2>
+
+              <p className="mca-muted">
+                Receivables, payables and upcoming due dates.
+              </p>
+
+              <small className="money-due-updated-text">
+                {moneyDueLastUpdatedText}
+              </small>
+            </div>
+
+            <span className="money-due-header-icon">
+              🤝
+            </span>
+          </div>
+
+          {moneyDueLoading ? (
+            <div className="money-due-dashboard-empty">
+              Loading Money Due records...
+            </div>
+          ) : moneyDueItems.length === 0 ? (
+            <div className="money-due-dashboard-empty">
+              <div className="money-due-dashboard-empty-icon">
+                💸
+              </div>
+
+              <strong>No Money Due records yet</strong>
+
+              <p className="mca-muted">
+                Track money you need to receive or pay,
+                including partial settlements and due-date
+                reminders.
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="money-due-dashboard-summary">
+                <div
+                  className="money-due-dashboard-stat receive"
+                >
+                  <span className="money-due-stat-icon">↙</span>
+
+                  <div>
+                    <span>To Receive</span>
+
+                    <strong>
+                      {formatMoney(moneyDueReceivable)}
+                    </strong>
+
+                    <small>
+                      {receivableActiveCount} active record
+                      {receivableActiveCount === 1 ? "" : "s"}
+                    </small>
+                  </div>
+                </div>
+
+                <div       
+                  className="money-due-dashboard-stat pay"
+                >
+                  <span className="money-due-stat-icon">↗</span>
+
+                  <div>
+                    <span>To Pay</span>
+
+                    <strong>
+                      {formatMoney(moneyDuePayable)}
+                    </strong>
+
+                    <small>
+                      {payableActiveCount} active record
+                      {payableActiveCount === 1 ? "" : "s"}
+                    </small>
+                  </div>
+                </div>
+
+                <div
+                  className="money-due-dashboard-stat overdue"
+                >
+                  <span className="money-due-stat-icon">!</span>
+
+                  <div>
+                    <span>Overdue</span>
+
+                    <strong>
+                      {moneyDueOverdueCount}
+                    </strong>
+
+                    <small>
+                      Require attention
+                    </small>
+                  </div>
+                </div>
+
+                <div
+                  className="money-due-dashboard-stat soon"
+                >
+                  <span className="money-due-stat-icon">◷</span>
+
+                  <div>
+                    <span>Due Soon</span>
+
+                    <strong>
+                      {moneyDueSoonItems.length}
+                    </strong>
+
+                    <small>
+                      Within seven days
+                    </small>
+                  </div>
+                </div>
+              </div>
+
+              <div className="money-due-dashboard-list">
+                {upcomingMoneyDueItems.length === 0 ? (
+                  <div className="money-due-dashboard-success">
+                    <span className="money-due-success-icon">
+                      🎉
+                    </span>
+
+                    <div>
+                      <strong>
+                        Great! Everything is on track
+                      </strong>
+
+                      <p className="mca-muted">
+                        No receivables or payables are overdue or due
+                        within the next seven days.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  upcomingMoneyDueItems.map((item) => {
+                    const dueDate = new Date(item.dueDate);
+                    dueDate.setHours(0, 0, 0, 0);
+
+                    const differenceInDays = Math.ceil(
+                      (dueDate.getTime() -
+                        todayStart.getTime()) /
+                        86400000
+                    );
+
+                    const dueText = item.isOverdue
+                      ? `${Math.abs(differenceInDays)} day${
+                          Math.abs(differenceInDays) === 1
+                            ? ""
+                            : "s"
+                        } overdue`
+                      : differenceInDays === 0
+                        ? "Due today"
+                        : differenceInDays === 1
+                          ? "Due tomorrow"
+                          : `Due in ${differenceInDays} days`;
+
+                    return (
+                      <button
+                        type="button"
+                        className="money-due-dashboard-item"
+                        key={item.id}
+                        onClick={() => navigate("/money-due")}
+                      >
+                        <div className="money-due-dashboard-item-icon">
+                          {item.dueType === "Receivable"
+                            ? "↙"
+                            : "↗"}
+                        </div>
+
+                        <div className="money-due-dashboard-item-copy">
+                          <strong>{item.title}</strong>
+
+                          <p>
+                            {formatMoney(item.remainingAmount)}
+                            {" remaining"}
+                          </p>
+                        </div>
+
+                        <span
+                          className={`money-due-dashboard-due ${
+                            item.isOverdue
+                              ? "overdue"
+                              : ""
+                          }`}
+                        >
+                          {dueText}
+                        </span>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            </>
+          )}
+
+          <div className="money-due-dashboard-actions">
+            <button
+              type="button"
+              className="mca-gradient-button money-due-dashboard-button"
+              onClick={() => navigate("/money-due")}
+            >
+              View Money Due
+            </button>
+          </div>
+        </div>
+
+        <div className="dash-grid" style={{ marginTop: 8 }}>
           <div>
             <div className="mca-glass-card dash-card mca-glow-orange top-spending-card"
                         style={{ minHeight: 0 }}>
