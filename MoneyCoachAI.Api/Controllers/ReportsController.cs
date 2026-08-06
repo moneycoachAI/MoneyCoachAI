@@ -88,6 +88,37 @@ public class ReportsController : ControllerBase
         return Ok(report);
     }
 
+
+    [HttpGet("money-due")]
+    public async Task<IActionResult> GetMoneyDueReport(
+        int month,
+        int year)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
+        if (month < 1 || month > 12)
+        {
+            return BadRequest("Month must be between 1 and 12.");
+        }
+
+        if (year < 2000 || year > 2100)
+        {
+            return BadRequest("Year must be between 2000 and 2100.");
+        }
+
+        var report = await _reportService.GetMoneyDueReportAsync(
+            userId,
+            month,
+            year);
+
+        return Ok(report);
+    }
+
     [HttpGet("monthly-pdf")]
     public async Task<IActionResult> ExportMonthlyPdf(
     int month,

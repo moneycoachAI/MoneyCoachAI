@@ -22,3 +22,16 @@ export interface BudgetSummaryResponse {
   remaining: number;
   isOverBudget: boolean;
 }
+
+export interface MoneyDueReportResponse {
+  totalReceivable: number;
+  totalPayable: number;
+  receivableInterest: number;
+  payableInterest: number;
+  pendingCount: number;
+  partiallyPaidCount: number;
+  completedCount: number;
+  overdueCount: number;
+  activeReceivableCount: number;
+  activePayableCount: number;
+}

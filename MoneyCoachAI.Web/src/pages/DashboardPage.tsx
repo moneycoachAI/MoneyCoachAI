@@ -184,6 +184,12 @@ const [motivationIndex, setMotivationIndex] = useState(0);
     today.getMonth() + 1
   ).padStart(2, "0")}`;
 
+  const [reportPeriod, setReportPeriod] =
+    useState(currentMonthValue);
+
+  const [reportDownloading, setReportDownloading] =
+    useState(false);
+
   const toMonthInputValue = (month: string, selectedYear: string) => {
     if (!month || !selectedYear) {
       return "";
@@ -690,6 +696,53 @@ const [motivationIndex, setMotivationIndex] = useState(0);
     } catch (error) {
       console.error(error);
       alert("Failed to export PDF");
+    }
+  };
+
+  const handleDownloadFinancialReport = async () => {
+    if (!reportPeriod) {
+      alert("Please select a report period.");
+      return;
+    }
+
+    const [selectedYearValue, selectedMonthValue] =
+      reportPeriod.split("-");
+
+    const selectedYear = Number(selectedYearValue);
+    const selectedMonth = Number(selectedMonthValue);
+
+    if (
+      !Number.isInteger(selectedMonth) ||
+      selectedMonth < 1 ||
+      selectedMonth > 12
+    ) {
+      alert("Please select a valid report month.");
+      return;
+    }
+
+    if (
+      !Number.isInteger(selectedYear) ||
+      selectedYear < 2000 ||
+      selectedYear > new Date().getFullYear()
+    ) {
+      alert("Please select a valid report year.");
+      return;
+    }
+
+    if (isFutureMonth(selectedMonth, selectedYear)) {
+      alert("A report cannot be generated for a future month.");
+      return;
+    }
+
+    try {
+      setReportDownloading(true);
+
+      await handleExportPdf(
+        selectedMonth,
+        selectedYear
+      );
+    } finally {
+      setReportDownloading(false);
     }
   };
 
@@ -1226,6 +1279,156 @@ const [motivationIndex, setMotivationIndex] = useState(0);
           .notification-empty p {
             margin: 0;
             font-size: 13px;
+          }
+
+          .financial-report-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+
+            margin-bottom: 22px;
+            padding: 20px 22px;
+
+            border: 1px solid rgba(255, 255, 255, 0.74);
+            border-radius: 22px;
+
+            background:
+              linear-gradient(
+                135deg,
+                rgba(255, 255, 255, 0.82),
+                rgba(244, 241, 255, 0.7)
+              );
+
+            box-shadow:
+              0 14px 34px rgba(76, 29, 149, 0.08),
+              inset 0 1px 0 rgba(255, 255, 255, 0.92);
+          }
+
+          .financial-report-content {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            min-width: 0;
+          }
+
+          .financial-report-icon {
+            display: grid;
+            place-items: center;
+
+            width: 50px;
+            height: 50px;
+
+            flex: 0 0 auto;
+
+            border: 1px solid rgba(124, 92, 252, 0.16);
+            border-radius: 17px;
+
+            background:
+              linear-gradient(
+                145deg,
+                rgba(255, 255, 255, 0.96),
+                rgba(237, 232, 255, 0.86)
+              );
+
+            box-shadow:
+              0 10px 22px rgba(76, 29, 149, 0.09);
+
+            font-size: 23px;
+          }
+
+          .financial-report-text {
+            min-width: 0;
+          }
+
+          .financial-report-eyebrow {
+            display: block;
+
+            color: #6c4dff;
+            font-size: 10px;
+            font-weight: 900;
+            letter-spacing: 0.09em;
+            text-transform: uppercase;
+          }
+
+          .financial-report-text h2 {
+            margin: 5px 0 0;
+
+            color: #172033;
+            font-size: 19px;
+          }
+
+          .financial-report-text p {
+            max-width: 520px;
+            margin: 7px 0 0;
+
+            font-size: 12px;
+            line-height: 1.5;
+          }
+
+          .financial-report-actions {
+            display: grid;
+            gap: 7px;
+
+            flex: 0 0 auto;
+            min-width: 390px;
+          }
+
+          .financial-report-actions label {
+            color: #64748b;
+            font-size: 10px;
+            font-weight: 900;
+          }
+
+          .financial-report-control-row {
+            display: grid;
+            grid-template-columns: minmax(180px, 1fr) auto;
+            gap: 10px;
+          }
+
+          .financial-report-period-input {
+            width: 100%;
+            min-width: 0;
+            height: 44px;
+
+            padding: 0 13px;
+
+            border: 1px solid rgba(124, 92, 252, 0.2);
+            border-radius: 13px;
+            outline: none;
+
+            background: rgba(255, 255, 255, 0.84);
+            color: #1f2937;
+
+            font: inherit;
+            font-size: 12px;
+            font-weight: 750;
+          }
+
+          .financial-report-period-input:focus {
+            border-color: rgba(124, 92, 252, 0.52);
+
+            box-shadow:
+              0 0 0 4px rgba(124, 92, 252, 0.09);
+          }
+
+          .financial-report-period-input:disabled {
+            cursor: not-allowed;
+            opacity: 0.65;
+          }
+
+          .financial-report-download-button {
+            min-width: 138px;
+            height: 44px;
+            margin: 0;
+            padding: 0 16px;
+            white-space: nowrap;
+          }
+
+          .financial-report-download-button:disabled {
+            cursor: not-allowed;
+            opacity: 0.62;
+            box-shadow: none;
           }
 
           @media (max-width: 700px) {
@@ -2551,11 +2754,49 @@ const [motivationIndex, setMotivationIndex] = useState(0);
             .dashboard-page {
               padding: 0 10px 20px;
             }
+
+            .financial-report-card {
+              align-items: stretch;
+              flex-direction: column;
+            }
+
+            .financial-report-actions {
+              width: 100%;
+              min-width: 0;
+            }
           }
 
           @media (max-width: 650px) {
             .dashboard-page {
               padding: 0 6px 18px;
+            }
+
+            .financial-report-card {
+              gap: 18px;
+              padding: 18px 14px;
+            }
+
+            .financial-report-content {
+              align-items: flex-start;
+            }
+
+            .financial-report-icon {
+              width: 44px;
+              height: 44px;
+              border-radius: 14px;
+              font-size: 20px;
+            }
+
+            .financial-report-text h2 {
+              font-size: 17px;
+            }
+
+            .financial-report-control-row {
+              grid-template-columns: 1fr;
+            }
+
+            .financial-report-download-button {
+              width: 100%;
             }
           }
 
@@ -3273,7 +3514,7 @@ const [motivationIndex, setMotivationIndex] = useState(0);
                 width: 100%;
                 text-align: center;
               }
-}
+            }
         `}
       </style>
       <div className="dashboard-page">
@@ -3445,6 +3686,65 @@ const [motivationIndex, setMotivationIndex] = useState(0);
           </div>
 
         </div>
+
+        <section className="mca-glass-card financial-report-card">
+          <div className="financial-report-content">
+            <div className="financial-report-icon">
+              📄
+            </div>
+
+            <div className="financial-report-text">
+              <span className="financial-report-eyebrow">
+                Monthly statement
+              </span>
+
+              <h2>
+                Financial Report
+              </h2>
+
+              <p className="mca-muted">
+                Select a month and download your complete
+                financial summary as a PDF.
+              </p>
+            </div>
+          </div>
+
+          <div className="financial-report-actions">
+            <label htmlFor="financial-report-period">
+              Report period
+            </label>
+
+            <div className="financial-report-control-row">
+              <input
+                id="financial-report-period"
+                type="month"
+                className="financial-report-period-input"
+                value={reportPeriod}
+                max={currentMonthValue}
+                disabled={reportDownloading}
+                onChange={(event) =>
+                  setReportPeriod(event.target.value)
+                }
+              />
+
+              <button
+                type="button"
+                className="mca-gradient-button financial-report-download-button"
+                disabled={
+                  reportDownloading ||
+                  !reportPeriod
+                }
+                onClick={() => {
+                  void handleDownloadFinancialReport();
+                }}
+              >
+                {reportDownloading
+                  ? "Downloading..."
+                  : "Download PDF"}
+              </button>
+            </div>
+          </div>
+        </section>
 
         <div
           className={`dash-grid alerts-ai-grid ${

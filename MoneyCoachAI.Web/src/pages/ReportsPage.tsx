@@ -1,15 +1,18 @@
 import { useMemo, useState } from "react";
 import AppLayout from "../components/AppLayout";
+import MoneyDueAnalytics from "../components/reports/MoneyDueAnalytics";
 
 import {
   getBudgetSummary,
   getCategoryReport,
+  getMoneyDueReport,
   getMonthlyReport,
 } from "../services/reportService";
 
 import type {
   BudgetSummaryResponse,
   CategoryReportResponse,
+  MoneyDueReportResponse,
   MonthlyReportResponse,
 } from "../types/reportTypes";
 
@@ -51,6 +54,9 @@ function ReportsPage() {
   const [budgetSummary, setBudgetSummary] = useState<
     BudgetSummaryResponse[]
   >([]);
+
+  const [moneyDueReport, setMoneyDueReport] =
+    useState<MoneyDueReportResponse | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);
@@ -132,15 +138,22 @@ function ReportsPage() {
       setNotice(null);
       setHasLoaded(true);
 
-      const [monthlyData, categoryData, budgetData] = await Promise.all([
+      const [
+        monthlyData,
+        categoryData,
+        budgetData,
+        moneyDueData,
+      ] = await Promise.all([
         getMonthlyReport(selectedMonth, selectedYear),
         getCategoryReport(selectedMonth, selectedYear),
         getBudgetSummary(selectedMonth, selectedYear),
+        getMoneyDueReport(selectedMonth, selectedYear),
       ]);
 
       setMonthlyReport(monthlyData);
       setCategoryReport(categoryData);
       setBudgetSummary(budgetData);
+      setMoneyDueReport(moneyDueData);
     } catch (error) {
       console.error("Failed to load reports:", error);
 
@@ -528,6 +541,14 @@ function ReportsPage() {
                 </div>
               )}
             </section>
+
+            {moneyDueReport && (
+              <MoneyDueAnalytics
+                data={moneyDueReport}
+                monthName={selectedMonthName}
+                year={year}
+              />
+            )}
           </>
         )}
 

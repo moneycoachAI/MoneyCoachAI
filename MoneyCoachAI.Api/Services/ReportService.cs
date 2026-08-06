@@ -8,15 +8,18 @@ public class ReportService
     private readonly ExpenseRepository _expenseRepository;
     private readonly BudgetRepository _budgetRepository;
     private readonly IncomeRepository _incomeRepository;
+    private readonly MoneyDueRepository _moneyDueRepository;
 
     public ReportService(
         ExpenseRepository expenseRepository,
         BudgetRepository budgetRepository,
-        IncomeRepository incomeRepository)
+        IncomeRepository incomeRepository,
+        MoneyDueRepository moneyDueRepository)
     {
         _expenseRepository = expenseRepository;
         _budgetRepository = budgetRepository;
         _incomeRepository = incomeRepository;
+        _moneyDueRepository = moneyDueRepository;
     }
 
     public async Task<MonthlyReportResponse> GetMonthlyReportAsync(
@@ -115,6 +118,78 @@ public class ReportService
         }).ToList();
 
         return response;
+    }
+
+
+    public async Task<MoneyDueReportResponse> GetMoneyDueReportAsync(
+        string userId,
+        int month,
+        int year)
+    {
+        if (month < 1 || month > 12)
+        {
+            throw new ArgumentOutOfRangeException(nameof(month));
+        }
+
+        var items = await _moneyDueRepository.GetByUserIdAsync(userId);
+
+        // A monthly Money Due report is based on the record's due date.
+        var monthlyItems = items
+            .Where(item =>
+                item.DueDate.Month == month &&
+                item.DueDate.Year == year)
+            .ToList();
+
+        var activeItems = monthlyItems
+            .Where(item =>
+                item.Status != "Completed" &&
+                item.Status != "Cancelled")
+            .ToList();
+
+        static bool IsType(MoneyCoachAI.Api.Models.MoneyDue item, string dueType) =>
+            string.Equals(
+                item.DueType,
+                dueType,
+                StringComparison.OrdinalIgnoreCase);
+
+        var totalReceivable = activeItems
+            .Where(item => IsType(item, "Receivable"))
+            .Sum(item => Math.Max(0, item.TotalAmount - item.SettledAmount));
+
+        var totalPayable = activeItems
+            .Where(item => IsType(item, "Payable"))
+            .Sum(item => Math.Max(0, item.TotalAmount - item.SettledAmount));
+
+        var receivableInterest = monthlyItems
+            .Where(item => item.HasInterest && IsType(item, "Receivable"))
+            .Sum(item => item.InterestAmount);
+
+        var payableInterest = monthlyItems
+            .Where(item => item.HasInterest && IsType(item, "Payable"))
+            .Sum(item => item.InterestAmount);
+
+        var selectedMonthEnd = new DateTime(
+            year,
+            month,
+            DateTime.DaysInMonth(year, month),
+            23,
+            59,
+            59,
+            DateTimeKind.Utc);
+
+        return new MoneyDueReportResponse
+        {
+            TotalReceivable = totalReceivable,
+            TotalPayable = totalPayable,
+            ReceivableInterest = receivableInterest,
+            PayableInterest = payableInterest,
+            PendingCount = monthlyItems.Count(item => item.Status == "Pending"),
+            PartiallyPaidCount = monthlyItems.Count(item => item.Status == "PartiallyPaid"),
+            CompletedCount = monthlyItems.Count(item => item.Status == "Completed"),
+            OverdueCount = activeItems.Count(item => item.DueDate < selectedMonthEnd),
+            ActiveReceivableCount = activeItems.Count(item => IsType(item, "Receivable")),
+            ActivePayableCount = activeItems.Count(item => IsType(item, "Payable"))
+        };
     }
 
     public async Task<TopCategoryResponse?> GetTopCategoryAsync(

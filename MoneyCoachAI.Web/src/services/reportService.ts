@@ -2,6 +2,7 @@ import axiosClient from "../api/axiosClient";
 import type {
   BudgetSummaryResponse,
   CategoryReportResponse,
+  MoneyDueReportResponse,
   MonthlyReportResponse,
 } from "../types/reportTypes";
 
@@ -47,6 +48,17 @@ export const exportMonthlyPdf = async (
     {
       responseType: "blob",
     }
+  );
+
+  return response.data;
+};
+
+export const getMoneyDueReport = async (
+  month: number,
+  year: number
+): Promise<MoneyDueReportResponse> => {
+  const response = await axiosClient.get<MoneyDueReportResponse>(
+    `/Reports/money-due?month=${month}&year=${year}`
   );
 
   return response.data;
