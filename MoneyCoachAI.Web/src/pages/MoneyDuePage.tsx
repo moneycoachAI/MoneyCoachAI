@@ -68,6 +68,27 @@ const getTodayInputValue = () => {
   return `${year}-${month}-${day}`;
 };
 
+const toDateInputValue = (
+  value: string | Date | null | undefined
+): string => {
+  if (!value) {
+    return "";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+};
+
+
 const createEmptyMoneyDueForm = (
   dueType: MoneyDueType = "Receivable"
 ): MoneyDueFormState => ({
@@ -123,6 +144,7 @@ function MoneyDuePage() {
     useState<string | null>(null);
   const [historyNotice, setHistoryNotice] = useState<NoticeState>(null);
 
+  
   const loadMoneyDueItems = async () => {
     try {
       setLoading(true);
@@ -283,7 +305,7 @@ function MoneyDuePage() {
         ? item.interestPeriods.toString()
         : "",
       totalAmount: item.hasInterest ? "" : item.totalAmount.toString(),
-      dueDate: item.dueDate.split("T")[0],
+      dueDate: toDateInputValue(item.dueDate),
       reminderDaysBefore: item.reminderDaysBefore.toString(),
       description: item.description ?? "",
     });
@@ -386,7 +408,7 @@ function MoneyDuePage() {
         : 0,
       interestMethod: "Simple",
       totalAmount: hasInterest ? 0 : Number(moneyDueForm.totalAmount),
-      dueDate: moneyDueForm.dueDate,
+      dueDate: `${moneyDueForm.dueDate}T00:00:00Z`,
       reminderDaysBefore: Number(moneyDueForm.reminderDaysBefore),
       description: moneyDueForm.description.trim() || null,
     };
@@ -449,7 +471,9 @@ function MoneyDuePage() {
       settlement
         ? {
             amount: settlement.amount.toString(),
-            settlementDate: settlement.settlementDate.split("T")[0],
+            settlementDate: toDateInputValue(
+              settlement.settlementDate
+            ),
             description: settlement.description ?? "",
           }
         : createEmptySettlementForm()
@@ -503,7 +527,8 @@ function MoneyDuePage() {
 
       const request = {
         amount: numericAmount,
-        settlementDate: settlementForm.settlementDate,
+        settlementDate:
+          `${settlementForm.settlementDate}T00:00:00.000Z`,
         description: settlementForm.description.trim() || null,
       };
 

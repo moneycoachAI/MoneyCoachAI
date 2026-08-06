@@ -36,12 +36,31 @@ public class MoneyDueNotificationService
             var daysUntilDue =
                 (item.DueDate.Date - today).Days;
 
-            if (!ShouldSendReminder(
-                    item,
-                    daysUntilDue))
-            {
-                continue;
-            }
+                Console.WriteLine(
+    $"[MoneyDue Reminder] " +
+    $"Id={item.Id}, " +
+    $"Title={item.Title}, " +
+    $"UserId={item.UserId}, " +
+    $"Status={item.Status}, " +
+    $"DueDate={item.DueDate:yyyy-MM-dd HH:mm:ss K}, " +
+    $"Today={today:yyyy-MM-dd}, " +
+    $"DaysUntilDue={daysUntilDue}, " +
+    $"ReminderDaysBefore={item.ReminderDaysBefore}"
+);
+
+            var shouldSendReminder =
+    ShouldSendReminder(item, daysUntilDue);
+
+Console.WriteLine(
+    $"[MoneyDue Reminder] " +
+    $"Title={item.Title}, " +
+    $"ShouldSend={shouldSendReminder}"
+);
+
+if (!shouldSendReminder)
+{
+    continue;
+}
 
             var remainingAmount =
                 Math.Max(
@@ -84,6 +103,13 @@ public class MoneyDueNotificationService
                         notificationType,
                         referenceKey
                     );
+
+                    Console.WriteLine(
+    $"[MoneyDue Reminder] " +
+    $"Title={item.Title}, " +
+    $"ReferenceKey={referenceKey}, " +
+    $"WasCreated={wasCreated}"
+);
 
             if (wasCreated)
             {
@@ -131,12 +157,12 @@ public class MoneyDueNotificationService
     }
 
     private static bool ShouldSendReminder(
-        MoneyDue item,
-        int daysUntilDue)
+    MoneyDue item,
+    int daysUntilDue)
     {
         if (daysUntilDue < 0)
         {
-            return true;
+            return false;
         }
 
         if (daysUntilDue == 0)
@@ -144,8 +170,20 @@ public class MoneyDueNotificationService
             return true;
         }
 
-        return daysUntilDue <=
-               item.ReminderDaysBefore;
+        if (daysUntilDue == 1)
+        {
+            return true;
+        }
+
+        if (
+            item.ReminderDaysBefore > 1 &&
+            daysUntilDue == item.ReminderDaysBefore
+        )
+        {
+            return true;
+        }
+
+        return false;
     }
 
     private static string BuildNotificationTitle(
@@ -232,15 +270,29 @@ public class MoneyDueNotificationService
     }
 
     private static string BuildReferenceKey(
-        MoneyDue item,
-        DateTime notificationDate)
+    MoneyDue item,
+    DateTime notificationDate)
     {
+        var daysUntilDue =
+            (item.DueDate.Date -
+            notificationDate.Date).Days;
+
+        var reminderType =
+            daysUntilDue switch
+            {
+                0 => "due",
+
+                1 => "tomorrow",
+
+                _ => "selected"
+            };
+
         return string.Join(
             ":",
             "money-due",
             item.Id,
-            item.DueDate.ToString("yyyy-MM-dd"),
-            notificationDate.ToString("yyyy-MM-dd"));
+            reminderType,
+            item.DueDate.ToString("yyyy-MM-dd"));
     }
 
     private static bool IsReceivable(
