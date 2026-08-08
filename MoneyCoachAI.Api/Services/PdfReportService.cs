@@ -1,12 +1,35 @@
-﻿using MoneyCoachAI.Api.DTOs;
+﻿﻿using MoneyCoachAI.Api.DTOs;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
+using System.Globalization;
 
 namespace MoneyCoachAI.Api.Services;
 
 public class PdfReportService
 {
+    private const string Purple = "#6D28D9";
+    private const string PurpleDark = "#4C1D95";
+    private const string PurpleSoft = "#F5F3FF";
+    private const string Gold = "#D97706";
+    private const string GoldSoft = "#FFF7ED";
+    private const string Green = "#15803D";
+    private const string GreenSoft = "#F0FDF4";
+    private const string Red = "#B91C1C";
+    private const string RedSoft = "#FEF2F2";
+    private const string Amber = "#B45309";
+    private const string AmberSoft = "#FFFBEB";
+    private const string Blue = "#1D4ED8";
+    private const string BlueSoft = "#EFF6FF";
+    private const string Slate = "#334155";
+    private const string SlateLight = "#64748B";
+    private const string Border = "#D9E1EC";
+    private const string Surface = "#F8FAFC";
+    private const string White = "#FFFFFF";
+
+    private static readonly CultureInfo IndianCulture =
+        CultureInfo.GetCultureInfo("en-IN");
+
     public byte[] GenerateMonthlyReportPdf(
         int month,
         int year,
@@ -14,101 +37,1375 @@ public class PdfReportService
     {
         QuestPDF.Settings.License = LicenseType.Community;
 
+        var monthName = new DateTime(year, month, 1)
+            .ToString("MMMM yyyy");
+
         var document = Document.Create(container =>
         {
             container.Page(page =>
             {
                 page.Size(PageSizes.A4);
-                page.Margin(40);
-                page.DefaultTextStyle(x => x.FontSize(12));
+                page.Margin(10);
 
-                page.Header()
-                    .Text("MoneyCoachAI Monthly Report")
-                    .FontSize(22)
-                    .Bold()
-                    .FontColor(Colors.Blue.Medium);
+                page.DefaultTextStyle(style =>
+                    style
+                        .FontSize(7.2f)
+                        .FontColor(Slate));
 
                 page.Content()
-                    .PaddingVertical(20)
                     .Column(column =>
                     {
-                        column.Spacing(15);
+                        column.Spacing(7);
 
                         column.Item()
-                            .Text($"Report Month: {month}/{year}")
-                            .FontSize(16)
-                            .Bold();
+                            .Element(c =>
+                                ComposeHeader(
+                                    c,
+                                    monthName,
+                                    report));
 
-                        column.Item().LineHorizontal(1);
+                        // AI ADVISOR AT TOP
+                        column.Item()
+                            .Element(c =>
+                                ComposeAiAdvisor(
+                                    c,
+                                    report));
 
-                        column.Item().Text("Financial Summary")
-                            .FontSize(18)
-                            .Bold();
-
-                        column.Item().Table(table =>
-                        {
-                            table.ColumnsDefinition(columns =>
+                        column.Item()
+                            .Row(row =>
                             {
-                                columns.RelativeColumn();
-                                columns.RelativeColumn();
+                                row.Spacing(5);
+
+                                row.RelativeItem()
+                                    .Element(c =>
+                                        ComposeFinancialOverview(
+                                            c,
+                                            report));
+
+                                row.RelativeItem()
+                                    .Element(c =>
+                                        ComposeMonthlyComparison(
+                                            c,
+                                            report));
                             });
 
-                            table.Cell().Text("Total Income").Bold();
-                            table.Cell().Text($"₹{report.TotalIncome}");
+                        // Spending and budget full-width: better alignment/readability
+                        column.Item()
+                            .Element(c =>
+                                ComposeSpendingAndBudget(
+                                    c,
+                                    report));
 
-                            table.Cell().Text("Total Expenses").Bold();
-                            table.Cell().Text($"₹{report.TotalSpent}");
+                        column.Item()
+                            .Element(c =>
+                                ComposeSmartAlerts(
+                                    c,
+                                    report));
 
-                            table.Cell().Text("Savings").Bold();
-                            table.Cell().Text($"₹{report.Savings}");
+                        column.Item()
+                            .Element(c =>
+                                ComposeMonthlyFocus(
+                                    c,
+                                    report));
 
-                            table.Cell().Text("Savings Rate").Bold();
-                            table.Cell().Text($"{report.SavingsRate:F1}%");
-                        });
-
-                        column.Item().LineHorizontal(1);
-
-                        column.Item().Text("Smart Suggestions")
-                            .FontSize(18)
-                            .Bold();
-
-                        if (report.Suggestions.Count == 0)
-                        {
-                            column.Item().Text("No suggestions available.");
-                        }
-                        else
-                        {
-                            foreach (var suggestion in report.Suggestions)
-                            {
-                                column.Item().Text($"- {suggestion}");
-                            }
-                        }
-
-                        column.Item().LineHorizontal(1);
-
-                        column.Item().Text("AI Advisor Insights")
-                            .FontSize(18)
-                            .Bold();
-
-                        if (report.AiInsights.Count == 0)
-                        {
-                            column.Item().Text("No AI insights available.");
-                        }
-                        else
-                        {
-                            foreach (var insight in report.AiInsights)
-                            {
-                                column.Item().Text($"- {insight}");
-                            }
-                        }
+                        column.Item()
+                            .Element(c =>
+                                ComposeBottomSummary(
+                                    c,
+                                    report));
                     });
 
                 page.Footer()
-                    .AlignCenter()
-                    .Text($"Generated on {DateTime.Now:dd MMM yyyy}");
+                    .PaddingTop(3)
+                    .Row(row =>
+                    {
+                        row.RelativeItem()
+                            .Text(
+                                $"Generated by MoneyCoachAI • {DateTime.Now:dd MMM yyyy}")
+                            .FontSize(6.2f)
+                            .FontColor(SlateLight);
+
+                        row.RelativeItem()
+                            .AlignRight()
+                            .DefaultTextStyle(style =>
+                                style
+                                    .FontSize(6.2f)
+                                    .FontColor(SlateLight))
+                            .Text(text =>
+                            {
+                                text.Span("Monthly Financial Statement • ");
+                                text.CurrentPageNumber();
+                                text.Span(" / ");
+                                text.TotalPages();
+                            });
+                    });
             });
         });
 
         return document.GeneratePdf();
+    }
+
+    // ============================================================
+    // HEADER
+    // ============================================================
+
+    private static void ComposeHeader(
+        IContainer container,
+        string monthName,
+        MonthlyReportPdfResponse report)
+    {
+        container
+            .MinHeight(56)
+            .Border(1)
+            .BorderColor("#C4B5FD")
+            .Background(White)
+            .Padding(9)
+            .Row(row =>
+            {
+                row.RelativeItem(1.25f)
+                    .Column(left =>
+                    {
+                        left.Spacing(2);
+
+                        left.Item()
+                            .DefaultTextStyle(style =>
+                                style
+                                    .FontSize(18)
+                                    .Bold())
+                            .Text(brand =>
+                            {
+                                brand.Span("Money")
+                                    .FontColor("#8B5CF6");
+
+                                brand.Span("Coach")
+                                    .FontColor("#111827");
+
+                                brand.Span("A")
+                                    .FontColor("#F59E0B");
+
+                                brand.Span("I")
+                                    .FontColor("#F59E0B");
+                            });
+
+                        left.Item()
+                            .Text("Your Personal Finance Companion")
+                            .FontSize(6.3f)
+                            .FontColor(SlateLight);
+                    });
+
+                row.RelativeItem(1.7f)
+                    .AlignCenter()
+                    .Column(center =>
+                    {
+                        center.Spacing(1);
+
+                        center.Item()
+                            .AlignCenter()
+                            .Text("MONTHLY FINANCIAL STATEMENT")
+                            .FontSize(12.5f)
+                            .Bold()
+                            .FontColor(PurpleDark);
+
+                        center.Item()
+                            .AlignCenter()
+                            .Text(monthName)
+                            .FontSize(10)
+                            .Bold();
+
+                        center.Item()
+                            .AlignCenter()
+                            .Text("Selected-month financial highlights at a glance")
+                            .FontSize(6.1f)
+                            .FontColor(SlateLight);
+                    });
+
+                row.RelativeItem(0.9f)
+                    .AlignRight()
+                    .Column(right =>
+                    {
+                        right.Spacing(1);
+
+                        right.Item()
+                            .AlignRight()
+                            .Text("FINANCIAL HEALTH")
+                            .FontSize(6.2f)
+                            .SemiBold()
+                            .FontColor(SlateLight);
+
+                        right.Item()
+                            .AlignRight()
+                            .Text($"{report.HealthScore}/100")
+                            .FontSize(14)
+                            .Bold()
+                            .FontColor(GetHealthColor(report.HealthStatus));
+
+                        right.Item()
+                            .AlignRight()
+                            .Text(Safe(report.HealthStatus, "Not rated"))
+                            .FontSize(6.5f)
+                            .SemiBold()
+                            .FontColor(GetHealthColor(report.HealthStatus));
+                    });
+            });
+    }
+
+    // ============================================================
+    // AI ADVISOR
+    // ============================================================
+
+    private static void ComposeAiAdvisor(
+        IContainer container,
+        MonthlyReportPdfResponse report)
+    {
+        var insights = report.AiInsights?
+            .OrderByDescending(x => SeverityRank(x.Severity))
+            .Take(2)
+            .ToList() ?? [];
+
+        container
+            .MinHeight(52)
+            .Border(1)
+            .BorderColor("#DDD6FE")
+            .Background(PurpleSoft)
+            .PaddingVertical(9)
+            .PaddingHorizontal(10)
+            .Row(row =>
+            {
+                row.ConstantItem(78)
+                    .Column(left =>
+                    {
+                        left.Spacing(1);
+
+                        left.Item()
+                            .Text("AI ADVISOR")
+                            .FontSize(8.5f)
+                            .Bold()
+                            .FontColor(PurpleDark);
+
+                        left.Item()
+                            .Text("Key next actions")
+                            .FontSize(5.7f)
+                            .FontColor(SlateLight);
+                    });
+
+                row.RelativeItem()
+                    .Row(insightRow =>
+                    {
+                        insightRow.Spacing(7);
+
+                        if (insights.Count == 0)
+                        {
+                            insightRow.RelativeItem()
+                                .Text("No AI advisor insights available for this month.")
+                                .FontSize(6.4f)
+                                .FontColor(SlateLight);
+                        }
+                        else
+                        {
+                            foreach (var insight in insights)
+                            {
+                                insightRow.RelativeItem()
+                                    .Column(col =>
+                                    {
+                                        col.Spacing(1);
+
+                                        col.Item()
+                                            .Text(Safe(insight.Title, "Insight"))
+                                            .FontSize(6.8f)
+                                            .SemiBold()
+                                            .FontColor(GetSeverityColor(insight.Severity));
+
+                                        col.Item()
+                                            .Text(Shorten(insight.Message, 145))
+                                            .FontSize(6.05f);
+                                    });
+                            }
+                        }
+                    });
+            });
+    }
+
+    // ============================================================
+    // FINANCIAL OVERVIEW
+    // ============================================================
+
+    private static void ComposeFinancialOverview(
+        IContainer container,
+        MonthlyReportPdfResponse report)
+    {
+        SectionCard(
+            container.MinHeight(138),
+            "FINANCIAL OVERVIEW",
+            Green,
+            content =>
+            {
+                content.Item()
+                    .Table(table =>
+                    {
+                        table.ColumnsDefinition(columns =>
+                        {
+                            columns.RelativeColumn();
+                            columns.RelativeColumn();
+                            columns.RelativeColumn();
+                            columns.RelativeColumn();
+                        });
+
+                        SummaryCell(table, "Income", Money(report.TotalIncome), GreenSoft, Green);
+                        SummaryCell(table, "Expenses", Money(report.TotalSpent), RedSoft, Red);
+                        SummaryCell(
+                            table,
+                            "Savings",
+                            Money(report.Savings),
+                            report.Savings >= 0 ? GreenSoft : RedSoft,
+                            report.Savings >= 0 ? Green : Red);
+                        SummaryCell(table, "Savings Rate", $"{report.SavingsRate:F1}%", PurpleSoft, Purple);
+                    });
+
+                content.Item()
+                    .PaddingTop(4)
+                    .Table(table =>
+                    {
+                        table.ColumnsDefinition(columns =>
+                        {
+                            columns.RelativeColumn();
+                            columns.RelativeColumn();
+                        });
+
+                        CenterMetric(table, "Total Budget", Money(report.TotalBudget));
+                        CenterMetric(
+                            table,
+                            "Budget Remaining",
+                            Money(report.RemainingBudget),
+                            report.RemainingBudget >= 0 ? Green : Red);
+                    });
+            });
+    }
+
+    // ============================================================
+    // MONTHLY COMPARISON
+    // ============================================================
+
+    private static void ComposeMonthlyComparison(
+        IContainer container,
+        MonthlyReportPdfResponse report)
+    {
+        var comparison = report.Comparison ?? new PdfMonthlyComparison();
+
+        var previousLabel =
+            comparison.PreviousMonth is >= 1 and <= 12
+                ? new DateTime(
+                        comparison.PreviousYear <= 0
+                            ? DateTime.Now.Year
+                            : comparison.PreviousYear,
+                        comparison.PreviousMonth,
+                        1)
+                    .ToString("MMM yyyy")
+                : "No prior month";
+
+        SectionCard(
+            container.MinHeight(138),
+            "MONTHLY COMPARISON",
+            Blue,
+            content =>
+            {
+                content.Item()
+                    .Text($"Compared with: {previousLabel}")
+                    .FontSize(5.9f)
+                    .FontColor(SlateLight);
+
+                content.Item()
+                    .PaddingTop(2)
+                    .Table(table =>
+                    {
+                        table.ColumnsDefinition(columns =>
+                        {
+                            columns.RelativeColumn(1.2f);
+                            columns.RelativeColumn();
+                            columns.RelativeColumn();
+                            columns.RelativeColumn(0.9f);
+                        });
+
+                        HeaderCell(table, "Metric", false);
+                        HeaderCell(table, "Previous", true);
+                        HeaderCell(table, "Current", true);
+                        HeaderCell(table, "Change", true);
+
+                        ComparisonRow(
+                            table,
+                            "Income",
+                            comparison.PreviousIncome,
+                            comparison.CurrentIncome,
+                            comparison.IncomeChangePercent,
+                            higherIsBetter: true);
+
+                        ComparisonRow(
+                            table,
+                            "Expenses",
+                            comparison.PreviousSpent,
+                            comparison.CurrentSpent,
+                            comparison.ExpenseChangePercent,
+                            higherIsBetter: false);
+
+                        ComparisonRow(
+                            table,
+                            "Savings",
+                            comparison.PreviousSavings,
+                            comparison.CurrentSavings,
+                            comparison.SavingsChangePercent,
+                            higherIsBetter: true);
+                    });
+            });
+    }
+
+    // ============================================================
+    // SPENDING & BUDGET
+    // ============================================================
+
+    private static void ComposeSpendingAndBudget(
+        IContainer container,
+        MonthlyReportPdfResponse report)
+    {
+        var categories = report.Categories?
+            .OrderByDescending(x => x.Amount)
+            .Take(4)
+            .ToList() ?? [];
+
+        var budgets = report.Budgets?
+            .OrderByDescending(x => x.UsedPercentage)
+            .Take(4)
+            .ToList() ?? [];
+
+        SectionCard(
+            container.MinHeight(175),
+            "SPENDING & BUDGET HIGHLIGHTS",
+            Gold,
+            content =>
+            {
+                content.Item()
+                    .Row(row =>
+                    {
+                        row.Spacing(8);
+
+                        // LEFT: TOP SPENDING
+                        row.RelativeItem()
+                            .Column(left =>
+                            {
+                                left.Item()
+                                    .Text("TOP SPENDING CATEGORIES")
+                                    .FontSize(6.1f)
+                                    .SemiBold()
+                                    .FontColor(Gold);
+
+                                left.Item()
+                                    .PaddingTop(2)
+                                    .Table(table =>
+                                    {
+                                        table.ColumnsDefinition(columns =>
+                                        {
+                                            columns.RelativeColumn(1.4f);
+                                            columns.RelativeColumn();
+                                            columns.RelativeColumn(0.7f);
+                                        });
+
+                                        HeaderCell(table, "Category", false);
+                                        HeaderCell(table, "Spent", true);
+                                        HeaderCell(table, "%", true);
+
+                                        if (categories.Count == 0)
+                                        {
+                                            EmptyRow(table, 3, "No spending data.");
+                                        }
+                                        else
+                                        {
+                                            foreach (var item in categories)
+                                            {
+                                                BodyCell(table, item.Category, false);
+                                                BodyCell(table, Money(item.Amount), true);
+                                                BodyCell(table, $"{item.Percentage:F1}%", true);
+                                            }
+                                        }
+                                    });
+                            });
+
+                        // RIGHT: BUDGET UTILIZATION
+                        row.RelativeItem()
+                            .Column(right =>
+                            {
+                                right.Item()
+                                    .Text("BUDGET UTILIZATION")
+                                    .FontSize(6.1f)
+                                    .SemiBold()
+                                    .FontColor(Gold);
+
+                                right.Item()
+                                    .PaddingTop(2)
+                                    .Table(table =>
+                                    {
+                                        table.ColumnsDefinition(columns =>
+                                        {
+                                            columns.RelativeColumn(1.2f);
+                                            columns.RelativeColumn();
+                                            columns.RelativeColumn(0.7f);
+                                        });
+
+                                        HeaderCell(table, "Category", false);
+                                        HeaderCell(table, "Remaining", true);
+                                        HeaderCell(table, "Used", true);
+
+                                        if (budgets.Count == 0)
+                                        {
+                                            EmptyRow(table, 3, "No budget data.");
+                                        }
+                                        else
+                                        {
+                                            foreach (var item in budgets)
+                                            {
+                                                BodyCell(table, item.Category, false);
+                                                BodyCell(table, Money(item.Remaining), true);
+
+                                                var color =
+                                                    item.IsOverBudget
+                                                        ? Red
+                                                        : item.UsedPercentage >= 80
+                                                            ? Amber
+                                                            : Green;
+
+                                                BodyCell(
+                                                    table,
+                                                    $"{item.UsedPercentage:F0}%",
+                                                    true,
+                                                    color,
+                                                    item.IsOverBudget);
+                                            }
+                                        }
+                                    });
+                            });
+                    });
+            });
+    }
+
+    // ============================================================
+    // INVESTMENTS
+    // ============================================================
+
+    private static void ComposeInvestmentSummary(
+        IContainer container,
+        MonthlyReportPdfResponse report)
+    {
+        var summary = report.InvestmentSummary ?? new PdfInvestmentSummary();
+
+        var allocations = report.InvestmentAllocation?
+            .OrderByDescending(x => x.Amount)
+            .Take(3)
+            .ToList() ?? [];
+
+        SectionCard(
+            container.MinHeight(108),
+            "INVESTMENTS",
+            Green,
+            content =>
+            {
+                content.Item()
+                    .Row(row =>
+                    {
+                        row.Spacing(7);
+
+                        row.RelativeItem()
+                            .Table(table =>
+                            {
+                                table.ColumnsDefinition(columns =>
+                                {
+                                    columns.RelativeColumn();
+                                    columns.RelativeColumn();
+                                });
+
+                                LabelValueRow(table, "Total Invested", Money(summary.TotalInvested));
+                                LabelValueRow(table, "Current Value", Money(summary.TotalCurrentValue));
+                                LabelValueRow(
+                                    table,
+                                    "Profit / Loss",
+                                    Money(summary.TotalProfitOrLoss),
+                                    summary.TotalProfitOrLoss >= 0 ? Green : Red,
+                                    true);
+                                LabelValueRow(
+                                    table,
+                                    "Return",
+                                    $"{summary.ProfitOrLossPercentage:F1}%",
+                                    summary.ProfitOrLossPercentage >= 0 ? Green : Red,
+                                    true);
+                            });
+
+                        row.RelativeItem()
+                            .Column(right =>
+                            {
+                                right.Item()
+                                    .Text("TOP ALLOCATIONS")
+                                    .FontSize(5.9f)
+                                    .SemiBold()
+                                    .FontColor(Green);
+
+                                if (allocations.Count == 0)
+                                {
+                                    right.Item()
+                                        .PaddingTop(2)
+                                        .Text("No allocation data.")
+                                        .FontSize(6.2f)
+                                        .FontColor(SlateLight);
+                                }
+                                else
+                                {
+                                    foreach (var item in allocations)
+                                    {
+                                        right.Item()
+                                            .PaddingTop(1.5f)
+                                            .Row(r =>
+                                            {
+                                                r.RelativeItem()
+                                                    .Text(Safe(item.Type, "Other"))
+                                                    .FontSize(5.9f);
+
+                                                r.RelativeItem()
+                                                    .AlignRight()
+                                                    .Text($"{Money(item.Amount)}  {item.Percentage:F0}%")
+                                                    .FontSize(5.9f)
+                                                    .SemiBold();
+                                            });
+                                    }
+                                }
+                            });
+                    });
+            });
+    }
+
+    // ============================================================
+    // NET WORTH
+    // ============================================================
+
+    private static void ComposeNetWorth(
+        IContainer container,
+        MonthlyReportPdfResponse report)
+    {
+        var netWorth = report.NetWorth ?? new PdfNetWorthSummary();
+
+        SectionCard(
+            container.MinHeight(108),
+            "NET WORTH",
+            Purple,
+            content =>
+            {
+                content.Item()
+                    .Table(table =>
+                    {
+                        table.ColumnsDefinition(columns =>
+                        {
+                            columns.RelativeColumn();
+                            columns.RelativeColumn();
+                            columns.RelativeColumn();
+                        });
+
+                        SummaryCell(table, "Assets", Money(netWorth.TotalAssets), GreenSoft, Green);
+                        SummaryCell(table, "Liabilities", Money(netWorth.TotalLiabilities), RedSoft, Red);
+                        SummaryCell(
+                            table,
+                            "Net Worth",
+                            Money(netWorth.NetWorth),
+                            PurpleSoft,
+                            netWorth.NetWorth >= 0 ? PurpleDark : Red);
+                    });
+
+                content.Item()
+                    .PaddingTop(4)
+                    .Background(netWorth.NetWorth >= 0 ? GreenSoft : RedSoft)
+                    .Padding(3)
+                    .Text(
+                        netWorth.NetWorth >= 0
+                            ? "Positive position: assets are greater than liabilities."
+                            : "Attention needed: liabilities currently exceed assets.")
+                    .FontSize(6.2f)
+                    .FontColor(netWorth.NetWorth >= 0 ? Green : Red);
+            });
+    }
+
+    // ============================================================
+    // FINANCIAL GOALS
+    // ============================================================
+
+    private static void ComposeFinancialGoals(
+        IContainer container,
+        MonthlyReportPdfResponse report)
+    {
+        var goals = report.FinancialGoals?
+            .OrderByDescending(x => x.ProgressPercentage)
+            .Take(3)
+            .ToList() ?? [];
+
+        SectionCard(
+            container.MinHeight(116),
+            "FINANCIAL GOALS",
+            Purple,
+            content =>
+            {
+                content.Item()
+                    .Table(table =>
+                    {
+                        table.ColumnsDefinition(columns =>
+                        {
+                            columns.RelativeColumn(1.45f);
+                            columns.RelativeColumn(0.75f);
+                            columns.RelativeColumn(1.25f);
+                            columns.RelativeColumn(1.05f);
+                        });
+
+                        HeaderCell(table, "Goal", false);
+                        HeaderCell(table, "Progress", true);
+                        HeaderCell(table, "Amount", true);
+                        HeaderCell(table, "Target Date", true);
+
+                        if (goals.Count == 0)
+                        {
+                            EmptyRow(table, 4, "No active financial goals.");
+                        }
+                        else
+                        {
+                            foreach (var goal in goals)
+                            {
+                                BodyCell(table, Safe(goal.Name, "Goal"), false);
+                                BodyCell(table, $"{goal.ProgressPercentage:F0}%", true, Purple, true);
+                                BodyCell(
+                                    table,
+                                    $"{Money(goal.CurrentAmount)} / {Money(goal.TargetAmount)}",
+                                    true);
+                                BodyCell(
+                                    table,
+                                    goal.TargetDate.HasValue
+                                        ? goal.TargetDate.Value.ToString("dd MMM yyyy")
+                                        : "-",
+                                    true);
+                            }
+                        }
+                    });
+            });
+    }
+
+    // ============================================================
+    // RECURRING TRANSACTIONS
+    // ============================================================
+
+    private static void ComposeRecurringTransactions(
+        IContainer container,
+        MonthlyReportPdfResponse report)
+    {
+        var recurring = report.RecurringTransactions?
+            .Where(x => x.NextOccurrenceDate != default)
+            .OrderBy(x => x.NextOccurrenceDate)
+            .Take(3)
+            .ToList() ?? [];
+
+        SectionCard(
+            container.MinHeight(116),
+            "UPCOMING RECURRING TRANSACTIONS",
+            Blue,
+            content =>
+            {
+                content.Item()
+                    .Table(table =>
+                    {
+                        table.ColumnsDefinition(columns =>
+                        {
+                            columns.RelativeColumn(1.35f);
+                            columns.RelativeColumn(0.9f);
+                            columns.RelativeColumn(0.9f);
+                            columns.RelativeColumn(0.9f);
+                        });
+
+                        HeaderCell(table, "Transaction", false);
+                        HeaderCell(table, "Amount", true);
+                        HeaderCell(table, "Next", true);
+                        HeaderCell(table, "Status", true);
+
+                        if (recurring.Count == 0)
+                        {
+                            EmptyRow(table, 4, "No active recurring transactions.");
+                        }
+                        else
+                        {
+                            foreach (var item in recurring)
+                            {
+                                var title =
+                                    string.Equals(
+                                        item.Category,
+                                        "Other",
+                                        StringComparison.OrdinalIgnoreCase)
+                                    && !string.IsNullOrWhiteSpace(item.OtherDescription)
+                                        ? item.OtherDescription!
+                                        : Safe(item.Title, "Recurring");
+
+                                BodyCell(table, title, false);
+                                BodyCell(table, Money(item.Amount), true);
+                                BodyCell(
+                                    table,
+                                    item.NextOccurrenceDate.ToString("dd MMM"),
+                                    true);
+
+                                BodyCell(
+                                    table,
+                                    RecurringStatus(item),
+                                    true,
+                                    item.DaysUntilDue < 0
+                                        ? Red
+                                        : item.DaysUntilDue <= 3
+                                            ? Amber
+                                            : Green,
+                                    true);
+                            }
+                        }
+                    });
+            });
+    }
+
+    // ============================================================
+    // SMART ALERTS
+    // ============================================================
+
+    private static void ComposeSmartAlerts(
+        IContainer container,
+        MonthlyReportPdfResponse report)
+    {
+        var suggestions = report.Suggestions?
+            .OrderByDescending(x => SeverityRank(x.Severity))
+            .Take(3)
+            .ToList() ?? [];
+
+        SectionCard(
+            container.MinHeight(128),
+            "SMART ALERTS",
+            Red,
+            content =>
+            {
+                if (suggestions.Count == 0)
+                {
+                    content.Item()
+                        .Text("No smart alerts for this month.")
+                        .FontSize(6)
+                        .FontColor(SlateLight);
+
+                    return;
+                }
+
+                foreach (var item in suggestions)
+                {
+                    content.Item()
+                        .PaddingBottom(3)
+                        .Row(row =>
+                        {
+                            row.ConstantItem(48)
+                                .Background(GetSeverityBackground(item.Severity))
+                                .PaddingVertical(2)
+                                .PaddingHorizontal(3)
+                                .AlignCenter()
+                                .Text(Safe(item.Severity, "Info").ToUpperInvariant())
+                                .FontSize(5.2f)
+                                .Bold()
+                                .FontColor(GetSeverityColor(item.Severity));
+
+                            row.RelativeItem()
+                                .PaddingLeft(4)
+                                .Text(Shorten(item.Message, 150))
+                                .FontSize(6.2f);
+                        });
+                }
+            });
+    }
+
+    // ============================================================
+    // MONTHLY FOCUS
+    // ============================================================
+
+    private static void ComposeMonthlyFocus(
+        IContainer container,
+        MonthlyReportPdfResponse report)
+    {
+        var topCategory = report.Categories?
+            .OrderByDescending(item => item.Amount)
+            .FirstOrDefault();
+
+        var highestBudgetUsage = report.Budgets?
+            .OrderByDescending(item => item.UsedPercentage)
+            .FirstOrDefault();
+
+        SectionCard(
+            container.MinHeight(118),
+            "MONTHLY FOCUS",
+            Purple,
+            content =>
+            {
+                content.Item()
+                    .Table(table =>
+                    {
+                        table.ColumnsDefinition(columns =>
+                        {
+                            columns.RelativeColumn();
+                            columns.RelativeColumn();
+                            columns.RelativeColumn();
+                        });
+
+                        SummaryCell(
+                            table,
+                            "Top Spending Category",
+                            topCategory == null
+                                ? "No spending"
+                                : Safe(topCategory.Category, "Other"),
+                            GoldSoft,
+                            Gold);
+
+                        SummaryCell(
+                            table,
+                            "Top Category Spend",
+                            topCategory == null
+                                ? Money(0)
+                                : Money(topCategory.Amount),
+                            Surface,
+                            Slate);
+
+                        SummaryCell(
+                            table,
+                            "Highest Budget Used",
+                            highestBudgetUsage == null
+                                ? "No budget"
+                                : $"{Safe(highestBudgetUsage.Category, "Other")} {highestBudgetUsage.UsedPercentage:F0}%",
+                            highestBudgetUsage?.IsOverBudget == true
+                                ? RedSoft
+                                : AmberSoft,
+                            highestBudgetUsage?.IsOverBudget == true
+                                ? Red
+                                : Amber);
+                    });
+
+                content.Item()
+                    .PaddingTop(5)
+                    .Background(
+                        report.Savings >= 0
+                            ? GreenSoft
+                            : RedSoft)
+                    .Padding(6)
+                    .Text(
+                        report.Savings >= 0
+                            ? $"You saved {Money(report.Savings)} this month, which is {report.SavingsRate:F1}% of your income."
+                            : $"You spent {Money(Math.Abs(report.Savings))} more than you earned this month. Review the highest spending and budget categories above.")
+                    .FontSize(6.4f)
+                    .FontColor(
+                        report.Savings >= 0
+                            ? Green
+                            : Red);
+            });
+    }
+
+    // ============================================================
+    // BOTTOM SUMMARY
+    // ============================================================
+
+    private static void ComposeBottomSummary(
+        IContainer container,
+        MonthlyReportPdfResponse report)
+    {
+        container
+            .MinHeight(54)
+            .Border(1)
+            .BorderColor("#C4B5FD")
+            .Background(PurpleDark)
+            .PaddingVertical(8)
+            .PaddingHorizontal(6)
+            .Column(column =>
+            {
+                column.Item()
+                    .Text("MONTH-END POSITION")
+                    .FontSize(6.4f)
+                    .SemiBold()
+                    .FontColor("#DDD6FE");
+
+                column.Item()
+                    .PaddingTop(3)
+                    .Row(row =>
+                    {
+                        BottomMetric(row, "INCOME", Money(report.TotalIncome));
+                        BottomMetric(row, "EXPENSES", Money(report.TotalSpent));
+                        BottomMetric(row, "SAVINGS", Money(report.Savings));
+                        BottomMetric(row, "BUDGET LEFT", Money(report.RemainingBudget));
+                        BottomMetric(row, "HEALTH", $"{report.HealthScore}/100");
+                    });
+            });
+    }
+
+    // ============================================================
+    // SHARED COMPONENTS
+    // ============================================================
+
+    private static void SectionCard(
+        IContainer container,
+        string title,
+        string accentColor,
+        Action<ColumnDescriptor> composeContent)
+    {
+        container
+            .MinHeight(86)
+            .Border(1)
+            .BorderColor(Border)
+            .Background(White)
+            .Padding(8)
+            .Column(column =>
+            {
+                column.Spacing(5);
+
+                column.Item()
+                    .Row(row =>
+                    {
+                        row.ConstantItem(3)
+                            .Height(10)
+                            .Background(accentColor);
+
+                        row.RelativeItem()
+                            .PaddingLeft(4)
+                            .Text(title)
+                            .FontSize(6.9f)
+                            .Bold()
+                            .FontColor(Slate);
+                    });
+
+                composeContent(column);
+            });
+    }
+
+    private static void SummaryCell(
+        TableDescriptor table,
+        string label,
+        string value,
+        string background,
+        string valueColor)
+    {
+        table.Cell()
+            .PaddingRight(2)
+            .Element(cell =>
+                cell
+                    .Background(background)
+                    .PaddingVertical(8)
+                    .PaddingHorizontal(4)
+                    .Column(column =>
+                    {
+                        column.Item()
+                            .AlignCenter()
+                            .Text(label)
+                            .FontSize(5.3f)
+                            .FontColor(SlateLight);
+
+                        column.Item()
+                            .AlignCenter()
+                            .Text(value)
+                            .FontSize(7.4f)
+                            .Bold()
+                            .FontColor(valueColor);
+                    }));
+    }
+
+    private static void CenterMetric(
+        TableDescriptor table,
+        string label,
+        string value,
+        string? valueColor = null)
+    {
+        table.Cell()
+            .PaddingRight(2)
+            .Column(column =>
+            {
+                column.Item()
+                    .AlignCenter()
+                    .Text(label)
+                    .FontSize(5.2f)
+                    .FontColor(SlateLight);
+
+                column.Item()
+                    .AlignCenter()
+                    .Text(value)
+                    .FontSize(6.5f)
+                    .SemiBold()
+                    .FontColor(valueColor ?? Slate);
+            });
+    }
+
+    // IMPORTANT:
+    // Header and body use the exact same table column definitions.
+    // Numeric headers are right-aligned, matching numeric row values.
+    private static void HeaderCell(
+        TableDescriptor table,
+        string text,
+        bool alignRight)
+    {
+        table.Cell()
+            .Background(Surface)
+            .BorderBottom(1)
+            .BorderColor(Border)
+            .PaddingVertical(4.2f)
+            .PaddingHorizontal(3)
+            .Element(cell =>
+            {
+                var aligned = alignRight
+                    ? cell.AlignRight()
+                    : cell.AlignLeft();
+
+                aligned
+                    .Text(text)
+                    .FontSize(5.9f)
+                    .SemiBold()
+                    .FontColor(SlateLight);
+            });
+    }
+
+    private static void BodyCell(
+        TableDescriptor table,
+        string text,
+        bool alignRight,
+        string? color = null,
+        bool bold = false)
+    {
+        table.Cell()
+            .BorderBottom(0.5f)
+            .BorderColor("#EEF2F7")
+            .PaddingVertical(4.2f)
+            .PaddingHorizontal(3)
+            .Element(cell =>
+            {
+                var aligned = alignRight
+                    ? cell.AlignRight()
+                    : cell.AlignLeft();
+
+                var descriptor = aligned
+                    .Text(Safe(text, "-"))
+                    .FontSize(6.2f)
+                    .FontColor(color ?? Slate);
+
+                if (bold)
+                {
+                    descriptor.Bold();
+                }
+            });
+    }
+
+    private static void ComparisonRow(
+        TableDescriptor table,
+        string label,
+        decimal previous,
+        decimal current,
+        double change,
+        bool higherIsBetter)
+    {
+        BodyCell(table, label, false);
+        BodyCell(table, Money(previous), true);
+        BodyCell(table, Money(current), true);
+
+        var good = higherIsBetter
+            ? change >= 0
+            : change <= 0;
+
+        BodyCell(
+            table,
+            $"{ChangeArrow(change)} {Math.Abs(change):F1}%",
+            true,
+            good ? Green : Red,
+            true);
+    }
+
+    private static void EmptyRow(
+        TableDescriptor table,
+        int columns,
+        string message)
+    {
+        table.Cell()
+            .ColumnSpan((uint)columns)
+            .PaddingVertical(3)
+            .Text(message)
+            .FontSize(5.6f)
+            .FontColor(SlateLight);
+    }
+
+    private static void LabelValueRow(
+        TableDescriptor table,
+        string label,
+        string value,
+        string? valueColor = null,
+        bool boldValue = false)
+    {
+        table.Cell()
+            .PaddingVertical(1)
+            .Text(label)
+            .FontSize(5.6f)
+            .FontColor(SlateLight);
+
+        table.Cell()
+            .PaddingVertical(1)
+            .AlignRight()
+            .Element(cell =>
+            {
+                var descriptor = cell
+                    .Text(value)
+                    .FontSize(6.1f)
+                    .FontColor(valueColor ?? Slate);
+
+                if (boldValue)
+                {
+                    descriptor.Bold();
+                }
+            });
+    }
+
+    private static void BottomMetric(
+        RowDescriptor row,
+        string label,
+        string value)
+    {
+        row.RelativeItem()
+            .Column(column =>
+            {
+                column.Item()
+                    .AlignCenter()
+                    .Text(label)
+                    .FontSize(4.9f)
+                    .SemiBold()
+                    .FontColor("#CBD5E1");
+
+                column.Item()
+                    .AlignCenter()
+                    .Text(value)
+                    .FontSize(6.7f)
+                    .Bold()
+                    .FontColor(White);
+            });
+    }
+
+    // ============================================================
+    // FORMAT / HELPERS
+    // ============================================================
+
+    private static string Money(decimal amount)
+    {
+        var absolute = Math.Abs(amount)
+            .ToString("N0", IndianCulture);
+
+        return amount < 0
+            ? $"-₹{absolute}"
+            : $"₹{absolute}";
+    }
+
+    private static string ChangeArrow(double value)
+    {
+        if (value > 0)
+        {
+            return "↑";
+        }
+
+        if (value < 0)
+        {
+            return "↓";
+        }
+
+        return "→";
+    }
+
+    private static string RecurringStatus(
+        PdfRecurringTransactionItem item)
+    {
+        if (item.DaysUntilDue < 0)
+        {
+            return $"{Math.Abs(item.DaysUntilDue)}d overdue";
+        }
+
+        if (item.DaysUntilDue == 0)
+        {
+            return "Today";
+        }
+
+        if (item.DaysUntilDue == 1)
+        {
+            return "Tomorrow";
+        }
+
+        return $"In {item.DaysUntilDue}d";
+    }
+
+    private static int SeverityRank(string? severity)
+    {
+        return severity?.Trim().ToLowerInvariant() switch
+        {
+            "danger" => 4,
+            "warning" => 3,
+            "info" => 2,
+            "success" => 1,
+            _ => 0
+        };
+    }
+
+    private static string GetSeverityColor(string? severity)
+    {
+        return severity?.Trim().ToLowerInvariant() switch
+        {
+            "danger" => Red,
+            "warning" => Amber,
+            "success" => Green,
+            "info" => Blue,
+            _ => Slate
+        };
+    }
+
+    private static string GetSeverityBackground(string? severity)
+    {
+        return severity?.Trim().ToLowerInvariant() switch
+        {
+            "danger" => RedSoft,
+            "warning" => AmberSoft,
+            "success" => GreenSoft,
+            "info" => BlueSoft,
+            _ => Surface
+        };
+    }
+
+    private static string GetHealthColor(string? healthStatus)
+    {
+        return healthStatus?.Trim().ToLowerInvariant() switch
+        {
+            "healthy" => Green,
+            "moderate" => Amber,
+            "risky" => Red,
+            _ => PurpleDark
+        };
+    }
+
+    private static string Shorten(
+        string? text,
+        int maxLength)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return "No details available.";
+        }
+
+        var cleaned = text.Trim()
+            .Replace("\r", " ")
+            .Replace("\n", " ");
+
+        if (cleaned.Length <= maxLength)
+        {
+            return cleaned;
+        }
+
+        return cleaned[..Math.Max(0, maxLength - 1)]
+            .TrimEnd()
+            + "…";
+    }
+
+    private static string Safe(
+        string? value,
+        string fallback)
+    {
+        return string.IsNullOrWhiteSpace(value)
+            ? fallback
+            : value.Trim();
     }
 }

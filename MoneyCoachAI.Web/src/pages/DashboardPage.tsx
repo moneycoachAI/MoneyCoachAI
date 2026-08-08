@@ -1,5 +1,4 @@
-﻿
-import { useEffect, useRef, useState, } from "react";
+﻿import { useEffect, useRef, useState, } from "react";
 import { useNavigate } from "react-router-dom";
 import AppLayout from "../components/AppLayout";
 
@@ -22,7 +21,7 @@ import type { Budget } from "../types/budgetTypes";
 import type { TopCategory } from "../types/topCategoryTypes";
 import type { MonthlyComparison } from "../types/monthlyComparisonTypes";
 
-import { exportMonthlyPdf } from "../services/reportService";
+import { exportAnnualPdf, exportMonthlyPdf } from "../services/reportService";
 
 import { getFinancialGoals } from "../services/financialGoalService";
 import type { FinancialGoal } from "../types/financialGoalTypes";
@@ -186,6 +185,12 @@ const [motivationIndex, setMotivationIndex] = useState(0);
 
   const [reportPeriod, setReportPeriod] =
     useState(currentMonthValue);
+
+  const [reportMode, setReportMode] =
+    useState<"monthly" | "annual">("monthly");
+
+  const [reportYear, setReportYear] =
+    useState(String(today.getFullYear()));
 
   const [reportDownloading, setReportDownloading] =
     useState(false);
@@ -679,67 +684,119 @@ const [motivationIndex, setMotivationIndex] = useState(0);
     );
   };
 
-  const handleExportPdf = async (month: number, year: number) => {
-    try {
-      const pdfBlob = await exportMonthlyPdf(month, year);
-      const url = window.URL.createObjectURL(pdfBlob);
-      const link = document.createElement("a");
+  const downloadBlob = (
+    blob: Blob,
+    fileName: string
+  ) => {
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
 
-      link.href = url;
-      link.download = `MoneyCoachAI_Report_${month}_${year}.pdf`;
+    link.href = url;
+    link.download = fileName;
 
-      document.body.appendChild(link);
-      link.click();
+    document.body.appendChild(link);
+    link.click();
 
-      link.remove();
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error(error);
-      alert("Failed to export PDF");
-    }
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  };
+
+  const handleExportMonthlyPdf = async (
+    month: number,
+    selectedYear: number
+  ) => {
+    const pdfBlob = await exportMonthlyPdf(
+      month,
+      selectedYear
+    );
+
+    downloadBlob(
+      pdfBlob,
+      `MoneyCoachAI_Monthly_Report_${month}_${selectedYear}.pdf`
+    );
+  };
+
+  const handleExportAnnualPdf = async (
+    selectedYear: number
+  ) => {
+    const pdfBlob = await exportAnnualPdf(
+      selectedYear
+    );
+
+    downloadBlob(
+      pdfBlob,
+      `MoneyCoachAI_Annual_Report_${selectedYear}.pdf`
+    );
   };
 
   const handleDownloadFinancialReport = async () => {
-    if (!reportPeriod) {
-      alert("Please select a report period.");
-      return;
-    }
-
-    const [selectedYearValue, selectedMonthValue] =
-      reportPeriod.split("-");
-
-    const selectedYear = Number(selectedYearValue);
-    const selectedMonth = Number(selectedMonthValue);
-
-    if (
-      !Number.isInteger(selectedMonth) ||
-      selectedMonth < 1 ||
-      selectedMonth > 12
-    ) {
-      alert("Please select a valid report month.");
-      return;
-    }
-
-    if (
-      !Number.isInteger(selectedYear) ||
-      selectedYear < 2000 ||
-      selectedYear > new Date().getFullYear()
-    ) {
-      alert("Please select a valid report year.");
-      return;
-    }
-
-    if (isFutureMonth(selectedMonth, selectedYear)) {
-      alert("A report cannot be generated for a future month.");
-      return;
-    }
-
     try {
       setReportDownloading(true);
 
-      await handleExportPdf(
+      if (reportMode === "annual") {
+        const selectedYear = Number(reportYear);
+
+        if (
+          !Number.isInteger(selectedYear) ||
+          selectedYear < 2000 ||
+          selectedYear > new Date().getFullYear()
+        ) {
+          alert("Please select a valid report year.");
+          return;
+        }
+
+        await handleExportAnnualPdf(selectedYear);
+        return;
+      }
+
+      if (!reportPeriod) {
+        alert("Please select a report period.");
+        return;
+      }
+
+      const [selectedYearValue, selectedMonthValue] =
+        reportPeriod.split("-");
+
+      const selectedYear = Number(selectedYearValue);
+      const selectedMonth = Number(selectedMonthValue);
+
+      if (
+        !Number.isInteger(selectedMonth) ||
+        selectedMonth < 1 ||
+        selectedMonth > 12
+      ) {
+        alert("Please select a valid report month.");
+        return;
+      }
+
+      if (
+        !Number.isInteger(selectedYear) ||
+        selectedYear < 2000 ||
+        selectedYear > new Date().getFullYear()
+      ) {
+        alert("Please select a valid report year.");
+        return;
+      }
+
+      if (isFutureMonth(selectedMonth, selectedYear)) {
+        alert("A report cannot be generated for a future month.");
+        return;
+      }
+
+      await handleExportMonthlyPdf(
         selectedMonth,
         selectedYear
+      );
+    } catch (error) {
+      console.error(
+        `Failed to export ${reportMode} PDF:`,
+        error
+      );
+
+      alert(
+        reportMode === "annual"
+          ? "Failed to export annual PDF"
+          : "Failed to export monthly PDF"
       );
     } finally {
       setReportDownloading(false);
@@ -1368,13 +1425,77 @@ const [motivationIndex, setMotivationIndex] = useState(0);
 
           .financial-report-actions {
             display: grid;
-            gap: 7px;
+            gap: 8px;
 
             flex: 0 0 auto;
-            min-width: 390px;
+            min-width: 420px;
           }
 
           .financial-report-actions label {
+            color: #64748b;
+            font-size: 10px;
+            font-weight: 900;
+          }
+
+          .financial-report-mode-switch {
+            display: inline-grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px;
+
+            width: fit-content;
+            padding: 4px;
+
+            border: 1px solid rgba(124, 92, 252, 0.14);
+            border-radius: 12px;
+
+            background: rgba(255, 255, 255, 0.58);
+          }
+
+          .financial-report-mode-button {
+            min-width: 92px;
+            height: 32px;
+            padding: 0 13px;
+
+            border: 0;
+            border-radius: 9px;
+
+            background: transparent;
+            color: #64748b;
+
+            cursor: pointer;
+            font: inherit;
+            font-size: 11px;
+            font-weight: 900;
+
+            transition:
+              background 0.18s ease,
+              color 0.18s ease,
+              box-shadow 0.18s ease;
+          }
+
+          .financial-report-mode-button.active {
+            background:
+              linear-gradient(
+                135deg,
+                #6c63ff,
+                #7c4dff
+              );
+
+            color: #ffffff;
+
+            box-shadow:
+              0 7px 16px rgba(108, 77, 255, 0.2);
+          }
+
+          .financial-report-mode-button:disabled {
+            cursor: not-allowed;
+            opacity: 0.62;
+          }
+
+          .financial-report-field-label {
+            display: block;
+            margin-bottom: 1px;
+
             color: #64748b;
             font-size: 10px;
             font-weight: 900;
@@ -2764,6 +2885,13 @@ const [motivationIndex, setMotivationIndex] = useState(0);
               width: 100%;
               min-width: 0;
             }
+            .financial-report-mode-switch {
+              width: 100%;
+            }
+
+            .financial-report-mode-button {
+              width: 100%;
+            }
           }
 
           @media (max-width: 650px) {
@@ -3695,7 +3823,9 @@ const [motivationIndex, setMotivationIndex] = useState(0);
 
             <div className="financial-report-text">
               <span className="financial-report-eyebrow">
-                Monthly statement
+                {reportMode === "monthly"
+                  ? "Monthly statement"
+                  : "Annual financial report"}
               </span>
 
               <h2>
@@ -3703,36 +3833,95 @@ const [motivationIndex, setMotivationIndex] = useState(0);
               </h2>
 
               <p className="mca-muted">
-                Select a month and download your complete
-                financial summary as a PDF.
+                {reportMode === "monthly"
+                  ? "Download a focused report for one selected month."
+                  : "Download a complete year report with monthly highlights and overall financial position."}
               </p>
             </div>
           </div>
 
           <div className="financial-report-actions">
-            <label htmlFor="financial-report-period">
-              Report period
+            <span className="financial-report-field-label">
+              Report type
+            </span>
+
+            <div
+              className="financial-report-mode-switch"
+              role="group"
+              aria-label="Financial report type"
+            >
+              <button
+                type="button"
+                className={`financial-report-mode-button ${
+                  reportMode === "monthly" ? "active" : ""
+                }`}
+                disabled={reportDownloading}
+                onClick={() => setReportMode("monthly")}
+              >
+                Monthly
+              </button>
+
+              <button
+                type="button"
+                className={`financial-report-mode-button ${
+                  reportMode === "annual" ? "active" : ""
+                }`}
+                disabled={reportDownloading}
+                onClick={() => setReportMode("annual")}
+              >
+                Annual
+              </button>
+            </div>
+
+            <label
+              htmlFor={
+                reportMode === "monthly"
+                  ? "financial-report-period"
+                  : "financial-report-year"
+              }
+            >
+              {reportMode === "monthly"
+                ? "Report month"
+                : "Report year"}
             </label>
 
             <div className="financial-report-control-row">
-              <input
-                id="financial-report-period"
-                type="month"
-                className="financial-report-period-input"
-                value={reportPeriod}
-                max={currentMonthValue}
-                disabled={reportDownloading}
-                onChange={(event) =>
-                  setReportPeriod(event.target.value)
-                }
-              />
+              {reportMode === "monthly" ? (
+                <input
+                  id="financial-report-period"
+                  type="month"
+                  className="financial-report-period-input"
+                  value={reportPeriod}
+                  max={currentMonthValue}
+                  disabled={reportDownloading}
+                  onChange={(event) =>
+                    setReportPeriod(event.target.value)
+                  }
+                />
+              ) : (
+                <input
+                  id="financial-report-year"
+                  type="number"
+                  className="financial-report-period-input"
+                  value={reportYear}
+                  min={2000}
+                  max={new Date().getFullYear()}
+                  disabled={reportDownloading}
+                  onChange={(event) =>
+                    setReportYear(event.target.value)
+                  }
+                  placeholder="Year"
+                />
+              )}
 
               <button
                 type="button"
                 className="mca-gradient-button financial-report-download-button"
                 disabled={
                   reportDownloading ||
-                  !reportPeriod
+                  (reportMode === "monthly"
+                    ? !reportPeriod
+                    : !reportYear)
                 }
                 onClick={() => {
                   void handleDownloadFinancialReport();
@@ -3740,7 +3929,9 @@ const [motivationIndex, setMotivationIndex] = useState(0);
               >
                 {reportDownloading
                   ? "Downloading..."
-                  : "Download PDF"}
+                  : reportMode === "monthly"
+                    ? "Download Monthly PDF"
+                    : "Download Annual PDF"}
               </button>
             </div>
           </div>
@@ -4699,7 +4890,7 @@ const [motivationIndex, setMotivationIndex] = useState(0);
                           type="button"
                           onClick={() => {
                             setOpenMonthlyMenu(null);
-                            void handleExportPdf(card.month, card.year);
+                            void handleExportMonthlyPdf(card.month, card.year);
                           }}
                         >
                           Export PDF

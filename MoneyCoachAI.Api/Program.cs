@@ -140,6 +140,7 @@ builder.Services.AddScoped<IncomeRepository>();
 builder.Services.AddScoped<IncomeService>();
 
 builder.Services.AddScoped<PdfReportService>();
+builder.Services.AddScoped<AnnualPdfReportService>();
 
 builder.Services.AddHostedService<RecurringReminderBackgroundService>();
 

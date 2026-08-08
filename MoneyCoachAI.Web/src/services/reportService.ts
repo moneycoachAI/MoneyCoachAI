@@ -53,6 +53,19 @@ export const exportMonthlyPdf = async (
   return response.data;
 };
 
+export const exportAnnualPdf = async (
+  year: number
+): Promise<Blob> => {
+  const response = await axiosClient.get(
+    `/Reports/annual-pdf?year=${year}`,
+    {
+      responseType: "blob",
+    }
+  );
+
+  return response.data;
+};
+
 export const getMoneyDueReport = async (
   month: number,
   year: number
