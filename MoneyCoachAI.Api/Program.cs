@@ -161,12 +161,11 @@ var app = builder.Build();
 app.UseCors("ReactPolicy");
 
 //Configure middleware
-if (app.Environment.IsDevelopment())
-{
+
     app.UseSwagger();
 
     app.UseSwaggerUI();
-}
+
 
 app.UseHttpsRedirection();
 
