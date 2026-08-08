@@ -153,7 +153,10 @@ builder.Services.AddCors(options =>
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials()
-            .WithOrigins("http://localhost:5173");  //allow React to call ASP.NET.
+            .WithOrigins("http://localhost:5173",
+            "https://moneycoachai-web.vercel.app"
+            );  //allow React to call ASP.NET.
+            
         });
 });
 var app = builder.Build();
