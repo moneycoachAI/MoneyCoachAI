@@ -209,6 +209,12 @@ function DashboardPage() {
   const [moneyDueLoading, setMoneyDueLoading] =
    useState(false);
 
+  const [showMoneyDueAlerts, setShowMoneyDueAlerts] =
+   useState(false);
+
+  const moneyDueAlertMenuRef =
+   useRef<HTMLDivElement | null>(null);
+
   const [dashboardCacheEnabled, setDashboardCacheEnabled] = useState(
     dashboardPageMemoryCache !== null
   );
@@ -1107,6 +1113,35 @@ const [motivationIndex, setMotivationIndex] = useState(0);
   ]);
 
   useEffect(() => {
+    const handleMoneyDueAlertOutsideClick = (event: MouseEvent) => {
+      if (!showMoneyDueAlerts) {
+        return;
+      }
+
+      const target = event.target as Node;
+
+      if (
+        moneyDueAlertMenuRef.current &&
+        !moneyDueAlertMenuRef.current.contains(target)
+      ) {
+        setShowMoneyDueAlerts(false);
+      }
+    };
+
+    document.addEventListener(
+      "mousedown",
+      handleMoneyDueAlertOutsideClick
+    );
+
+    return () => {
+      document.removeEventListener(
+        "mousedown",
+        handleMoneyDueAlertOutsideClick
+      );
+    };
+  }, [showMoneyDueAlerts]);
+
+  useEffect(() => {
     const motivationTimer = window.setInterval(() => {
       setMotivationIndex(
         (currentIndex) =>
@@ -1313,7 +1348,10 @@ const [motivationIndex, setMotivationIndex] = useState(0);
           new Date(second.dueDate).getTime()
       );
 
-  const upcomingMoneyDueItems = [
+  // Keep overdue items first, then items due within the next seven days.
+  // We keep the full alert list so the dashboard can show a useful count,
+  // while rendering only a bounded number of cards to avoid an oversized section.
+  const moneyDueAlertItems = [
     ...activeMoneyDueItems
       .filter((item) => item.isOverdue)
       .sort(
@@ -1322,14 +1360,28 @@ const [motivationIndex, setMotivationIndex] = useState(0);
           new Date(second.dueDate).getTime()
       ),
     ...moneyDueSoonItems,
-  ]
-    .filter(
-      (item, index, list) =>
-        list.findIndex(
-          (current) => current.id === item.id
-        ) === index
-    )
-    .slice(0, 4);
+  ].filter(
+    (item, index, list) =>
+      list.findIndex((current) => current.id === item.id) === index
+  );
+
+  const moneyDueAlertCount = moneyDueAlertItems.length;
+
+  const openMoneyDueRecord = (item: MoneyDue) => {
+    const focusDueId = String(item.id);
+
+    setShowMoneyDueAlerts(false);
+
+    navigate(
+      `/money-due?focusDueId=${encodeURIComponent(focusDueId)}`,
+      {
+        state: {
+          focusDueId,
+          focusDueType: item.dueType,
+        },
+      }
+    );
+  };
 
   return (
     <AppLayout>
@@ -3371,6 +3423,17 @@ const [motivationIndex, setMotivationIndex] = useState(0);
             margin-top: 18px;
           }
 
+          /* =========================================
+             MONEY DUE DASHBOARD
+          ========================================== */
+
+          .money-due-dashboard-card {
+            position: relative;
+            z-index: 80;
+            margin-bottom: 22px;
+            overflow: visible;
+          }
+
           .money-due-dashboard-head {
             align-items: flex-start;
           }
@@ -3378,7 +3441,6 @@ const [motivationIndex, setMotivationIndex] = useState(0);
           .money-due-updated-text {
             display: block;
             margin-top: 7px;
-
             color: #94a3b8;
             font-size: 10px;
             font-weight: 700;
@@ -3387,50 +3449,36 @@ const [motivationIndex, setMotivationIndex] = useState(0);
           .money-due-header-icon {
             display: grid;
             place-items: center;
-
             width: 42px;
             height: 42px;
-
             flex: 0 0 auto;
-
             border: 1px solid rgba(255, 255, 255, 0.78);
             border-radius: 14px;
-
-            background:
-              linear-gradient(
-                145deg,
-                rgba(255, 255, 255, 0.84),
-                rgba(239, 236, 255, 0.72)
-              );
-
-            box-shadow:
-              0 9px 20px rgba(76, 29, 149, 0.09);
-
+            background: linear-gradient(
+              145deg,
+              rgba(255, 255, 255, 0.84),
+              rgba(239, 236, 255, 0.72)
+            );
+            box-shadow: 0 9px 20px rgba(76, 29, 149, 0.09);
             font-size: 20px;
           }
 
           .money-due-dashboard-summary {
             display: grid;
-            grid-template-columns:
-              repeat(4, minmax(0, 1fr));
+            grid-template-columns: repeat(4, minmax(0, 1fr));
             gap: 10px;
           }
 
           .money-due-dashboard-stat {
             min-width: 0;
-
             display: flex;
             align-items: flex-start;
             gap: 10px;
-
             padding: 13px;
-
             border: 1px solid rgba(255, 255, 255, 0.72);
             border-radius: 16px;
-
             font: inherit;
             text-align: left;
-
             transition:
               transform 0.18s ease,
               box-shadow 0.18s ease,
@@ -3439,9 +3487,7 @@ const [motivationIndex, setMotivationIndex] = useState(0);
 
           .money-due-dashboard-stat:hover {
             transform: translateY(-3px);
-
-            box-shadow:
-              0 13px 28px rgba(15, 23, 42, 0.09);
+            box-shadow: 0 13px 28px rgba(15, 23, 42, 0.09);
           }
 
           .money-due-dashboard-stat > div {
@@ -3464,16 +3510,13 @@ const [motivationIndex, setMotivationIndex] = useState(0);
 
           .money-due-dashboard-stat strong {
             margin-top: 6px;
-
             color: var(--mca-text);
             font-size: 18px;
-
             overflow-wrap: anywhere;
           }
 
           .money-due-dashboard-stat small {
             margin-top: 5px;
-
             color: #94a3b8;
             font-size: 9px;
             font-weight: 700;
@@ -3482,14 +3525,10 @@ const [motivationIndex, setMotivationIndex] = useState(0);
           .money-due-stat-icon {
             display: grid !important;
             place-items: center;
-
             width: 31px;
             height: 31px;
-
             flex: 0 0 auto;
-
             border-radius: 10px;
-
             font-size: 13px;
             font-weight: 900;
           }
@@ -3499,8 +3538,7 @@ const [motivationIndex, setMotivationIndex] = useState(0);
             background: rgba(33, 199, 122, 0.055);
           }
 
-          .money-due-dashboard-stat.receive
-          .money-due-stat-icon {
+          .money-due-dashboard-stat.receive .money-due-stat-icon {
             background: rgba(33, 199, 122, 0.13);
             color: #0f9f63;
           }
@@ -3510,8 +3548,7 @@ const [motivationIndex, setMotivationIndex] = useState(0);
             background: rgba(255, 100, 103, 0.055);
           }
 
-          .money-due-dashboard-stat.pay
-          .money-due-stat-icon {
+          .money-due-dashboard-stat.pay .money-due-stat-icon {
             background: rgba(255, 100, 103, 0.13);
             color: #e5484d;
           }
@@ -3521,8 +3558,7 @@ const [motivationIndex, setMotivationIndex] = useState(0);
             background: rgba(239, 68, 68, 0.05);
           }
 
-          .money-due-dashboard-stat.overdue
-          .money-due-stat-icon {
+          .money-due-dashboard-stat.overdue .money-due-stat-icon {
             background: rgba(239, 68, 68, 0.12);
             color: #dc2626;
           }
@@ -3532,16 +3568,408 @@ const [motivationIndex, setMotivationIndex] = useState(0);
             background: rgba(255, 181, 71, 0.065);
           }
 
-          .money-due-dashboard-stat.soon
-          .money-due-stat-icon {
+          .money-due-dashboard-stat.soon .money-due-stat-icon {
             background: rgba(255, 181, 71, 0.14);
             color: #c87000;
           }
 
+          /* Compact Money Due alert control */
+          .money-due-alert-compact {
+            position: relative;
+            z-index: 90;
+
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+
+            margin-top: 16px;
+            padding: 12px 13px;
+
+            border: 1px solid rgba(124, 92, 252, 0.10);
+            border-radius: 16px;
+
+            background: rgba(255, 255, 255, 0.38);
+          }
+
+          .money-due-alert-compact-copy {
+            min-width: 0;
+            display: grid;
+            gap: 3px;
+          }
+
+          .money-due-alert-compact-copy strong {
+            color: #253047;
+            font-size: 12px;
+            font-weight: 900;
+          }
+
+          .money-due-alert-compact-copy span {
+            color: #7b8498;
+            font-size: 10px;
+            font-weight: 700;
+          }
+
+          .money-due-alert-trigger {
+            position: relative;
+
+            width: 44px;
+            height: 44px;
+            flex: 0 0 auto;
+
+            display: grid;
+            place-items: center;
+
+            border: 1px solid rgba(255, 181, 71, 0.22);
+            border-radius: 14px;
+
+            background:
+              linear-gradient(
+                145deg,
+                rgba(255, 255, 255, 0.96),
+                rgba(255, 246, 227, 0.86)
+              );
+
+            box-shadow:
+              0 8px 20px rgba(180, 83, 9, 0.08),
+              inset 0 1px 0 rgba(255, 255, 255, 0.95);
+
+            cursor: pointer;
+
+            transition:
+              transform 0.18s ease,
+              box-shadow 0.18s ease,
+              border-color 0.18s ease;
+          }
+
+          .money-due-alert-trigger:hover,
+          .money-due-alert-trigger.active {
+            transform: translateY(-2px);
+            border-color: rgba(245, 158, 11, 0.38);
+            box-shadow:
+              0 12px 26px rgba(180, 83, 9, 0.13),
+              inset 0 1px 0 rgba(255, 255, 255, 0.98);
+          }
+
+          .money-due-alert-trigger-icon {
+            font-size: 19px;
+            line-height: 1;
+          }
+
+          .money-due-alert-trigger-badge {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+
+            min-width: 20px;
+            height: 20px;
+            padding: 0 5px;
+
+            display: grid;
+            place-items: center;
+
+            border: 2px solid rgba(255, 255, 255, 0.96);
+            border-radius: 999px;
+
+            background: #ef4444;
+            color: #ffffff;
+
+            box-shadow: 0 5px 12px rgba(239, 68, 68, 0.25);
+
+            font-size: 9px;
+            font-weight: 900;
+            line-height: 1;
+          }
+
+          .money-due-alert-popover {
+            position: absolute;
+            right: 0;
+            top: calc(100% + 10px);
+            z-index: 10000;
+
+            width: min(430px, calc(100vw - 48px));
+            max-height: 390px;
+
+            overflow: hidden;
+
+            border: 1px solid rgba(255, 255, 255, 0.86);
+            border-radius: 20px;
+
+            background: rgba(255, 255, 255, 0.97);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+
+            box-shadow:
+              0 22px 55px rgba(31, 41, 55, 0.19),
+              inset 0 1px 0 rgba(255, 255, 255, 1);
+          }
+
+          .money-due-alert-popover-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+
+            padding: 15px 15px 12px;
+
+            border-bottom: 1px solid rgba(100, 116, 139, 0.10);
+          }
+
+          .money-due-alert-popover-head > div {
+            min-width: 0;
+            display: grid;
+            gap: 3px;
+          }
+
+          .money-due-alert-popover-head strong {
+            color: #172033;
+            font-size: 13px;
+            font-weight: 900;
+          }
+
+          .money-due-alert-popover-head span {
+            color: #7b8498;
+            font-size: 10px;
+            font-weight: 700;
+          }
+
+          .money-due-alert-close {
+            width: 28px;
+            height: 28px;
+            flex: 0 0 auto;
+
+            display: grid;
+            place-items: center;
+
+            border: 0;
+            border-radius: 9px;
+
+            background: rgba(100, 116, 139, 0.08);
+            color: #64748b;
+
+            cursor: pointer;
+
+            font-size: 19px;
+            line-height: 1;
+          }
+
+          .money-due-alert-popover-list {
+            max-height: 270px;
+            overflow-y: auto;
+            padding: 6px;
+
+            scrollbar-width: thin;
+            scrollbar-color: rgba(124, 92, 252, 0.45) transparent;
+          }
+
+          .money-due-alert-popover-list::-webkit-scrollbar {
+            width: 6px;
+          }
+
+          .money-due-alert-popover-list::-webkit-scrollbar-thumb {
+            border-radius: 999px;
+            background: linear-gradient(180deg, #8b7cff, #6c4dff);
+          }
+
+          .money-due-alert-popover-item {
+            width: 100%;
+            min-width: 0;
+
+            display: grid;
+            grid-template-columns: 34px minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 9px;
+
+            padding: 10px;
+
+            border: 0;
+            border-radius: 12px;
+
+            background: transparent;
+            color: inherit;
+
+            cursor: pointer;
+            font: inherit;
+            text-align: left;
+          }
+
+          .money-due-alert-popover-item:hover {
+            background: rgba(124, 92, 252, 0.07);
+          }
+
+          .money-due-alert-popover-icon {
+            width: 34px;
+            height: 34px;
+
+            display: grid;
+            place-items: center;
+
+            border-radius: 11px;
+
+            font-size: 12px;
+            font-weight: 900;
+          }
+
+          .money-due-alert-popover-icon.overdue {
+            background: rgba(239, 68, 68, 0.10);
+            color: #dc2626;
+          }
+
+          .money-due-alert-popover-icon.soon {
+            background: rgba(245, 158, 11, 0.11);
+            color: #b45309;
+          }
+
+          .money-due-alert-popover-copy {
+            min-width: 0;
+            display: grid;
+            gap: 3px;
+          }
+
+          .money-due-alert-popover-copy strong {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+
+            color: #253047;
+
+            font-size: 11px;
+            font-weight: 900;
+          }
+
+          .money-due-alert-popover-copy small {
+            color: #7b8498;
+            font-size: 9px;
+            font-weight: 700;
+          }
+
+          .money-due-alert-popover-due {
+            padding: 5px 7px;
+
+            border-radius: 999px;
+
+            background: rgba(245, 158, 11, 0.10);
+            color: #b45309;
+
+            font-size: 9px;
+            font-weight: 900;
+            white-space: nowrap;
+          }
+
+          .money-due-alert-popover-due.overdue {
+            background: rgba(239, 68, 68, 0.10);
+            color: #dc2626;
+          }
+
+          .money-due-alert-popover-empty {
+            min-height: 145px;
+
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+
+            padding: 20px;
+
+            text-align: center;
+          }
+
+          .money-due-alert-popover-empty > span {
+            font-size: 24px;
+          }
+
+          .money-due-alert-popover-empty strong {
+            color: #253047;
+            font-size: 12px;
+          }
+
+          .money-due-alert-popover-empty p {
+            max-width: 280px;
+            margin: 0;
+
+            color: #7b8498;
+
+            font-size: 10px;
+            line-height: 1.45;
+          }
+
+          .money-due-alert-view-all {
+            width: calc(100% - 12px);
+            min-height: 38px;
+
+            margin: 0 6px 6px;
+
+            border: 0;
+            border-radius: 11px;
+
+            background: rgba(124, 92, 252, 0.09);
+            color: #6547d8;
+
+            cursor: pointer;
+
+            font: inherit;
+            font-size: 10px;
+            font-weight: 900;
+          }
+
+          .money-due-alert-view-all:hover {
+            background: rgba(124, 92, 252, 0.15);
+          }
+
+          @media (max-width: 520px) {
+            .money-due-alert-popover {
+              position: fixed;
+              top: 84px;
+              right: 12px;
+              left: 12px;
+
+              width: auto;
+              max-height: calc(100vh - 110px);
+            }
+
+            .money-due-alert-popover-item {
+              grid-template-columns: 32px minmax(0, 1fr);
+            }
+
+            .money-due-alert-popover-due {
+              grid-column: 2;
+              justify-self: start;
+            }
+          }
+
+          .money-due-dashboard-success {
+            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-height: 90px;
+            padding: 16px;
+            border: 1px dashed rgba(33, 199, 122, 0.22);
+            border-radius: 16px;
+            background: rgba(33, 199, 122, 0.045);
+          }
+
+          .money-due-dashboard-success strong {
+            display: block;
+            color: #172033;
+            font-size: 13px;
+          }
+
+          .money-due-dashboard-success p {
+            margin: 4px 0 0;
+            font-size: 11px;
+            line-height: 1.45;
+          }
+
+          .money-due-success-icon {
+            font-size: 23px;
+          }
+
           .money-due-dashboard-actions {
-            display:flex;
-            justify-content:flex-start;
-            margin-top:22px;
+            display: flex;
+            justify-content: flex-start;
+            margin-top: 18px;
           }
 
           .money-due-dashboard-button {
@@ -3551,13 +3979,10 @@ const [motivationIndex, setMotivationIndex] = useState(0);
           .money-due-dashboard-secondary-button {
             min-height: 42px;
             padding: 0 16px;
-
             border: 1px solid rgba(124, 92, 252, 0.22);
             border-radius: 12px;
-
             background: rgba(124, 92, 252, 0.08);
             color: #6547d8;
-
             cursor: pointer;
             font: inherit;
             font-size: 12px;
@@ -3568,18 +3993,9 @@ const [motivationIndex, setMotivationIndex] = useState(0);
             background: rgba(124, 92, 252, 0.14);
           }
 
-          .money-due-success-icon {
-            font-size: 23px;
-          }
-
-          .money-due-dashboard-card{
-              margin-bottom:22px;
-          }
-
           @media (max-width: 700px) {
             .money-due-dashboard-summary {
-              grid-template-columns:
-                repeat(2, minmax(0, 1fr));
+              grid-template-columns: repeat(2, minmax(0, 1fr));
             }
 
             .money-due-dashboard-stat {
@@ -3596,61 +4012,54 @@ const [motivationIndex, setMotivationIndex] = useState(0);
               height: 28px;
             }
 
+            .money-due-dashboard-list {
+              grid-template-columns: 1fr;
+              max-height: 360px;
+            }
+
             .money-due-dashboard-actions {
               display: grid;
-              grid-template-columns: 1fr 1fr;
+              grid-template-columns: 1fr;
             }
 
             .money-due-dashboard-actions button {
-              width: 100%;
-              padding-left: 8px;
-              padding-right: 8px;
-            }
-
-            .money-due-dashboard-item {
-              align-items: flex-start;
-            }
-
-            .money-due-dashboard-due {
-              max-width: 96px;
-              white-space: normal;
-              text-align: center;
-            }
-
-            .money-due-dashboard-button {
               width: 100%;
             }
           }
 
           @media (max-width: 390px) {
             .money-due-dashboard-stat {
-              padding: 11px 9px;
-            }
-
-            .money-due-stat-icon {
-              margin-bottom: 7px;
+              padding: 10px 8px;
             }
 
             .money-due-dashboard-stat small {
               font-size: 8px;
             }
 
-            .money-due-dashboard-actions {
-              grid-template-columns: 1fr;
-            }
-
-            .money-due-dashboard-stat strong {
-              font-size: 15px;
-            }
-
             .money-due-dashboard-item {
-              gap: 8px;
-              padding: 10px 8px;
+              min-height: 104px;
+              padding: 12px 11px;
+              grid-template-columns: 38px minmax(0, 1fr);
+              column-gap: 10px;
             }
 
             .money-due-dashboard-item-icon {
-              width: 34px;
-              height: 34px;
+              width: 38px;
+              height: 38px;
+              border-radius: 12px;
+            }
+
+            .money-due-dashboard-item-copy strong {
+              font-size: 12px;
+            }
+
+            .money-due-dashboard-due {
+              white-space: normal;
+            }
+
+            .money-due-dashboard-more {
+              align-items: flex-start;
+              flex-direction: column;
             }
           }
 
@@ -4463,81 +4872,142 @@ const [motivationIndex, setMotivationIndex] = useState(0);
                 </div>
               </div>
 
-              <div className="money-due-dashboard-list">
-                {upcomingMoneyDueItems.length === 0 ? (
-                  <div className="money-due-dashboard-success">
-                    <span className="money-due-success-icon">
-                      🎉
+              <div
+                className="money-due-alert-compact"
+                ref={moneyDueAlertMenuRef}
+              >
+                <div className="money-due-alert-compact-copy">
+                  <strong>Due alerts</strong>
+                  <span>
+                    {moneyDueOverdueCount > 0
+                      ? `${moneyDueOverdueCount} overdue`
+                      : "No overdue"}
+                    {" • "}
+                    {moneyDueSoonItems.length > 0
+                      ? `${moneyDueSoonItems.length} due soon`
+                      : "No due soon"}
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  className={`money-due-alert-trigger ${
+                    showMoneyDueAlerts ? "active" : ""
+                  }`}
+                  aria-label={`Open ${moneyDueAlertCount} Money Due alerts`}
+                  aria-expanded={showMoneyDueAlerts}
+                  onClick={() =>
+                    setShowMoneyDueAlerts((current) => !current)
+                  }
+                >
+                  <span className="money-due-alert-trigger-icon">⏰</span>
+
+                  {moneyDueAlertCount > 0 && (
+                    <span className="money-due-alert-trigger-badge">
+                      {moneyDueAlertCount > 99 ? "99+" : moneyDueAlertCount}
                     </span>
+                  )}
+                </button>
 
-                    <div>
-                      <strong>
-                        Great! Everything is on track
-                      </strong>
+                {showMoneyDueAlerts && (
+                  <div className="money-due-alert-popover">
+                    <div className="money-due-alert-popover-head">
+                      <div>
+                        <strong>Money Due alerts</strong>
+                        <span>
+                          {moneyDueAlertCount === 0
+                            ? "Everything is on track"
+                            : `${moneyDueAlertCount} item${
+                                moneyDueAlertCount === 1 ? "" : "s"
+                              } need attention`}
+                        </span>
+                      </div>
 
-                      <p className="mca-muted">
-                        No receivables or payables are overdue or due
-                        within the next seven days.
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  upcomingMoneyDueItems.map((item) => {
-                    const dueDate = new Date(item.dueDate);
-                    dueDate.setHours(0, 0, 0, 0);
-
-                    const differenceInDays = Math.ceil(
-                      (dueDate.getTime() -
-                        todayStart.getTime()) /
-                        86400000
-                    );
-
-                    const dueText = item.isOverdue
-                      ? `${Math.abs(differenceInDays)} day${
-                          Math.abs(differenceInDays) === 1
-                            ? ""
-                            : "s"
-                        } overdue`
-                      : differenceInDays === 0
-                        ? "Due today"
-                        : differenceInDays === 1
-                          ? "Due tomorrow"
-                          : `Due in ${differenceInDays} days`;
-
-                    return (
                       <button
                         type="button"
-                        className="money-due-dashboard-item"
-                        key={item.id}
-                        onClick={() => navigate("/money-due")}
+                        className="money-due-alert-close"
+                        aria-label="Close Money Due alerts"
+                        onClick={() => setShowMoneyDueAlerts(false)}
                       >
-                        <div className="money-due-dashboard-item-icon">
-                          {item.dueType === "Receivable"
-                            ? "↙"
-                            : "↗"}
-                        </div>
-
-                        <div className="money-due-dashboard-item-copy">
-                          <strong>{item.title}</strong>
-
-                          <p>
-                            {formatMoney(item.remainingAmount)}
-                            {" remaining"}
-                          </p>
-                        </div>
-
-                        <span
-                          className={`money-due-dashboard-due ${
-                            item.isOverdue
-                              ? "overdue"
-                              : ""
-                          }`}
-                        >
-                          {dueText}
-                        </span>
+                        ×
                       </button>
-                    );
-                  })
+                    </div>
+
+                    {moneyDueAlertCount === 0 ? (
+                      <div className="money-due-alert-popover-empty">
+                        <span>🎉</span>
+                        <strong>Everything is on track</strong>
+                        <p>
+                          No overdue items or payments due within seven days.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="money-due-alert-popover-list">
+                        {moneyDueAlertItems.map((item) => {
+                          const dueDate = new Date(item.dueDate);
+                          dueDate.setHours(0, 0, 0, 0);
+
+                          const differenceInDays = Math.ceil(
+                            (dueDate.getTime() - todayStart.getTime()) /
+                              86400000
+                          );
+
+                          const dueText = item.isOverdue
+                            ? `${Math.abs(differenceInDays)} day${
+                                Math.abs(differenceInDays) === 1 ? "" : "s"
+                              } overdue`
+                            : differenceInDays === 0
+                              ? "Due today"
+                              : differenceInDays === 1
+                                ? "Due tomorrow"
+                                : `Due in ${differenceInDays} days`;
+
+                          return (
+                            <button
+                              type="button"
+                              className="money-due-alert-popover-item"
+                              key={item.id}
+                              onClick={() => openMoneyDueRecord(item)}
+                            >
+                              <span
+                                className={`money-due-alert-popover-icon ${
+                                  item.isOverdue ? "overdue" : "soon"
+                                }`}
+                              >
+                                {item.isOverdue ? "!" : "◷"}
+                              </span>
+
+                              <span className="money-due-alert-popover-copy">
+                                <strong>{item.title}</strong>
+                                <small>
+                                  {formatMoney(item.remainingAmount)} remaining
+                                </small>
+                              </span>
+
+                              <span
+                                className={`money-due-alert-popover-due ${
+                                  item.isOverdue ? "overdue" : ""
+                                }`}
+                              >
+                                {dueText}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    <button
+                      type="button"
+                      className="money-due-alert-view-all"
+                      onClick={() => {
+                        setShowMoneyDueAlerts(false);
+                        navigate("/money-due");
+                      }}
+                    >
+                      View all Money Due
+                    </button>
+                  </div>
                 )}
               </div>
             </>

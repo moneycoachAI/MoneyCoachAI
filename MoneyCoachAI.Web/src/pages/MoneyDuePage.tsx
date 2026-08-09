@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+
+import { useSearchParams } from "react-router-dom";
 
 import AppLayout from "../components/AppLayout";
 import moneyDueService from "../services/moneyDueService";
@@ -114,6 +116,10 @@ const createEmptySettlementForm = (): SettlementFormState => ({
 });
 
 function MoneyDuePage() {
+  const [searchParams] = useSearchParams();
+  const focusDueId = searchParams.get("focusDueId");
+  const focusHandledRef = useRef<string | null>(null);
+
   const [items, setItems] = useState<MoneyDue[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<ActiveTab>("Receivable");
@@ -169,6 +175,70 @@ function MoneyDuePage() {
 
     return () => window.clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    if (
+      loading ||
+      !focusDueId ||
+      focusHandledRef.current === focusDueId
+    ) {
+      return;
+    }
+
+    const focusedItem = items.find(
+      (item) => String(item.id) === focusDueId
+    );
+
+    if (!focusedItem) {
+      return;
+    }
+
+    focusHandledRef.current = focusDueId;
+
+    const prepareTimer = window.setTimeout(() => {
+      setSearch("");
+      setStatusFilter("All");
+
+      setActiveTab(
+        focusedItem.hasInterest
+          ? "Interest"
+          : focusedItem.dueType
+      );
+
+      const scrollTimer = window.setTimeout(() => {
+        const card = document.getElementById(
+          `money-due-card-${focusDueId}`
+        );
+
+        if (!card) {
+          focusHandledRef.current = null;
+          return;
+        }
+
+        card.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+
+        card.classList.add(
+          "money-due-card-focus-flash"
+        );
+
+        window.setTimeout(() => {
+          card.classList.remove(
+            "money-due-card-focus-flash"
+          );
+        }, 2600);
+      }, 200);
+
+      return () =>
+        window.clearTimeout(scrollTimer);
+    }, 0);
+
+    return () => {
+      window.clearTimeout(prepareTimer);
+    };
+  }, [focusDueId, items, loading]);
 
   const activeItems = useMemo(
     () => items.filter((item) => item.status !== "Completed"),
@@ -940,6 +1010,8 @@ function MoneyDueCard({
 
   return (
     <article
+      id={`money-due-card-${item.id}`}
+      data-money-due-id={item.id}
       className={`money-due-card ${
         isReceivable ? "money-due-receivable" : "money-due-payable"
       }`}
@@ -2147,7 +2219,32 @@ const moneyDueStyles = `
     margin-top: 18px;
   }
 
-  .money-due-card {
+  /* Dashboard deep-link highlight */
+.money-due-card-focus-flash {
+  position: relative;
+  z-index: 5;
+
+  border-color: rgba(124, 92, 252, 0.72) !important;
+
+  box-shadow:
+    0 0 0 4px rgba(124, 92, 252, 0.14),
+    0 20px 48px rgba(76, 29, 149, 0.18) !important;
+
+  animation: moneyDueFocusPulse 0.85s ease-in-out 2;
+}
+
+@keyframes moneyDueFocusPulse {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+.money-due-card {
     min-width: 0;
     padding: 18px;
     border: 1px solid rgba(255, 255, 255, 0.76);

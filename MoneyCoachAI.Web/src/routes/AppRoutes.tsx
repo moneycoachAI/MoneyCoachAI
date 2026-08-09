@@ -1,29 +1,107 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
-import LoginPage from "../pages/LoginPage";
-import RegisterPage from "../pages/RegisterPage";
+import {
+  lazy,
+  Suspense,
+} from "react";
+
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+
 import ProtectRoute from "./ProtectedRoute";
-import DashboardPage from "../pages/DashboardPage";
-import ExpensesPage from "../pages/ExpensesPage";
-import BudgetsPage from "../pages/BudgetsPage";
-import ReportsPage from "../pages/ReportsPage";
-import SuggestionsPage from "../pages/SuggestionsPage";
-import AIAdvisorPage from "../pages/AIAdvisorPage";
-import IncomesPage from "../pages/IncomesPage";
-import FinancialGoalsPage from "../pages/FinancialGoalsPage";   
-import NetWorthPage from "../pages/NetWorthPage";
-import RecurringTransactionsPage from "../pages/RecurringTransactionsPage";
-import InvestmentsPage from "../pages/InvestmentsPage";
-import NotificationsPage from "../pages/NotificationsPage";
-import SettingsPage from "../pages/SettingsPage";
-import ProfilePage from "../pages/ProfilePage";
-import ForgotPasswordPage from "../pages/ForgotPasswordPage";
-import ResetPasswordPage from "../pages/ResetPasswordPage";
-import MoneyDuePage from "../pages/MoneyDuePage";
+
+
+const LoginPage = lazy(
+  () => import("../pages/LoginPage")
+);
+
+const RegisterPage = lazy(
+  () => import("../pages/RegisterPage")
+);
+
+const DashboardPage = lazy(
+  () => import("../pages/DashboardPage")
+);
+
+const ExpensesPage = lazy(
+  () => import("../pages/ExpensesPage")
+);
+
+const BudgetsPage = lazy(
+  () => import("../pages/BudgetsPage")
+);
+
+const ReportsPage = lazy(
+  () => import("../pages/ReportsPage")
+);
+
+const SuggestionsPage = lazy(
+  () => import("../pages/SuggestionsPage")
+);
+
+const AIAdvisorPage = lazy(
+  () => import("../pages/AIAdvisorPage")
+);
+
+const IncomesPage = lazy(
+  () => import("../pages/IncomesPage")
+);
+
+const FinancialGoalsPage = lazy(
+  () => import("../pages/FinancialGoalsPage")
+);
+
+const NetWorthPage = lazy(
+  () => import("../pages/NetWorthPage")
+);
+
+const RecurringTransactionsPage = lazy(
+  () => import("../pages/RecurringTransactionsPage")
+);
+
+const InvestmentsPage = lazy(
+  () => import("../pages/InvestmentsPage")
+);
+
+const NotificationsPage = lazy(
+  () => import("../pages/NotificationsPage")
+);
+
+const SettingsPage = lazy(
+  () => import("../pages/SettingsPage")
+);
+
+const ProfilePage = lazy(
+  () => import("../pages/ProfilePage")
+);
+
+const ForgotPasswordPage = lazy(
+  () => import("../pages/ForgotPasswordPage")
+);
+
+const ResetPasswordPage = lazy(
+  () => import("../pages/ResetPasswordPage")
+);
+
+const MoneyDuePage = lazy(
+  () => import("../pages/MoneyDuePage")
+);
 
 function AppRoutes() {
     return(
         <BrowserRouter>
+                <Suspense
+            fallback={
+            <div className="route-loading-screen">
+                <div className="route-loading-spinner" />
+
+                <p>Loading MoneyCoachAI...</p>
+            </div>
+            }
+        >
             <Routes>
                 <Route path="/" element={<Navigate to="/login" />} />
                 <Route path="/login" element={<LoginPage />} />
@@ -125,6 +203,7 @@ function AppRoutes() {
                 }/>
                                 
             </Routes>
+            </Suspense>
         </BrowserRouter>
     );
 }
