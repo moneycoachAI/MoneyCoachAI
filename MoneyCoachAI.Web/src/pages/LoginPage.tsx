@@ -206,7 +206,7 @@ function LoginPage() {
         googleButtonRef.current.getBoundingClientRect().width;
 
       const buttonWidth = Math.min(
-        400,
+        380,
         Math.max(1, Math.floor(availableWidth))
       );
 
@@ -1186,7 +1186,7 @@ const loginStyles = `
     position: relative;
 
     width: 100%;
-
+    min-width: 0;
     margin-top:
       clamp(14px, 2vh, 20px);
   }
@@ -1204,7 +1204,8 @@ const loginStyles = `
     min-width: 0;
     min-height: 44px;
 
-    overflow: visible;
+    padding: 0 2px;
+    overflow: hidden;
   }
 
   .login-google-button > div {
@@ -1214,6 +1215,7 @@ const loginStyles = `
 
   .login-google-button iframe {
     display: block !important;
+    width: 100% !important;
     max-width: 100% !important;
     margin: 0 auto !important;
   }
