@@ -57,13 +57,56 @@ import { Bell } from "lucide-react";
 
 import { isFutureMonth } from "../utils/dateUtils";
 
+
+type DashboardPageMemoryCache = {
+  year: string;
+  loadedDashboardYear: string;
+  cards: MonthlyDashboardCard[];
+  profile: UserProfile | null;
+  unreadNotifications: Notification[];
+  recentTransactions: financialActivity[];
+  recentIncome: financialActivity[];
+  recentExpenses: financialActivity[];
+  recentBudgets: Budget[];
+  allIncomeTransactions: financialActivity[];
+  allExpenseTransactions: financialActivity[];
+  allBudgets: Budget[];
+  activityMonth: string;
+  activityYear: string;
+  comparisonPreviousMonth: string;
+  comparisonPreviousYear: string;
+  comparisonCurrentMonth: string;
+  comparisonCurrentYear: string;
+  topCategory: TopCategory | null;
+  topCategoryMonth: string;
+  topCategoryYear: string;
+  loadedTopCategoryMonth: string;
+  loadedTopCategoryYear: string;
+  monthlyComparison: MonthlyComparison | null;
+  financialGoals: FinancialGoal[];
+  netWorthSummary: NetWorthSummary | null;
+  investmentSummary: InvestmentSummary | null;
+  recurringReminders: RecurringTransaction[];
+  hasRecurringTransactions: boolean;
+  moneyDueItems: MoneyDue[];
+  reportPeriod: string;
+  reportYear: string;
+};
+
+// This in-memory cache survives React route navigation inside the SPA, but is
+// cleared by a full browser refresh. That means Dashboard -> Income -> Dashboard
+// restores instantly without re-running all dashboard API requests.
+let dashboardPageMemoryCache: DashboardPageMemoryCache | null = null;
+
 function DashboardPage() {
   const navigate = useNavigate();
 
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(
+    dashboardPageMemoryCache?.profile ?? null
+  );
   
   const [unreadNotifications, setUnreadNotifications] =
-  useState<Notification[]>([]);
+  useState<Notification[]>(dashboardPageMemoryCache?.unreadNotifications ?? []);
 
   const [showNotificationMenu, setShowNotificationMenu] =
   useState(false);
@@ -71,57 +114,104 @@ function DashboardPage() {
   const notificationMenuRef =
   useRef<HTMLDivElement | null>(null);
 
-  const [year, setYear] = useState("2026");
-  const [cards, setCards] = useState<MonthlyDashboardCard[]>([]);
+  const [year, setYear] = useState(
+    dashboardPageMemoryCache?.year ?? String(new Date().getFullYear())
+  );
+  const [loadedDashboardYear, setLoadedDashboardYear] = useState(
+    dashboardPageMemoryCache?.loadedDashboardYear ??
+      dashboardPageMemoryCache?.year ??
+      String(new Date().getFullYear())
+  );
+  const [cards, setCards] = useState<MonthlyDashboardCard[]>(
+    dashboardPageMemoryCache?.cards ?? []
+  );
   const [openMonthlyMenu, setOpenMonthlyMenu] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const [recentTransactions, setRecentTransactions] = useState<financialActivity[]>([]);
-  const [recentIncome, setRecentIncome] = useState<financialActivity[]>([]);
-  const [recentExpenses, setRecentExpenses] = useState<financialActivity[]>([]);
-  const [recentBudgets, setRecentBudgets] = useState<Budget[]>([]);
+  const [recentTransactions, setRecentTransactions] = useState<financialActivity[]>(
+    dashboardPageMemoryCache?.recentTransactions ?? []
+  );
+  const [recentIncome, setRecentIncome] = useState<financialActivity[]>(
+    dashboardPageMemoryCache?.recentIncome ?? []
+  );
+  const [recentExpenses, setRecentExpenses] = useState<financialActivity[]>(
+    dashboardPageMemoryCache?.recentExpenses ?? []
+  );
+  const [recentBudgets, setRecentBudgets] = useState<Budget[]>(
+    dashboardPageMemoryCache?.recentBudgets ?? []
+  );
 
   const [allIncomeTransactions, setAllIncomeTransactions] =
-    useState<financialActivity[]>([]);
+    useState<financialActivity[]>(dashboardPageMemoryCache?.allIncomeTransactions ?? []);
   const [allExpenseTransactions, setAllExpenseTransactions] =
-    useState<financialActivity[]>([]);
-  const [allBudgets, setAllBudgets] = useState<Budget[]>([]);
+    useState<financialActivity[]>(dashboardPageMemoryCache?.allExpenseTransactions ?? []);
+  const [allBudgets, setAllBudgets] = useState<Budget[]>(
+    dashboardPageMemoryCache?.allBudgets ?? []
+  );
 
-  const [activityMonth, setActivityMonth] = useState("");
-  const [activityYear, setActivityYear] = useState("");
+  const [activityMonth, setActivityMonth] = useState(
+    dashboardPageMemoryCache?.activityMonth ?? ""
+  );
+  const [activityYear, setActivityYear] = useState(
+    dashboardPageMemoryCache?.activityYear ?? ""
+  );
 
-  const [comparisonPreviousMonth, setComparisonPreviousMonth] = useState("");
-  const [comparisonPreviousYear, setComparisonPreviousYear] = useState("");
-  const [comparisonCurrentMonth, setComparisonCurrentMonth] = useState("");
-  const [comparisonCurrentYear, setComparisonCurrentYear] = useState("");
+  const [comparisonPreviousMonth, setComparisonPreviousMonth] = useState(
+    dashboardPageMemoryCache?.comparisonPreviousMonth ?? ""
+  );
+  const [comparisonPreviousYear, setComparisonPreviousYear] = useState(
+    dashboardPageMemoryCache?.comparisonPreviousYear ?? ""
+  );
+  const [comparisonCurrentMonth, setComparisonCurrentMonth] = useState(
+    dashboardPageMemoryCache?.comparisonCurrentMonth ?? ""
+  );
+  const [comparisonCurrentYear, setComparisonCurrentYear] = useState(
+    dashboardPageMemoryCache?.comparisonCurrentYear ?? ""
+  );
   const [comparisonLoading, setComparisonLoading] = useState(false);
 
-  const [topCategory, setTopCategory] = useState<TopCategory | null>(null);
-  const [topCategoryMonth, setTopCategoryMonth] = useState("");
-  const [topCategoryYear, setTopCategoryYear] = useState("");
-  const [loadedTopCategoryMonth, setLoadedTopCategoryMonth] = useState("");
-  const [loadedTopCategoryYear, setLoadedTopCategoryYear] = useState("");
+  const [topCategory, setTopCategory] = useState<TopCategory | null>(
+    dashboardPageMemoryCache?.topCategory ?? null
+  );
+  const [topCategoryMonth, setTopCategoryMonth] = useState(
+    dashboardPageMemoryCache?.topCategoryMonth ?? ""
+  );
+  const [topCategoryYear, setTopCategoryYear] = useState(
+    dashboardPageMemoryCache?.topCategoryYear ?? ""
+  );
+  const [loadedTopCategoryMonth, setLoadedTopCategoryMonth] = useState(
+    dashboardPageMemoryCache?.loadedTopCategoryMonth ?? ""
+  );
+  const [loadedTopCategoryYear, setLoadedTopCategoryYear] = useState(
+    dashboardPageMemoryCache?.loadedTopCategoryYear ?? ""
+  );
 
   const [monthlyComparison, setMonthlyComparison] =
-    useState<MonthlyComparison | null>(null);
+    useState<MonthlyComparison | null>(dashboardPageMemoryCache?.monthlyComparison ?? null);
 
-  const [financialGoals, setFinancialGoals] = useState<FinancialGoal[]>([]);
+  const [financialGoals, setFinancialGoals] = useState<FinancialGoal[]>(
+    dashboardPageMemoryCache?.financialGoals ?? []
+  );
   const [netWorthSummary, setNetWorthSummary] =
-    useState<NetWorthSummary | null>(null);
+    useState<NetWorthSummary | null>(dashboardPageMemoryCache?.netWorthSummary ?? null);
   const [investmentSummary, setInvestmentSummary] =
-    useState<InvestmentSummary | null>(null);
+    useState<InvestmentSummary | null>(dashboardPageMemoryCache?.investmentSummary ?? null);
 
   const [recurringReminders, setRecurringReminders] =
-    useState<RecurringTransaction[]>([]);
+    useState<RecurringTransaction[]>(dashboardPageMemoryCache?.recurringReminders ?? []);
 
   const [hasRecurringTransactions, setHasRecurringTransactions] =
-   useState(false);
+   useState(dashboardPageMemoryCache?.hasRecurringTransactions ?? false);
 
   const [moneyDueItems, setMoneyDueItems] =
-   useState<MoneyDue[]>([]);
+   useState<MoneyDue[]>(dashboardPageMemoryCache?.moneyDueItems ?? []);
 
   const [moneyDueLoading, setMoneyDueLoading] =
    useState(false);
+
+  const [dashboardCacheEnabled, setDashboardCacheEnabled] = useState(
+    dashboardPageMemoryCache !== null
+  );
 
   const financialMotivations = [
   {
@@ -184,13 +274,13 @@ const [motivationIndex, setMotivationIndex] = useState(0);
   ).padStart(2, "0")}`;
 
   const [reportPeriod, setReportPeriod] =
-    useState(currentMonthValue);
+    useState(dashboardPageMemoryCache?.reportPeriod ?? currentMonthValue);
 
   const [reportMode, setReportMode] =
     useState<"monthly" | "annual">("monthly");
 
   const [reportYear, setReportYear] =
-    useState(String(today.getFullYear()));
+    useState(dashboardPageMemoryCache?.reportYear ?? String(today.getFullYear()));
 
   const [reportDownloading, setReportDownloading] =
     useState(false);
@@ -352,18 +442,19 @@ const [motivationIndex, setMotivationIndex] = useState(0);
     setRecentBudgets(filteredBudgets);
   };
 
-  const loadRecentTransactions = async () => {
-    const expenses = await getExpenses();
-    const incomes = await getIncomes();
-    const budgets = await getBudgets();
+  const loadRecentTransactions = async (selectedDashboardYear: number) => {
+    const [expenses, incomes, budgets, goalsData, netWorthData, investmentData] =
+      await Promise.all([
+        getExpenses(),
+        getIncomes(),
+        getBudgets(),
+        getFinancialGoals(),
+        getNetWorthSummary(),
+        getInvestmentSummary(),
+      ]);
 
-    const goalsData = await getFinancialGoals();
     setFinancialGoals(goalsData);
-
-    const netWorthData = await getNetWorthSummary();
     setNetWorthSummary(netWorthData);
-
-    const investmentData = await getInvestmentSummary();
     setInvestmentSummary(investmentData);
 
     const expenseTransactions: financialActivity[] = expenses.map((expense) => ({
@@ -388,59 +479,127 @@ const [motivationIndex, setMotivationIndex] = useState(0);
     setAllExpenseTransactions(expenseTransactions);
     setAllBudgets(budgets);
 
-    const allTransactions = [...expenseTransactions, ...incomeTransactions].sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    const yearIncome = incomeTransactions.filter(
+      (transaction) => new Date(transaction.date).getFullYear() === selectedDashboardYear
     );
 
-    const validTransactions = allTransactions.filter(
-      (transaction) => transaction.amount > 0
+    const yearExpenses = expenseTransactions.filter(
+      (transaction) => new Date(transaction.date).getFullYear() === selectedDashboardYear
     );
 
-    const latestTransactionDate = validTransactions[0]?.date;
+    const yearBudgets = budgets.filter(
+      (budget) => budget.year === selectedDashboardYear
+    );
 
-    if (!latestTransactionDate) {
-      setRecentTransactions([]);
-      setRecentIncome([]);
-      setRecentExpenses([]);
-      setRecentBudgets([]);
-      setTopCategory(null);
-      setMonthlyComparison(null);
-     
-      return;
-    }
+    const defaultMonth =
+      selectedDashboardYear === today.getFullYear()
+        ? today.getMonth() + 1
+        : 12;
 
-    const latestDate = new Date(latestTransactionDate);
-    const latestMonthIndex = latestDate.getMonth();
-    const latestMonth = latestMonthIndex + 1;
-    const latestYear = latestDate.getFullYear();
+    // Monthly Financial Activity follows the latest month in the selected
+    // dashboard year that has income, expense or budget data.
+    const activityMonths = Array.from(
+      new Set([
+        ...yearIncome.map((transaction) => new Date(transaction.date).getMonth() + 1),
+        ...yearExpenses.map((transaction) => new Date(transaction.date).getMonth() + 1),
+        ...yearBudgets.map((budget) => budget.month),
+      ])
+    ).sort((a, b) => a - b);
 
-    setActivityMonth(latestMonth.toString());
-    setActivityYear(latestYear.toString());
+    const latestActivityMonth =
+      activityMonths.length > 0
+        ? activityMonths[activityMonths.length - 1]
+        : defaultMonth;
+
+    setActivityMonth(String(latestActivityMonth));
+    setActivityYear(String(selectedDashboardYear));
 
     applyRecentActivityFilter(
-      latestMonth,
-      latestYear,
+      latestActivityMonth,
+      selectedDashboardYear,
       incomeTransactions,
       expenseTransactions,
       budgets
     );
 
-    setTopCategoryMonth(latestMonth.toString());
-    setTopCategoryYear(latestYear.toString());
-    setLoadedTopCategoryMonth(latestMonth.toString());
-    setLoadedTopCategoryYear(latestYear.toString());
+    setReportPeriod(
+      `${selectedDashboardYear}-${String(latestActivityMonth).padStart(2, "0")}`
+    );
+    setReportYear(String(selectedDashboardYear));
 
-    const categoryData = await getTopCategory(latestMonth, latestYear);
-    setTopCategory(categoryData);
+    // Top Spending uses the latest month WITH EXPENSE DATA in the selected year.
+    const expenseMonths = Array.from(
+      new Set(
+        yearExpenses
+          .filter((transaction) => transaction.amount > 0)
+          .map((transaction) => new Date(transaction.date).getMonth() + 1)
+      )
+    ).sort((a, b) => a - b);
 
-    const comparisonData = await getMonthlyComparison(latestMonth, latestYear);
-    setMonthlyComparison(comparisonData);
+    const latestExpenseMonth =
+      expenseMonths.length > 0
+        ? expenseMonths[expenseMonths.length - 1]
+        : undefined;
 
-    setComparisonPreviousMonth(comparisonData.previousMonth.toString());
-    setComparisonPreviousYear(comparisonData.previousYear.toString());
-    setComparisonCurrentMonth(comparisonData.currentMonth.toString());
-    setComparisonCurrentYear(comparisonData.currentYear.toString());
+    setTopCategoryMonth(String(latestExpenseMonth ?? defaultMonth));
+    setTopCategoryYear(String(selectedDashboardYear));
 
+    if (latestExpenseMonth) {
+      const categoryData = await getTopCategory(
+        latestExpenseMonth,
+        selectedDashboardYear
+      );
+
+      setTopCategory(categoryData);
+      setLoadedTopCategoryMonth(String(latestExpenseMonth));
+      setLoadedTopCategoryYear(String(selectedDashboardYear));
+    } else {
+      setTopCategory(null);
+      setLoadedTopCategoryMonth("");
+      setLoadedTopCategoryYear(String(selectedDashboardYear));
+    }
+
+    // Monthly Comparison remains independent of Top Spending. It automatically
+    // uses the latest two months in the selected year that have income/expense data.
+    const comparisonMonths = Array.from(
+      new Set([
+        ...yearIncome.map((transaction) => new Date(transaction.date).getMonth() + 1),
+        ...yearExpenses.map((transaction) => new Date(transaction.date).getMonth() + 1),
+      ])
+    ).sort((a, b) => a - b);
+
+    const latestComparisonMonth =
+      comparisonMonths.length > 0
+        ? comparisonMonths[comparisonMonths.length - 1]
+        : defaultMonth;
+    const previousComparisonMonth =
+      comparisonMonths.length >= 2
+        ? comparisonMonths[comparisonMonths.length - 2]
+        : Math.max(1, latestComparisonMonth - 1);
+
+    setComparisonPreviousMonth(String(previousComparisonMonth));
+    setComparisonPreviousYear(String(selectedDashboardYear));
+    setComparisonCurrentMonth(String(latestComparisonMonth));
+    setComparisonCurrentYear(String(selectedDashboardYear));
+
+    if (comparisonMonths.length >= 2) {
+      const comparisonData = await getMonthlyComparison(
+        latestComparisonMonth,
+        selectedDashboardYear
+      );
+
+      setMonthlyComparison(comparisonData);
+
+      if (comparisonData.previousMonth > 0) {
+        setComparisonPreviousMonth(String(comparisonData.previousMonth));
+        setComparisonPreviousYear(String(comparisonData.previousYear));
+      }
+
+      setComparisonCurrentMonth(String(comparisonData.currentMonth));
+      setComparisonCurrentYear(String(comparisonData.currentYear));
+    } else {
+      setMonthlyComparison(null);
+    }
   };
 
   const loadUnreadNotifications = async () => {
@@ -482,8 +641,8 @@ const [motivationIndex, setMotivationIndex] = useState(0);
     }
   };
 
-  const loadDashboardCards = async () => {
-    const selectedYear = Number(year);
+  const loadDashboardCards = async (yearOverride?: number) => {
+    const selectedYear = yearOverride ?? Number(year);
 
     if (
       !Number.isInteger(selectedYear) ||
@@ -499,9 +658,10 @@ const [motivationIndex, setMotivationIndex] = useState(0);
 
       const data = await getMonthlyDashboardCards(selectedYear);
 
+      setLoadedDashboardYear(String(selectedYear));
       setCards(data);
 
-      await loadRecentTransactions();
+      await loadRecentTransactions(selectedYear);
     } catch (error) {
       console.error(error);
       alert("Failed to load dashboard cards");
@@ -840,20 +1000,25 @@ const [motivationIndex, setMotivationIndex] = useState(0);
   };
 
   useEffect(() => {
+    if (dashboardPageMemoryCache) {
+      return;
+    }
+
     const loadInitialDashboard = async () => {
       try {
         const profileData = await getProfile();
         setProfile(profileData);
 
         await Promise.all([
-          loadDashboardCards(),
+          loadDashboardCards(Number(loadedDashboardYear)),
           loadUnreadNotifications(),
-           loadRecurringDashboard(),
-           loadMoneyDueDashboard(),
+          loadRecurringDashboard(),
+          loadMoneyDueDashboard(),
         ]);
-         
       } catch (error) {
         console.error("Failed to load dashboard:", error);
+      } finally {
+        setDashboardCacheEnabled(true);
       }
     };
 
@@ -862,8 +1027,84 @@ const [motivationIndex, setMotivationIndex] = useState(0);
     }, 0);
 
     return () => window.clearTimeout(timer);
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!dashboardCacheEnabled) {
+      return;
+    }
+
+    dashboardPageMemoryCache = {
+      year,
+      loadedDashboardYear,
+      cards,
+      profile,
+      unreadNotifications,
+      recentTransactions,
+      recentIncome,
+      recentExpenses,
+      recentBudgets,
+      allIncomeTransactions,
+      allExpenseTransactions,
+      allBudgets,
+      activityMonth,
+      activityYear,
+      comparisonPreviousMonth,
+      comparisonPreviousYear,
+      comparisonCurrentMonth,
+      comparisonCurrentYear,
+      topCategory,
+      topCategoryMonth,
+      topCategoryYear,
+      loadedTopCategoryMonth,
+      loadedTopCategoryYear,
+      monthlyComparison,
+      financialGoals,
+      netWorthSummary,
+      investmentSummary,
+      recurringReminders,
+      hasRecurringTransactions,
+      moneyDueItems,
+      reportPeriod,
+      reportYear,
+    };
+  }, [
+    dashboardCacheEnabled,
+    year,
+    loadedDashboardYear,
+    cards,
+    profile,
+    unreadNotifications,
+    recentTransactions,
+    recentIncome,
+    recentExpenses,
+    recentBudgets,
+    allIncomeTransactions,
+    allExpenseTransactions,
+    allBudgets,
+    activityMonth,
+    activityYear,
+    comparisonPreviousMonth,
+    comparisonPreviousYear,
+    comparisonCurrentMonth,
+    comparisonCurrentYear,
+    topCategory,
+    topCategoryMonth,
+    topCategoryYear,
+    loadedTopCategoryMonth,
+    loadedTopCategoryYear,
+    monthlyComparison,
+    financialGoals,
+    netWorthSummary,
+    investmentSummary,
+    recurringReminders,
+    hasRecurringTransactions,
+    moneyDueItems,
+    reportPeriod,
+    reportYear,
+  ]);
 
   useEffect(() => {
     const motivationTimer = window.setInterval(() => {
@@ -935,7 +1176,7 @@ const [motivationIndex, setMotivationIndex] = useState(0);
 
   const displayName = profile?.fullName?.trim() || "MoneyCoachAI User";
 
-  const selectedDashboardYear = Number(year);
+  const selectedDashboardYear = Number(loadedDashboardYear);
 
   const activeCards = cards.filter(
     (card) =>
@@ -988,7 +1229,22 @@ const [motivationIndex, setMotivationIndex] = useState(0);
       : "latest month";
 
 
-  const activeMoneyDueItems = moneyDueItems.filter(
+  const moneyDueItemsForSelectedYear = moneyDueItems.filter((item) => {
+    const createdAt = (item as MoneyDue & { createdAt?: string }).createdAt;
+
+    if (!createdAt) {
+      return false;
+    }
+
+    const createdDate = new Date(createdAt);
+
+    return (
+      !Number.isNaN(createdDate.getTime()) &&
+      createdDate.getFullYear() === selectedDashboardYear
+    );
+  });
+
+  const activeMoneyDueItems = moneyDueItemsForSelectedYear.filter(
     (item) =>
       item.status !== "Completed" &&
       item.status !== "Cancelled"
@@ -1003,9 +1259,9 @@ const [motivationIndex, setMotivationIndex] = useState(0);
   ).length;
 
   const moneyDueLastUpdatedText =
-    moneyDueItems.length > 0
-      ? "Updated just now"
-      : "Waiting for records";
+    moneyDueItemsForSelectedYear.length > 0
+      ? `Showing records created in ${selectedDashboardYear}`
+      : `No records created in ${selectedDashboardYear}`;
 
   const moneyDueReceivable = activeMoneyDueItems
     .filter(
@@ -3755,12 +4011,8 @@ const [motivationIndex, setMotivationIndex] = useState(0);
 
             <button
                 className="mca-gradient-button"
-                onClick={async () => {
-                  await Promise.all([
-                    loadDashboardCards(),
-                    loadRecurringDashboard(),
-                    loadMoneyDueDashboard(),
-                  ]);
+                onClick={() => {
+                  void loadDashboardCards(Number(year));
                 }}
             >
               {loading ? "Loading..." : "Load Year"}
@@ -3778,7 +4030,7 @@ const [motivationIndex, setMotivationIndex] = useState(0);
             </div>
             {!hasSummaryData && (
               <div className="money-empty-text">
-                No financial records found for {year}.
+                No financial records found for {loadedDashboardYear}.
               </div>
             )}
           </div>
@@ -3793,7 +4045,7 @@ const [motivationIndex, setMotivationIndex] = useState(0);
             </div>
             {!hasSummaryData && (
               <div className="money-empty-text">
-                Add income to view this summary. {year}
+                Add income to view this summary. {loadedDashboardYear}
               </div>
             )}
           </div>
@@ -3808,7 +4060,7 @@ const [motivationIndex, setMotivationIndex] = useState(0);
             </div>
             {!hasSummaryData && (
               <div className="money-empty-text">
-                Add expenses to view this summary. {year}
+                Add expenses to view this summary. {loadedDashboardYear}
               </div>
             )}
           </div>
@@ -4120,18 +4372,17 @@ const [motivationIndex, setMotivationIndex] = useState(0);
             <div className="money-due-dashboard-empty">
               Loading Money Due records...
             </div>
-          ) : moneyDueItems.length === 0 ? (
+          ) : moneyDueItemsForSelectedYear.length === 0 ? (
             <div className="money-due-dashboard-empty">
               <div className="money-due-dashboard-empty-icon">
                 💸
               </div>
 
-              <strong>No Money Due records yet</strong>
+              <strong>No Money Due data for {selectedDashboardYear}</strong>
 
               <p className="mca-muted">
-                Track money you need to receive or pay,
-                including partial settlements and due-date
-                reminders.
+                You do not have Money Due records created in {selectedDashboardYear}.
+                Use the Money Due page to view or manage records from other years.
               </p>
             </div>
           ) : (
@@ -4372,7 +4623,10 @@ const [motivationIndex, setMotivationIndex] = useState(0);
                   </div>
                 </>
               ) : (
-                <p className="mca-muted">No top category found for selected month.</p>
+                <div className="section-empty-message">
+                  No spending data found for {loadedTopCategoryYear || loadedDashboardYear}.
+                  Choose a month above to check another period manually.
+                </div>
               )}
 
               
@@ -4422,16 +4676,14 @@ const [motivationIndex, setMotivationIndex] = useState(0);
            
           </div>
 
-          {monthlyComparison && (
-            <div className="mca-glass-card dash-card mca-glow-blue">
+          <div className="mca-glass-card dash-card mca-glow-blue">
               <div className="dash-card-head">
                 <div>
                   <h2 className="mca-section-title">Monthly Comparison</h2>
                   <p className="mca-muted">
-                    {monthNames[monthlyComparison.previousMonth]}{" "}
-                    {monthlyComparison.previousYear} vs{" "}
-                    {monthNames[monthlyComparison.currentMonth]}{" "}
-                    {monthlyComparison.currentYear}
+                    {monthlyComparison
+                      ? `${monthNames[monthlyComparison.previousMonth]} ${monthlyComparison.previousYear} vs ${monthNames[monthlyComparison.currentMonth]} ${monthlyComparison.currentYear}`
+                      : `No automatic comparison available for ${loadedDashboardYear}.`}
                   </p>
                 </div>
               </div>
@@ -4488,9 +4740,9 @@ const [motivationIndex, setMotivationIndex] = useState(0);
                 </button>
               </div>
 
-              {!hasComparisonData ? (
+              {!monthlyComparison || !hasComparisonData ? (
                 <div className="section-empty-message">
-                  No comparison data found for the selected months.
+                  No comparison data found for {loadedDashboardYear}. Select two months above to compare manually.
                 </div>
               ) : (
               <div className="insight-list">
@@ -4574,7 +4826,6 @@ const [motivationIndex, setMotivationIndex] = useState(0);
               </div>
               )}
             </div>
-          )}
         </div>
         
 
@@ -4717,7 +4968,9 @@ const [motivationIndex, setMotivationIndex] = useState(0);
       </div>
 
           {recentTransactions.length === 0 ? (
-            <p className="mca-muted">{`No financial activity found for ${activityPeriodText}.`}</p>
+            <div className="section-empty-message">
+              No financial activity found for {loadedDashboardYear}. Select a month above to check another period manually.
+            </div>
           ) : (
             
           <div className="recent-three-grid">
@@ -4840,7 +5093,9 @@ const [motivationIndex, setMotivationIndex] = useState(0);
           </div>
 
           {activeCards.length === 0 ? (
-            <p className="mca-muted">No dashboard data found for this year.</p>
+            <div className="section-empty-message">
+              You do not have dashboard financial data for {loadedDashboardYear}. Choose another year above, or use the individual month/year selectors to inspect another period.
+            </div>
           ) : (
             <div className="monthly-scroll">
               {activeCards.map((card) => {

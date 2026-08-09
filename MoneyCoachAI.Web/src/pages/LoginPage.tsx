@@ -203,11 +203,11 @@ function LoginPage() {
       }
 
       const availableWidth =
-        googleButtonRef.current.clientWidth;
+        googleButtonRef.current.getBoundingClientRect().width;
 
-      const buttonWidth = Math.max(
-        220,
-        Math.min(410, availableWidth)
+      const buttonWidth = Math.min(
+        400,
+        Math.max(1, Math.floor(availableWidth))
       );
 
       googleButtonRef.current.innerHTML = "";
@@ -411,6 +411,8 @@ function LoginPage() {
             src="/branding/moneycoachai-logo.png"
             alt="MoneyCoachAI"
             className="login-main-logo"
+            fetchPriority="high"
+            decoding="sync"
           />
 
           <div className="login-brand-badge">
@@ -434,6 +436,8 @@ function LoginPage() {
             <img
               src="/branding/moneycoachai-logo.png"
               alt="MoneyCoachAI"
+              fetchPriority="high"
+              decoding="sync"
             />
           </div>
 
@@ -990,7 +994,7 @@ const loginStyles = `
 
     text-align: center;
 
-    transform: translateY(-90px);
+    margin-top: -90px;
   }
 
   .login-main-logo {
@@ -1193,18 +1197,25 @@ const loginStyles = `
 
   .login-google-button {
     display: flex;
+    align-items: center;
     justify-content: center;
 
     width: 100%;
     min-width: 0;
     min-height: 44px;
 
-    overflow: hidden;
+    overflow: visible;
   }
 
-  .login-google-button > div,
-  .login-google-button iframe {
+  .login-google-button > div {
+    width: 100% !important;
     max-width: 100% !important;
+  }
+
+  .login-google-button iframe {
+    display: block !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
   }
 
   .login-google-disabled {
