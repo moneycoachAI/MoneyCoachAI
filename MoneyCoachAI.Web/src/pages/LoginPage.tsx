@@ -205,9 +205,12 @@ function LoginPage() {
       const availableWidth =
         googleButtonRef.current.getBoundingClientRect().width;
 
-      const buttonWidth = Math.min(
-        380,
-        Math.max(1, Math.floor(availableWidth))
+      const buttonWidth = Math.max(
+        200,
+        Math.min(
+          360,
+          Math.floor(availableWidth - 16)
+        )
       );
 
       googleButtonRef.current.innerHTML = "";
@@ -1204,20 +1207,7 @@ const loginStyles = `
     min-width: 0;
     min-height: 44px;
 
-    padding: 0 2px;
-    overflow: hidden;
-  }
-
-  .login-google-button > div {
-    width: 100% !important;
-    max-width: 100% !important;
-  }
-
-  .login-google-button iframe {
-    display: block !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    margin: 0 auto !important;
+    overflow: visible;
   }
 
   .login-google-disabled {
