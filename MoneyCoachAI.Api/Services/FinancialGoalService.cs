@@ -103,14 +103,10 @@ public class FinancialGoalService
 
         var currentYear = DateTime.UtcNow.Year;
 
-        var cards = await _dashboardService.GetMonthlyCardsAsync(
-            userId,
-            currentYear);
-
         var averageMonthlySavings =
-            cards.Count == 0
-                ? 0
-                : cards.Average(card => card.Savings);
+            await _dashboardService.GetAverageMonthlySavingsAsync(
+                userId,
+                currentYear);
 
         var recommendations = new List<GoalRecommendationResponse>();
 

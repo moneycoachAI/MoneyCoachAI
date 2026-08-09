@@ -65,21 +65,120 @@ public class DashboardService
                     ? (savings / totalIncome) * 100
                     : 0;
 
-            var suggestions = await _suggestionService.GetSuggestionsAsync(
-                userId,
-                month,
-                year);
+            var dashboardSuggestions =
+                new List<(string Severity, string Message)>();
 
-            var topSuggestion = suggestions
+            if (totalIncome <= 0 && totalSpent > 0)
+            {
+                dashboardSuggestions.Add((
+                    "Info",
+                    "No income recorded for this month."
+                ));
+            }
+            else if (totalIncome > 0)
+            {
+                var incomeUsedPercentage =
+                    (totalSpent / totalIncome) * 100;
+
+                if (totalSpent > totalIncome)
+                {
+                    dashboardSuggestions.Add((
+                        "Danger",
+                        $"You spent ₹{Math.Abs(savings)} more than your income this month."
+                    ));
+                }
+                else if (incomeUsedPercentage >= 80)
+                {
+                    dashboardSuggestions.Add((
+                        "Warning",
+                        $"You used {incomeUsedPercentage:F1}% of your income this month."
+                    ));
+                }
+                else if (savingsRate >= 30)
+                {
+                    dashboardSuggestions.Add((
+                        "Success",
+                        $"You saved {savingsRate:F1}% of your income this month."
+                    ));
+                }
+            }
+
+            foreach (var budget in monthBudgets)
+            {
+                if (budget.MonthlyLimit <= 0)
+                {
+                    continue;
+                }
+
+                var spent = monthExpenses
+                    .Where(expense =>
+                        expense.Category == budget.Category)
+                    .Sum(expense => expense.Amount);
+
+                var usedPercentage =
+                    (spent / budget.MonthlyLimit) * 100;
+
+                if (spent > budget.MonthlyLimit)
+                {
+                    dashboardSuggestions.Add((
+                        "Danger",
+                        $"You exceeded your {budget.Category} budget."
+                    ));
+                }
+                else if (usedPercentage >= 80)
+                {
+                    dashboardSuggestions.Add((
+                        "Warning",
+                        $"You used {usedPercentage:F1}% of your {budget.Category} budget."
+                    ));
+                }
+            }
+
+            if (totalSpent > 0)
+            {
+                var topCategory = monthExpenses
+                    .GroupBy(expense => expense.Category)
+                    .Select(group => new
+                    {
+                        Category = group.Key,
+                        Amount = group.Sum(expense => expense.Amount)
+                    })
+                    .OrderByDescending(item => item.Amount)
+                    .FirstOrDefault();
+
+                if (topCategory != null)
+                {
+                    var percentage =
+                        (topCategory.Amount / totalSpent) * 100;
+
+                    if (percentage >= 50)
+                    {
+                        dashboardSuggestions.Add((
+                            "Info",
+                            $"{topCategory.Category} makes up {percentage:F1}% of your spending."
+                        ));
+                    }
+                }
+            }
+
+            if (dashboardSuggestions.Count == 0)
+            {
+                dashboardSuggestions.Add((
+                    "Info",
+                    "Your financial activity looks stable."
+                ));
+            }
+
+            var topSuggestion = dashboardSuggestions
                 .OrderByDescending(suggestion =>
                     suggestion.Severity == "Danger" ? 4 :
                     suggestion.Severity == "Warning" ? 3 :
                     suggestion.Severity == "Info" ? 2 :
                     suggestion.Severity == "Success" ? 1 : 0)
-                .FirstOrDefault();
+                .First();
 
-            var topSeverity = topSuggestion?.Severity ?? "Info";
-            var topMessage = topSuggestion?.Message ?? "No suggestions available.";
+            var topSeverity = topSuggestion.Severity;
+            var topMessage = topSuggestion.Message;
 
             var healthScore = 100;
 
@@ -131,7 +230,7 @@ public class DashboardService
                 Remaining = totalBudget - totalSpent,
                 Savings = savings,
                 SavingsRate = savingsRate,
-                SuggestionCount = suggestions.Count(),
+                SuggestionCount = dashboardSuggestions.Count(),
                 TopSeverity = topSeverity,
                 TopMessage = topMessage,
                 HealthScore = healthScore,
@@ -140,6 +239,53 @@ public class DashboardService
         }
 
         return cards;
+    }
+
+    public async Task<decimal> GetAverageMonthlySavingsAsync(
+    string userId,
+    int year)
+    {
+        var expenses =
+            await _expenseRepository.GetByUserYearAsync(
+                userId,
+                year);
+
+        var incomes =
+            await _incomeRepository.GetByUserYearAsync(
+                userId,
+                year);
+
+        var activeMonths = expenses
+            .Select(expense => expense.Date.ToLocalTime().Month)
+            .Union(
+                incomes.Select(
+                    income => income.Date.ToLocalTime().Month))
+            .Distinct()
+            .ToList();
+
+        if (activeMonths.Count == 0)
+        {
+            return 0;
+        }
+
+        var monthlySavings = activeMonths
+            .Select(month =>
+            {
+                var totalIncome = incomes
+                    .Where(income =>
+                        income.Date.ToLocalTime().Month == month)
+                    .Sum(income => income.Amount);
+
+                var totalExpenses = expenses
+                    .Where(expense =>
+                        expense.Date.ToLocalTime().Month == month)
+                    .Sum(expense => expense.Amount);
+
+                return totalIncome - totalExpenses;
+            })
+            .ToList();
+
+        return monthlySavings.Average();
     }
 
 

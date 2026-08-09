@@ -161,6 +161,11 @@ builder.Services.AddCors(options =>
 });
 var app = builder.Build();
 
+var databaseService =
+    app.Services.GetRequiredService<DatabaseService>();
+
+await databaseService.EnsureIndexesAsync();
+
 app.UseCors("ReactPolicy");
 
 //Configure middleware

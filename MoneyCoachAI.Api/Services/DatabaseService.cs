@@ -56,4 +56,51 @@ public class DatabaseService
 
     public IMongoCollection<PasswordResetToken> PasswordResetTokens =>
     _database.GetCollection<PasswordResetToken>("PasswordResetTokens");
+
+    public async Task EnsureIndexesAsync()
+    {
+        // Financial Goals
+        await FinancialGoals.Indexes.CreateOneAsync(
+            new CreateIndexModel<FinancialGoal>(
+                Builders<FinancialGoal>.IndexKeys
+                    .Ascending(goal => goal.UserId),
+                new CreateIndexOptions
+                {
+                    Name = "IX_FinancialGoals_UserId"
+                }));
+
+        // Expenses
+        await ExpensesCollection.Indexes.CreateOneAsync(
+            new CreateIndexModel<Expense>(
+                Builders<Expense>.IndexKeys
+                    .Ascending(expense => expense.UserId)
+                    .Ascending(expense => expense.Date),
+                new CreateIndexOptions
+                {
+                    Name = "IX_Expenses_UserId_Date"
+                }));
+
+        // Incomes
+        await IncomesCollection.Indexes.CreateOneAsync(
+            new CreateIndexModel<Income>(
+                Builders<Income>.IndexKeys
+                    .Ascending(income => income.UserId)
+                    .Ascending(income => income.Date),
+                new CreateIndexOptions
+                {
+                    Name = "IX_Incomes_UserId_Date"
+                }));
+
+        // Budgets
+        await BudgetsCollection.Indexes.CreateOneAsync(
+            new CreateIndexModel<Budget>(
+                Builders<Budget>.IndexKeys
+                    .Ascending(budget => budget.UserId)
+                    .Ascending(budget => budget.Year)
+                    .Ascending(budget => budget.Month),
+                new CreateIndexOptions
+                {
+                    Name = "IX_Budgets_UserId_Year_Month"
+                }));
+    }
 }

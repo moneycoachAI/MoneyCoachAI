@@ -55,13 +55,20 @@ function FinancialGoalsPage() {
 
   const loadGoals = async () => {
     try {
-      const [goalData, recommendationData] = await Promise.all([
-        getFinancialGoals(),
-        getGoalRecommendations(),
-      ]);
+      const goalData = await getFinancialGoals();
 
       setGoals(goalData);
-      setRecommendations(recommendationData);
+
+      void getGoalRecommendations()
+        .then((recommendationData) => {
+          setRecommendations(recommendationData);
+        })
+        .catch((error) => {
+          console.error(
+            "Failed to load goal recommendations:",
+            error
+          );
+        });
     } catch (error) {
       console.error("Failed to load financial goals:", error);
       alert("Failed to load financial goals");
@@ -71,17 +78,30 @@ function FinancialGoalsPage() {
   useEffect(() => {
     const loadInitialGoals = async () => {
       try {
-        const [goalData, recommendationData] = await Promise.all([
-          getFinancialGoals(),
-          getGoalRecommendations(),
-        ]);
+        const goalData = await getFinancialGoals();
 
         setGoals(goalData);
-        setRecommendations(recommendationData);
+
+        setLoading(false);
+
+        void getGoalRecommendations()
+          .then((recommendationData) => {
+            setRecommendations(recommendationData);
+          })
+          .catch((error) => {
+            console.error(
+              "Failed to load goal recommendations:",
+              error
+            );
+          });
       } catch (error) {
-        console.error("Failed to load financial goals:", error);
+        console.error(
+          "Failed to load financial goals:",
+          error
+        );
+
         alert("Failed to load financial goals");
-      } finally {
+
         setLoading(false);
       }
     };
